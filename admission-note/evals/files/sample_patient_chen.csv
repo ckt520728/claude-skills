@@ -1,0 +1,82 @@
+Field,Value
+PATIENT INFORMATION,
+Patient Name,Chen Da-Ming
+MRN,M20240156
+Date of Birth,1958-03-12
+Age,66
+Gender,Male
+Date of Admission,2026-04-06
+Attending Physician,Dr. Lin Wei-Cheng
+Room / Ward,6B-302
+Admitting Diagnosis,Acute exacerbation of COPD with community-acquired pneumonia
+,
+CHIEF COMPLAINT,
+CC,Progressive dyspnea x3 days with fever and productive yellow sputum
+,
+HISTORY OF PRESENT ILLNESS,
+HPI,66-year-old male with known COPD presenting with progressive dyspnea over 3 days with yellow sputum and fever 38.8C.
+,
+PAST MEDICAL HISTORY,
+PMH 1,COPD Stage III GOLD
+PMH 2,Type 2 Diabetes Mellitus
+PMH 3,Hypertension
+PMH 4,Dyslipidemia
+,
+PAST SURGICAL HISTORY,
+PSH,Appendectomy 1995
+,
+MEDICATIONS,
+Med 1,Salbutamol inhaler 100mcg PRN
+Med 2,Tiotropium 18mcg once daily
+Med 3,Metformin 500mg twice daily
+Med 4,Amlodipine 5mg once daily
+Med 5,Atorvastatin 20mg once daily
+,
+ALLERGIES,
+Allergy 1,Penicillin - anaphylaxis
+Allergy 2,Sulfa drugs - rash
+,
+FAMILY HISTORY,
+FHx,Father: COPD deceased age 72; Mother: DM HTN
+,
+SOCIAL HISTORY,
+Smoking,40 pack-years; quit 5 years ago
+Alcohol,Occasional
+Occupation,Retired factory worker
+Living,Lives with wife; independent ADLs
+,
+VITAL SIGNS,
+Temperature,38.6 C
+Heart Rate,108 bpm
+Blood Pressure,142/88 mmHg
+Respiratory Rate,26 breaths/min
+SpO2,88% on room air; 94% on 2L O2
+Weight,72 kg
+Height,168 cm
+,
+PHYSICAL EXAMINATION,
+General,Alert mild respiratory distress using accessory muscles
+HEENT,Normocephalic moist mucous membranes
+Neck,No JVD no lymphadenopathy
+Cardiovascular,Regular rate and rhythm no murmur
+Pulmonary,Decreased breath sounds bilaterally diffuse expiratory wheezing coarse crackles at right base
+Abdomen,Soft non-tender no hepatosplenomegaly
+Extremities,No clubbing mild pitting edema bilateral ankles
+Neurological,Alert and oriented x3 no focal neurological deficits
+,
+LABORATORY RESULTS,
+WBC,14.2 x10^3/uL elevated
+Hemoglobin,12.8 g/dL
+CRP,85 mg/L elevated
+Procalcitonin,1.8 ng/mL elevated
+Creatinine,1.1 mg/dL
+Blood Glucose,186 mg/dL
+,
+IMAGING,
+CXR,Right lower lobe infiltrate consistent with pneumonia bilateral hyperinflation
+,
+ASSESSMENT AND PLAN,
+Problem 1,Acute exacerbation of COPD: Methylprednisolone 40mg IV q8h x5d; Salbutamol nebulization q4h; O2 to SpO2>92%
+Problem 2,Community-acquired pneumonia RLL: Levofloxacin 750mg IV qd (penicillin allergy); Monitor CRP; Repeat CXR 48h
+Problem 3,Hypoxemic respiratory failure: Continuous SpO2 monitoring; ABG in 6h; Consider NIV if worsening
+Problem 4,Uncontrolled T2DM: Hold metformin; Sliding scale insulin; Blood glucose monitoring q6h

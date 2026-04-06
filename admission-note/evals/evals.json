@@ -1,0 +1,51 @@
+{
+  "skill_name": "admission-note",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "請幫我根據以下病人資料，生成一份住院 admission note 的 Word 檔：\n\n病人姓名：王美玲\nMRN：A109876\n生日：1972-07-25（年齡 53 歲）\n性別：女\n入院日期：2026-04-06\n主治醫師：Dr. Chang Hsiao-Lin\n\n主訴 (CC)：右下腹疼痛 2 天，伴噁心嘔吐\n\nHPI：53 歲女性，右下腹疼痛漸進性加重 2 天，VAS 7/10，噁心嘔吐 3 次，發燒 38.2°C。\n\nPMH：Hypertension, Hyperlipidemia\nPSH：Cesarean section x2\n用藥：Amlodipine 10mg QD, Rosuvastatin 10mg QD\n過敏：NKDA\n家族史：母親大腸癌\n社會史：不吸菸不飲酒，家庭主婦\n\n生命徵象：T 38.2°C, HR 92, BP 128/82, RR 18, SpO2 98% RA, 體重 58kg\n\n身體檢查：RLQ tenderness rebound+, McBurney+, Rovsing+\n\n檢驗：WBC 15.8 (H), CRP 112 (H)\n影像：腹部 CT：appendix 9.5mm fat stranding → acute appendicitis\n\nA&P：\n1. Acute appendicitis → 外科會診，腹腔鏡闌尾切除術\n2. Fever → Cefazolin 1g IV q8h\n3. HTN → continue Amlodipine",
+      "expected_output": "Formatted .docx admission note for Wang Mei-Ling with all standard sections",
+      "files": [],
+      "assertions": [
+        "A .docx file is created and saved to disk",
+        "The document contains patient name Wang or Mei-Ling or 王美玲",
+        "The document contains sections for Chief Complaint HPI PMH Medications Allergies Vital Signs Physical Exam Labs and Assessment Plan",
+        "The Assessment and Plan section has numbered problems",
+        "The document title includes Admission Note",
+        "Patient demographics MRN DOB age gender appear in the document"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have a patient CSV file. Please read it and generate an admission note Word document. File path: C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/2a0ed962-b562-48ab-91f0-7c2722a6b7e9/eea8f95b-59bf-45be-b18b-060b61e7401f/skills/admission-note/evals/files/sample_patient_chen.csv",
+      "expected_output": "Formatted Word admission note for Chen Da-Ming extracted from CSV",
+      "files": [
+        "evals/files/sample_patient_chen.csv"
+      ],
+      "assertions": [
+        "A .docx file is created and saved to disk",
+        "The document contains patient name Chen or Da-Ming",
+        "The document includes COPD and pneumonia",
+        "All required clinical sections present",
+        "Penicillin allergy mentioned",
+        "Assessment and Plan has at least 2 numbered problems",
+        "Vital signs values present"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "幫我寫一份住院病歷 Word 檔。病人：林志偉，男，58歲，MRN: C334512。入院日 2026-04-06，主治 Dr. Wu Jian-Ming 心臟科。\n\nCC：胸痛冷汗 4 小時\nHPI：突發壓迫性胸痛放射左臂，伴冷汗呼吸困難\nPMH：DM T2, Dyslipidemia\nPSH：無\n藥物：Metformin 1000mg BID, Rosuvastatin 20mg QD\n過敏：無\n家族史：父親 62 歲心肌梗塞\n社會史：吸菸 30 year pack-years\n\nVitals: T 37, HR 98, BP 155/95, RR 20, SpO2 96%\nPE: S3 gallop，無 murmur，無下肢水腫\nECG: ST elevation II III aVF inferior MI\nTroponin I 12.8 (H), CK-MB 85 (H)\n\nA&P:\n1. Acute inferior STEMI → emergent PCI, Aspirin 325mg + Ticagrelor 180mg\n2. HTN → Lisinopril 5mg QD\n3. DM → stop Metformin, sliding scale insulin\n4. Dyslipidemia → Atorvastatin 80mg QD",
+      "expected_output": "Professional Word admission note for Lin Zhi-Wei STEMI with 4 problems in A&P",
+      "files": [],
+      "assertions": [
+        "A .docx file is created and saved to disk",
+        "Document contains patient name Lin or Zhi-Wei or 林志偉",
+        "STEMI or myocardial infarction mentioned",
+        "ECG findings ST elevation mentioned",
+        "Assessment Plan includes PCI or cardiac intervention",
+        "All standard admission note sections present",
+        "Troponin or cardiac enzyme values in labs section"
+      ]
+    }
+  ]
+}
