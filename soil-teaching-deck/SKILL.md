@@ -1286,3 +1286,21 @@ npm install -g pptxgenjs
 **教訓：** 寫 Skill 時 frontmatter 統一用 `|`（literal）而非 `>`（folded）；引用外部檔案前先確認檔案存在或至少在 SKILL.md 同層。
 
 **前置依賴：** 本 skill 可呼叫 `draw` skill（gpt-image-2）插圖；ChatGPT/Codex 訂閱者免另設 API key 即可使用 gpt-image-2（OpenAI 2026-04-21 公告）。
+
+
+---
+
+## 跨工具協作模式（推薦）
+
+如果使用者**沒有設定 OpenAI API key**或明確說「圖像我自己用 Codex/ChatGPT 生」，本 skill 改走「跨工具協作 SOP」：
+
+- Claude 跑引擎 1–5，產出 `specs/image_briefs.md`（每張圖一個獨立完整 prompt）
+- 使用者去 ChatGPT 網頁版或 Codex CLI 跑 gpt-image-2 生圖，存到 `images/page_NN_<role>.png`
+- 使用者回來說「圖好了」後，Claude 做 QA + 打包（image-deck 跑 `pack_pptx.py`、teaching-deck 寫 python-pptx、html-deck 寫 base64 內嵌 HTML）
+
+**完整 SOP 請讀：** [`_shared/cross-tool-image-sop.md`](../_shared/cross-tool-image-sop.md)
+
+**關鍵守則：**
+1. 跑完引擎 5 一定要**停下來**等使用者生圖，不要假裝圖已生好
+2. 嚴守檔名 `page_NN_<role>.png`（NN 補零）
+3. 圖回來後**先 QA 再打包**（逐張檢查文字、風格、佈局）
