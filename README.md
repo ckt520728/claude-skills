@@ -117,3 +117,35 @@ cp -r soil-image-deck soil-teaching-deck soil-html-deck ~/.claude/skills/
 ```
 
 ⚠️ **frontmatter 一律用 `description: |`（literal）而非 `>`（folded）**。詳見 [docs/2026-05-09-install-pitfalls.md](docs/2026-05-09-install-pitfalls.md)。
+
+---
+
+### personal-medical-website
+
+**2026-05-10 新增**
+
+從頭到尾只輸出單一 `index.html`，零 build 步驟，瀏覽器直接開啟。
+適合臨床醫師、醫學研究者、雙專長學者建立中文個人作品集 + 知識教育網站。
+
+**內建互動模組：**
+- eGFR 計算器（CKD-EPI 2021 無種族因子）
+- CKD 分期 Chart.js 水平長條圖（自定義 afterDraw marker plugin）
+- 腎元 SVG 動畫（速率與 eGFR 連動）
+- 大腦 SVG 互動地圖（6 腦區，點擊後資訊面板滑入）
+- 認知功能雷達圖（典型老化 vs MCI 切換）
+- 3 題 MCQ 測驗（即時回饋 + 解釋）
+- 研究著作垂直時間軸、演講/課程 Tab 頁
+
+**Trigger phrases：** 「幫我做個人網站」、「醫師個人頁面」、「學術作品集」、「互動式自我介紹網站」
+
+**踩坑整理（9 個坑，見 SKILL.md）：** Edit 工具 old_string 精確匹配、圖片上傳路徑、onerror 回退鏈、Chart.js plugin 傳入方式、SVG pointer-events、AOS refresh、Chart destroy/recreate、gh 登入確認、YAML | vs >
+
+#### 安裝
+
+```bash
+# macOS/Linux
+cp -r personal-medical-website ~/.claude/skills/
+
+# Windows
+xcopy /E /I personal-medical-website "%APPDATA%\Claude\skills\personal-medical-website"
+```
