@@ -1,191 +1,175 @@
 ---
 name: lecture-notes
 description: |
-  Generate beautifully formatted lecture notes PDF from audio recordings and presentation slides (PPT/PDF).
-  Combines AI-powered speech transcription (Groq Whisper), content extraction, structured concept map generation
-  (HTML/CSS with AI decorative illustrations), and PDF compilation into a cohesive, visually rich document.
+  Generate beautifully formatted lecture notes (PDF/PPTX) from audio recordings and presentation slides,
+  using NotebookLM's multimodal understanding and Slide Deck generator (powered by Gemini + Nano Banana
+  image generation). Produces illustrated, structured notes in 黃鍔院士-report style.
 
   USE THIS SKILL whenever the user wants to:
   - Convert lecture recordings into formatted notes
   - Create lecture notes from audio + slides
   - Transcribe a class recording and make study notes
-  - Generate visual concept maps from lecture content
+  - Generate visual concept maps / illustrated slides from lecture content
   - Turn a presentation + recording into a study document
-  - Make illustrated course notes from class materials
   - Process 錄音檔/上課錄音 into 筆記/講義
   - Create 課堂筆記 from 投影片 and 錄音
 
   Also trigger when the user mentions: lecture notes, class notes, 課堂筆記, 上課筆記, 講義製作,
-  錄音轉筆記, 投影片筆記, or any combination of audio/recording + slides/PPT + notes/summary.
+  錄音轉筆記, 投影片筆記, 黃鍔院士筆記風格.
 ---
 
-# Lecture Notes Generator
+# Lecture Notes Generator (NotebookLM-powered)
 
-Transform lecture audio recordings and presentation slides into beautifully formatted,
-visually rich PDF notes — with structured concept maps, color-coded key points, and
-organized lecture transcripts.
-
-## Output Style
-
-Each topic section in the output PDF follows this structure:
-
-1. **Section Title** — Bold heading in Chinese (e.g. 「課程介紹：三大挑戰」)
-2. **Concept Map** — A large, colorful structured infographic summarizing the section's key ideas
-3. **Lecture Transcript** — Conversational Chinese text preserving the speaker's tone, examples, and stories
-4. **Separator** — Horizontal line before the next section
-
-### Concept Map Visual Style
-- Parchment/beige textured background
-- Color coding: **red** = key terms, **green** = supplementary notes, **blue** = connecting arrows
-- Concepts enclosed in boxes/rounded rectangles with arrow-based flow
-- Chinese as primary language, English terms in parentheses (e.g. 「素流 (Turbulence)」)
-- Mathematical formulas where relevant (e.g. E=mc², E(k)∝k^(-5/3))
-- Large red/dark bold titles
-- Decorative AI-generated illustrations for visual metaphors
-
-### Transcript Style
-- Traditional Chinese (繁體中文)
-- Conversational tone preserving speaker's voice (「好，那我現在就來介紹...」)
-- Speaker's metaphors, stories, and personal anecdotes retained
-- Paragraphed by sub-topics
+Transform a lecture audio recording + presentation slides into an illustrated notes document.
+Uses NotebookLM under the hood — its Slide Deck generator handles transcription, segmentation,
+concept mapping, and illustration (via Nano Banana) in one step, producing higher-quality output
+than a self-built Groq+OpenAI pipeline.
 
 ## Required Inputs
 
 | Input | Format | Required |
 |-------|--------|----------|
 | Audio recording | `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac` | Yes |
-| Presentation slides | `.pdf` (converted from PPT) or `.pptx` | Yes |
-| Course name | Text | Optional |
-| Speaker name | Text | Optional |
-| Date | Text | Optional |
+| Presentation slides | `.pdf` (convert from PPT first if needed) | Yes |
+| Course / speaker / date | Text | Optional (passed into focus_prompt) |
+
+If given a `.pptx`, convert to PDF first:
+`soffice --headless --convert-to pdf <file>` (LibreOffice).
+
+## Tools Used
+
+All from the `notebooklm-mcp` MCP server (prefix `mcp__notebooklm-mcp__`):
+- `notebook_create` — create a new notebook
+- `source_add` (source_type=`file`) — upload audio + PDF
+- `studio_create` (artifact_type=`slide_deck`) — generate illustrated slide deck
+- `studio_status` — poll generation progress
+- `download_artifact` — download final PDF/PPTX
 
 ## Workflow
 
-Follow these steps in order. Each step has a corresponding script in `scripts/`.
+### Step 1: Create Notebook
 
-### Step 1: Set Up Environment
+```
+mcp__notebooklm-mcp__notebook_create(title="<課程名>-<日期>-<講者>")
+```
+Save the returned `notebook_id`.
 
-Create a working directory and install dependencies:
+### Step 2: Upload Sources (in parallel)
 
-```bash
-uv venv --python 3.14 .venv
-uv pip install groq openai pymupdf pillow playwright jinja2 weasyprint
-playwright install chromium
+Upload both files with `wait=True` so processing finishes before moving on. These can be
+called in the same tool-call turn (parallel).
+
+```
+mcp__notebooklm-mcp__source_add(
+  notebook_id=<id>, source_type="file",
+  file_path="<audio path>", wait=True, wait_timeout=600
+)
+mcp__notebooklm-mcp__source_add(
+  notebook_id=<id>, source_type="file",
+  file_path="<slides PDF path>", wait=True, wait_timeout=300
+)
 ```
 
-### Step 2: Transcribe Audio
+Audio transcription inside NotebookLM takes longer than PDF ingest — bump `wait_timeout`
+for large recordings (>1 hr audio can need 600s+).
 
-Use `scripts/transcribe.py` to transcribe the audio file via Groq Whisper API.
+### Step 3: Generate Slide Deck
 
-```bash
-python scripts/transcribe.py --audio <path> --output transcript.json --api-key <GROQ_KEY>
+```
+mcp__notebooklm-mcp__studio_create(
+  notebook_id=<id>,
+  artifact_type="slide_deck",
+  slide_format="detailed_deck",
+  slide_length="default",
+  language="zh-TW",
+  focus_prompt=<STYLE_PROMPT>,
+  confirm=True
+)
 ```
 
-The script handles:
-- Splitting long audio files into 25MB chunks (Groq's limit)
-- Sending each chunk to Groq's `whisper-large-v3` model
-- Merging results with timestamps into a single transcript JSON
+Use **this `focus_prompt`** (tuned to the 黃鍔院士 report style the user wants):
 
-Output: `transcript.json` with timestamped segments.
+> 請製作一份繁體中文的課堂筆記投影片，風格模仿學術報告手寫筆記：
+> 1. 每個主題一頁，頁首是簡潔有力的中文標題（例如「三大研究假設」「反應時間分析」）
+> 2. 主體是一張彩色的結構化概念圖，用方框、箭頭、分組表現概念之間的關係
+> 3. 色彩語義：紅=關鍵字/核心概念、綠=補充說明、藍=流程/連結、橘=警告、紫=人物/歷史
+> 4. 中文為主，重要英文術語用括號標註（例如「素流 (Turbulence)」）
+> 5. 保留講者的語氣、比喻、例子和個人軼事，不要過度摘要
+> 6. 遇到公式、統計結果（p值、相關係數、AUC 等）要直接呈現
+> 7. 每張投影片底部加一句 key takeaway 總結該主題
+> 8. 頁面背景可以用米白/羊皮紙色調，排版寬鬆不擁擠
+> 9. 搭配插圖：對比喻、流程、物體可用手繪風格小插圖（避免寫實人臉）
+>
+> 章節結構參考：課程介紹 → 背景理論 → 研究假設 → 方法 → 結果 → 討論 → 結論
 
-### Step 3: Extract Slide Content
+If the user provides context/date/speaker, prepend them to the prompt:
+> 本筆記來自 <講者> 於 <日期> 的報告：<課程/主題>。
 
-Use `scripts/extract_pdf.py` to extract text and images from the presentation PDF.
+### Step 4: Poll Until Ready
 
-```bash
-python scripts/extract_pdf.py --pdf <path> --output slides.json
+```
+mcp__notebooklm-mcp__studio_status(notebook_id=<id>)
 ```
 
-The script uses PyMuPDF to extract:
-- Text content from each page/slide
-- Embedded images (saved to `assets/slide_images/`)
-- Page numbers and layout info
+Slide deck generation typically takes 2–8 minutes. Find the artifact of type `slide_deck`
+and check `status == "completed"`, then grab its `artifact_id`.
 
-Output: `slides.json` with per-slide content.
+Use `ScheduleWakeup(delaySeconds=270)` between polls (stays in 5-min cache window).
+Don't poll tighter than 60s.
 
-### Step 4: Segment and Align Content
+### Step 5: Download
 
-Use `scripts/segment.py` to intelligently segment the transcript into topic sections
-aligned with the slides.
-
-```bash
-python scripts/segment.py --transcript transcript.json --slides slides.json --output sections.json --api-key <OPENAI_KEY>
+Default: PDF
+```
+mcp__notebooklm-mcp__download_artifact(
+  notebook_id=<id>,
+  artifact_type="slide_deck",
+  artifact_id=<id>,
+  output_path="<course>_筆記.pdf",
+  slide_deck_format="pdf"
+)
 ```
 
-This step uses GPT-4o to:
-- Analyze slide content and transcript together
-- Identify natural topic boundaries
-- Create section titles (Chinese, descriptive)
-- Assign transcript segments to corresponding slides
-- Extract key concepts, terms, and relationships for each section
-- Generate concept map data structure (nodes, edges, groups)
+Ask whether they also want `.pptx` — if yes, call again with `slide_deck_format="pptx"`.
 
-Output: `sections.json` with structured section data.
+### Step 6 (Optional): Companion Artifacts
 
-### Step 5: Generate Concept Maps
+Offer these extras (same notebook, no re-upload):
+- `artifact_type="audio"` → podcast-style deep-dive (good for commute review)
+- `artifact_type="report"`, `report_format="Study Guide"` → written study guide
+- `artifact_type="mind_map"` → overall mind map for whole lecture
+- `artifact_type="flashcards"` → active-recall cards
 
-Use `scripts/generate_concept_map.py` to create visual concept maps for each section.
+## Poll-and-Wait Pattern
 
-```bash
-python scripts/generate_concept_map.py --sections sections.json --output-dir concept_maps/ --api-key <OPENAI_KEY>
-```
+`studio_create` is asynchronous. Confirm the call succeeded, then poll `studio_status`.
+Prefer `ScheduleWakeup` with `delaySeconds=270` over tight polling loops. Typical total
+wall time: **5–15 minutes per slide deck**.
 
-This is a two-phase process:
+## Error Handling
 
-**Phase A: HTML/CSS Structured Layout**
-- Renders each concept map as an HTML page using Jinja2 templates
-- Precise Chinese text rendering (no AI text generation errors)
-- Color-coded boxes, arrows, flow diagrams
-- Mathematical formulas via KaTeX
-- Captures as high-resolution PNG via Playwright
+- **Source upload fails / timeout**: large audio (>1 hr) may need `wait_timeout=900`. If still
+  failing, split audio first (`ffmpeg -i in.mp3 -ss <start> -t <dur> -c copy chunk.mp3`) and upload
+  segments.
+- **`studio_create` returns `awaiting_confirmation`**: must pass `confirm=True`.
+- **Artifact stuck in_progress >20 min**: re-run `studio_create` — NotebookLM occasionally drops jobs.
+- **Language comes out in English**: pass `language="zh-TW"` AND include 繁體中文 instruction
+  in `focus_prompt`.
 
-**Phase B: AI Decorative Enhancement**
-- Uses OpenAI GPT-4o image generation to create small decorative illustrations
-  (e.g. a coffee cup for diffusion metaphor, a tornado for turbulence)
-- Composites illustrations onto the concept map at designated positions
-- Adds parchment texture background
+## Style Tuning
 
-Output: `concept_maps/section_N.png` for each section.
+The `focus_prompt` is the main lever. If output is wrong:
+- Too summary-like → add 「保留講者原話和例子，不要過度濃縮」
+- Too plain / no illustrations → add 「每頁加入手繪風格小插圖表達概念比喻」
+- Wrong colour scheme → specify colours explicitly
+- Too many/few slides → tune `slide_length` (short|default)
 
-### Step 6: Compile Final PDF
+When the user approves a `focus_prompt` variant, save it to `references/<name>-prompt.md`
+so it becomes reusable.
 
-Use `scripts/compile_pdf.py` to assemble everything into the final PDF.
+## Fallback: Self-Built Pipeline
 
-```bash
-python scripts/compile_pdf.py \
-  --sections sections.json \
-  --concept-maps concept_maps/ \
-  --output <output_path>.pdf \
-  --title <course_name> \
-  --speaker <speaker_name> \
-  --date <date>
-```
-
-The script uses WeasyPrint to generate a PDF with:
-- Section titles in bold serif font
-- Concept map images (full width)
-- Formatted transcript text below each map
-- Horizontal separators between sections
-- Proper page breaks
-
-Output: Final PDF file.
-
-## API Keys
-
-This skill requires two API keys:
-
-| Service | Purpose | Key |
-|---------|---------|-----|
-| **Groq** | Audio transcription (Whisper) | User's Groq key |
-| **OpenAI** | Content segmentation (GPT-4o) + Decorative illustrations (image generation) | User's OpenAI key |
-
-Ask the user for their API keys if not already known. Keys can also be set as environment variables:
-`GROQ_API_KEY` and `OPENAI_API_KEY`.
-
-## Tips
-
-- For best transcription quality, ensure the audio is clear with minimal background noise
-- Lectures longer than 2 hours will take longer to process — consider splitting
-- The concept map generation is the most time-intensive step (2-3 minutes per section)
-- If the user provides a `.pptx` file, convert it to PDF first using LibreOffice or similar
-- Always preview the generated concept maps before final PDF compilation and ask the user if adjustments are needed
+If NotebookLM MCP is unavailable or explicitly requested, legacy Groq+OpenAI scripts live in
+`scripts/` (transcribe.py, extract_pdf.py, segment.py, generate_concept_map.py, compile_pdf.py).
+Requires GROQ_API_KEY and OPENAI_API_KEY. Lower illustration quality. Only use as last resort —
+see `scripts/README.md` for the old workflow.
