@@ -1,0 +1,8 @@
+interface:
+  display_name: "OpenClaw Automation"
+  short_description: "Restore OpenClaw LINE webhook tunnels and startup recovery."
+  brand_color: "#16A34A"
+  default_prompt: "Use $openclaw-automation to restore my OpenClaw LINE webhook and startup automation."
+policy:
+  allow_implicit_invocation: true
+

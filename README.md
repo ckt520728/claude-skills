@@ -4,6 +4,25 @@ A collection of custom Claude Code skills.
 
 ## Skills
 
+### openclaw-automation
+
+Restores and operationalizes an OpenClaw + LINE assistant on Windows when the local proxy, Cloudflare quick tunnel, or LINE webhook endpoint stops working.
+
+**Use for:**
+- OpenClaw LINE webhook outage recovery
+- Cloudflare quick tunnel URL rotation after reboot
+- Windows startup/daily recovery task setup
+- Codex heartbeat automation stale-thread diagnosis
+
+**Included scripts:**
+- `scripts/ensure-openclaw-line.ps1` restarts proxy/tunnel, updates LINE endpoint, and runs LINE official webhook test.
+- `scripts/line-webhook-proxy.mjs` exposes only `/line/webhook` locally and forwards POST requests to OpenClaw Gateway.
+- `scripts/run-openclaw-line-ensure.cmd` provides a stable Windows scheduled-task/Startup wrapper.
+
+**Portable artifact:** `openclaw-automation.skill`
+
+---
+
 ### admission-note
 
 Automatically generates a hospital admission note (`.docx`) from patient data provided via:
