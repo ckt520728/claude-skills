@@ -168,3 +168,103 @@ cp -r personal-medical-website ~/.claude/skills/
 # Windows
 xcopy /E /I personal-medical-website "%APPDATA%\Claude\skills\personal-medical-website"
 ```
+---
+
+## 每日自動化八件套 Skill（2026-05-13 新增）
+
+針對日常閱讀、寫作、會議、求職、資料分析、Email、知識管理、個人看板等場景設計的八個 Skill。設計上**不依賴外部 LLM API**——Claude Code 本身就執行所有任務,所以零 API 花費、零 token 計算、所有資料留在本地。
+
+每個 Skill 都對應一份常見的 OpenAI API 範例,但設計上做了根本改進:強制零捏造數字、強制業務問題前置、強制使用者干預點、反 LLM 陳腐用詞清單、與其他 Skill 的協作整合點。
+
+### research-organizer
+
+把雜亂的研究素材(論文摘抄、會議筆記、調查資料、TXT/MD/PDF 抽出的文字)整理成結構化、可後續行動的研究筆記。固定 7 個區塊(摘要 / 核心論點 / 技術概念 / 可行動洞察 / 引用金句 / 未解問題 / 連結),空區塊整段刪掉。**節錄勝過改寫**,關鍵句直接引用標來源。
+
+**Portable artifact:** `research-organizer.skill`
+
+---
+
+### article-writer
+
+從一個題目或一份素材生出一篇可發布的長文,先產 outline 讓使用者改,再展開成完整文章。支援多平台格式(Medium / dev.to / LinkedIn / Hugo / Jekyll / Substack)。內建反 LLM 文風清單:`delve into` / `leverage` / `In conclusion` 通通禁掉。
+
+**Portable artifact:** `article-writer.skill`
+
+---
+
+### meeting-minutes
+
+把會議逐字稿、Zoom/Teams 自動轉錄、Otter.ai 匯出整理成結構化、可追蹤、可下次接續的會議紀錄。**強制規則**:每個 action item 必須有負責人 + 期限 + 完成標準。Decision vs Discussion 嚴格區分,保留決策理由。
+
+**Portable artifact:** `meeting-minutes.skill`
+
+---
+
+### resume-tailor
+
+把現有履歷根據特定 JD 做客製化調整——重新排序、調整用詞、補強關鍵字,**但絕不捏造**事實。**鐵則**:原文沒數字就不准加。寫前必跑 gap 分析,讓使用者確認哪些是「履歷沒寫但實際有」、哪些是「真的沒做過」。輸出客製履歷 + 改動清單兩份檔。
+
+**Portable artifact:** `resume-tailor.skill`
+
+---
+
+### knowledge-base
+
+個人知識庫的雙向工具:(A) 把外部素材整理成原子化、可連結、有引用的筆記寫入 Obsidian vault 或本地檔案系統;(B) 從現有知識庫查詢、跨筆記綜整、給出帶引用的答案。**走「結構化 + 連結」路線,不是 vector RAG**——Obsidian wikilinks 比 embedding 更適合個人長期知識管理。
+
+**Portable artifact:** `knowledge-base.skill`
+
+---
+
+### email-assistant
+
+處理 email 工作流——閱讀收件夾、回覆既有 thread、從零寫新信、批次分類待回覆信件。整合 Gmail MCP 讀 thread + 存草稿,**絕不主動寄出**。內建中英文反 LLM email 句型禁用清單(`I hope this email finds you well` / `祝商祺` 等)。
+
+**Portable artifact:** `email-assistant.skill`
+
+---
+
+### data-analyzer
+
+對結構化資料(CSV、Excel、JSON、Parquet、SQLite)做嚴謹的探索性分析。**鐵則:零數字捏造**——所有數字一律來自實際 pandas/numpy/scipy 計算,每個聲稱附 `(computed: ...)` 引用。強制問業務問題後才開跑分析。生成 PNG 視覺化 + Markdown 報告 + 可重跑的 Python 腳本。
+
+**Portable artifact:** `data-analyzer.skill`
+
+---
+
+### dashboard-builder
+
+為使用者建立個人化資訊看板——從既有資料來源(Gmail / Obsidian / Calendar / NotebookLM / 本地檔案)聚合成每日 briefing、每週回顧。**預設 Markdown 不是 Streamlit**(個人 dashboard 不該要求跑 server)。**鐵則:零虛擬資料**——資料來源連不上就顯示「⚠️ 連線失敗 @ 時間」,不留空也不塞假資料。
+
+**Portable artifact:** `dashboard-builder.skill`
+
+---
+
+### 八個 Skill 的協作整合
+
+```
+日常閱讀     →  research-organizer    →  研究筆記
+                                              ↓
+寫作發布     →  article-writer         ←       │
+                                              ↓
+會議追蹤     →  meeting-minutes        →   決議 + actions
+                                              ↓
+求職應徵     →  resume-tailor                  │
+                                              ↓
+持久收藏     →  knowledge-base         ←  ─ ─ ┤  (樞紐)
+                                              ↓
+日常溝通     →  email-assistant        ←       │
+                                              ↓
+資訊處理     →  data-analyzer          →   報告 + 圖
+                                              ↓
+聚合呈現     →  dashboard-builder      ←  匯總前 7 個的輸出
+```
+
+### 共同設計原則
+
+1. **零外部 API 依賴**:不呼叫 OpenAI / Gemini / 其他 LLM API——Claude 自己做
+2. **零捏造**(資料分析的數字、履歷的成就、Email 的承諾、knowledge-base 的引用、dashboard 的數據)
+3. **強制業務問題前置**:在資料分析、文章寫作、dashboard 設計時,先問「要回答什麼問題」
+4. **使用者干預點**:長流程一定有暫停讓使用者改方向(outline 階段、gap 分析、triage 分類)
+5. **反 LLM 陳腐用詞清單**:每個 Skill 都有對應領域的禁用詞庫
+6. **協作整合**:每個 Skill 的輸出都可以是另一個 Skill 的輸入,組成完整工作流
