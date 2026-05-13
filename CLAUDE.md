@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 行為準則 + 此工作區的硬性規則。改寫自 Andrej Karpathy 公開分享的 CLAUDE.md 模板,並合併個人踩坑紀錄。
 
 **Tradeoff:** 這份規則偏向謹慎勝於速度。瑣碎任務自行判斷。
@@ -143,6 +145,97 @@ description: <一段話含觸發詞,繁中為主>
 - 日期格式:`YYYY-MM-DD`
 - 路徑分隔符討論時用 `/`,實作時依平台
 - 不主動加 emoji 到檔案內容,除非使用者明確要求
+
+### 5.6 本地 Skill Loader 的 `description: |` 規則
+
+本地安裝（`~/.claude/skills/`）時，`description` 欄位必須用 **literal block scalar（`|`）**，不能用 folded scalar（`>`）。
+
+```yaml
+# ✅ 正確
+description: |
+  第一行說明。
+  第二行說明。
+
+# ❌ 錯誤——loader 回報「Skill.md must start with YAML front matter」，但根因是這個
+description: >
+  第一行說明。
+```
+
+注意：§5.1 是 claude.ai **上傳介面**的規則；本節是**本地 loader** 的規則，兩者獨立。詳見 `docs/2026-05-09-install-pitfalls.md`。
+
+---
+
+## 6. Skill 清單（快速索引）
+
+| Skill | 觸發語（節錄） | 輸出 | 關鍵依賴 |
+|-------|--------------|------|---------|
+| `admission-note` | admission note、住院病歷、入院紀錄 | `.docx` | `python-docx` |
+| `lecture-notes` | lecture notes、課堂筆記、錄音轉筆記 | PDF / PPTX | `notebooklm-mcp` MCP（首選）；備援: Groq + OpenAI |
+| `soil-image-deck` | 純圖片簡報、全圖簡報 | 全圖 `.pptx` | `gpt-image-2` + `pack_pptx.py` |
+| `soil-teaching-deck` | 教學簡報、上課用投影片、用 SOIL 做簡報 | 可編輯 `.pptx` | PptxGenJS、`python-pptx`、`cairosvg` |
+| `soil-html-deck` | HTML 簡報、互動式簡報、可分享連結的簡報 | 單一 `.html` | `gpt-image-2`、Pillow |
+| `openclaw-automation` | OpenClaw 斷線、LINE webhook 掛掉 | 恢復腳本 | Node.js |
+| `personal-medical-website` | 個人網站、醫師個人頁面、學術作品集 | 單一 `index.html` | 無（純 HTML/CSS/JS）|
+| `research-organizer` | 整理研究素材、論文筆記 | 結構化 Markdown | 無外部 API |
+| `article-writer` | 寫文章、Medium 發文 | 長文 Markdown | 無外部 API |
+| `meeting-minutes` | 會議紀錄、逐字稿整理 | 結構化 Markdown | 無外部 API |
+| `resume-tailor` | 客製履歷、根據 JD 調整 | 履歷 + 改動清單 | 無外部 API |
+| `knowledge-base` | 知識庫寫入/查詢、Obsidian 筆記 | 原子化 Markdown | 無外部 API |
+| `email-assistant` | 寫 Email、回信、整理收件夾 | 草稿（存 Gmail）| Gmail MCP；不主動送出 |
+| `data-analyzer` | 資料分析、CSV 分析 | Markdown 報告 + PNG + Python 腳本 | 無外部 API |
+| `dashboard-builder` | 個人看板、每日 briefing | Markdown 看板 | Gmail / Obsidian / Calendar MCP（可選）|
+
+---
+
+## 7. 架構快速參考
+
+### SOIL 三件套（soil-image-deck / soil-teaching-deck / soil-html-deck）
+
+共用 **六引擎流水線**：引擎 1（概念定位）→ 2（脈絡定位）→ 3（頁面架構）→ 4（認知編修）→ 5（風格建構）→ 6（生成）。引擎 1–5 是純規劃；引擎 6 才生成成品。
+
+**圖像生成兩條路：**
+1. **直接 API**：`draw` skill（`C:/Users/mathr/.claude/skills/draw/draw.py`）呼叫 `gpt-image-2`，需 `OPENAI_API_KEY`。
+2. **跨工具協作 SOP**（無 API key 時）：Claude 跑完引擎 1–5 後產出 `specs/image_briefs.md`（每頁一個獨立 prompt），停下等使用者在 ChatGPT / Codex 生圖，圖放入 `images/` 後回來打包。完整流程見 `docs/cross-tool-image-sop.md`。
+
+**跨工具圖檔命名不可協商**：`page_NN_<role>.png`（NN 補零）。`pack_pptx.py` 依此排序。
+
+`soil-teaching-deck` 額外支援幾何圖渲染（`geometry_renderer.py` + `cairosvg`）——幾何子流程（G-1 至 G-5）必須在撰寫 PptxGenJS 腳本前完成。
+
+```
+<專案>/
+├── specs/plan.md, page_layout.yaml, image_policy.yaml, image_briefs.md
+├── images/page_NN_<role>.png
+└── output/<title>.pptx or .html
+```
+
+### lecture-notes Skill
+
+主路徑用 `notebooklm-mcp`：`notebook_create` → `source_add`（音檔 + PDF 並行，`wait=True`）→ `studio_create`（`artifact_type="slide_deck"`, `language="zh-TW"`）→ `ScheduleWakeup(delaySeconds=270)` 輪詢 `studio_status` → `download_artifact`。典型完成：5–15 分鐘。
+
+備援 pipeline 在 `lecture-notes/scripts/`（Groq + GPT-4o），需 `GROQ_API_KEY` + `OPENAI_API_KEY`，僅在 MCP 不可用時使用。
+
+### openclaw-automation Skill
+
+`LINE → Cloudflare quick tunnel → proxy（:18790/line/webhook）→ OpenClaw Gateway（:18789）`。不直接對外暴露 Gateway。重開機後 tunnel URL 輪換，跑 `scripts/ensure-openclaw-line.ps1` 全自動恢復。
+
+### 安裝 Skill 到本地
+
+```powershell
+# Windows
+xcopy /E /I <skill-name> "C:\Users\User\.claude\skills\<skill-name>"
+
+# Mac/Linux
+cp -r <skill-name> ~/.claude/skills/
+```
+
+### 常用依賴速查
+
+```bash
+pip install python-pptx "markitdown[pptx]" Pillow cairosvg python-docx openpyxl
+npm install -g pptxgenjs
+# lecture-notes 備援 pipeline
+pip install groq openai pymupdf jinja2 playwright && playwright install chromium
+```
 
 ---
 
