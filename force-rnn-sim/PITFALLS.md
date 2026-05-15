@@ -181,6 +181,66 @@ Cycle 40  MSE = 0.001068   |W| = 0.629   ← MSE 比最低時惡化 250 倍
 
 ---
 
+## 失敗模式 9 — FORCE-Internal 拿掉 feedback 會殺死 chaos ⭐⭐
+
+### 現象 (v1 force_internal.py 的 bug)
+
+執行 FORCE-Internal,console 顯示:
+```
+Cycle  1 (train)  MSE = 4.636738   |J|_norm = 0.7944   elapsed = 15s
+Cycle  5 (train)  MSE = 2.508332   |J|_norm = 0.9973   elapsed = 73s
+Cycle 15 (train)  MSE = 3.794889   |J|_norm = 1.1253   elapsed = 219s
+Cycle 16 (test)   MSE = 3.068353   |J|_norm = 1.1253   elapsed = 219s
+```
+
+MSE 從沒掉到合理範圍 (理應 < 0.01),|J|_norm 長太慢 (理應到 ~2)。圖上 output 是**一條平直線** (z ≈ 1.65 常數),attractor 坍縮成一點。
+
+### 病因
+
+我寫 v1 時把 `w_fb · z` feedback 拿掉,以為 J 訓練後會自帶反饋。**這是錯的**。
+
+對照 Sussillo 原 MATLAB code `FORCE_INTERNAL_ALL2ALL.m`:
+```matlab
+% Sussillo 原版 — 訓練期間 feedback 是保留的!
+x = (1-dt)*x + M*(r*dt) + wf*(z*dt);   % wf*z 還在
+```
+
+**Feedback 不是 FORCE-Output 專屬**,它在 FORCE-Internal 訓練時**也是必要的**:
+- 維持 chaotic regime,讓 RLS 有訊號可調
+- 提供穩定的「驅動力」,網路才不會被 RLS 推進 fixed point
+- J 是學「在 feedback 環境下產出 target」,**不是「取代 feedback」**
+
+另一個 v1 缺陷:只訓 J 不訓 W。readout 從零開始 → 初始 z 太小 → error 太大 → RLS 用力修 J 把 chaos 滅了。
+
+### 修法 (force_internal.py v2)
+
+兩個修正同時做:
+1. **保留 `x = x + (dt/tau) * (-x + J @ r + w_fb * z)` 的 feedback 項**
+2. **同時訓練 W** (用 FORCE-Output 風格的 shared P_W 矩陣) + **訓練 J** (per-neuron P_J_list)
+
+```python
+# 保留 feedback
+x = x + (dt/tau) * (-x + J @ r + w_fb * z)
+
+# 訓練 W (FORCE-Output 風格)
+Pr_W = P_W @ r
+c_W = 1.0 / (1.0 + r @ Pr_W)
+P_W -= c_W * np.outer(Pr_W, Pr_W)
+W -= c_W * error * Pr_W
+
+# 訓練 J 每一列 (FORCE-Internal 風格)
+for cell in range(N):
+    ... per-neuron RLS update ...
+```
+
+### 元教訓
+
+**「演算法 X 的進階版」≠「移除演算法 X 的基本元件」**。
+我直觀以為「FORCE-Internal 訓練 J 就不需要 feedback」,但這個直覺錯了。
+正確理解:FORCE-Internal 是 FORCE-Output 的「**增量**」——把 J 訓練**加上去**,而不是**取代**任何東西。
+
+---
+
 ## 環境設置坑
 
 ### 坑 7 — Anaconda base env DLL load failed
