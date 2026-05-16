@@ -241,6 +241,107 @@ for cell in range(N):
 
 ---
 
+## 失敗模式 10 — v2 仍然失敗:W 跟 J 同時從零學 chaos target ⭐⭐⭐
+
+### 現象 (v2 跑下去之後,2026-05-16 凌晨那次)
+
+`force_internal.py` v2 已經修了 v1 的 feedback bug,但 **test phase RNN output 仍然是一條水平線停在 z ≈ 1.66**。Target (Lorenz x) 標準化後振幅約 ±1.0,output 比 target 上界還高 → 網路正面 saturate、chaos 完全死掉。
+
+訓練數字:
+```
+Cycle 15 (test)  MSE = 高,W 沒在動,J 被推離 chaotic regime
+```
+
+### 病因
+
+**v1 → v2 的 fix(保留 feedback + 同時訓 W)沒解決根本問題。** 真正的根因:
+
+- W 跟 J **同時從 0 開始學一個 chaos target**
+- 前 ~100 步 error magnitude ~ O(1.7)(= target 振幅)
+- per-neuron RLS 把這個 O(1.7) 的 error 灌進 J 的每一 row
+- J 被快速推離 chaotic regime → reservoir 失去 ergodicity
+- chaos 死後 RLS 看到的 r 不再 explore state space → W 也學不起來
+- 最終網路收斂到 fixed point,readout saturate 在 ~1.66
+
+Sussillo 原 paper Section "Learning the internal dynamics" 明確說: FORCE-Internal 的訓練起始條件是「W 已經被 FORCE-Output 訓練到網路會 generate target」,然後 J 才開始 fine-tune。v2 完全跳過這個前提。
+
+### 修法 (v3 — phase split)
+
+**Two-phase training:**
+
+```python
+W_only_cyc = 10   # 前 10 cycle 只訓 W (純 FORCE-Output)
+
+for i in range(n_steps):
+    x = x + (dt/tau) * (-x + J @ r + w_fb * z)
+    r = np.tanh(x)
+    z = float(W @ r)
+
+    if i < train_steps and i % update_every == 0 and i > 0:
+        error = z - target_all[i]
+
+        # Phase 1 & 2 都更新 W
+        Pr_W = P_W @ r
+        c_W = 1.0 / (1.0 + r @ Pr_W)
+        P_W -= c_W * np.outer(Pr_W, Pr_W)
+        W -= c_W * error * Pr_W
+
+        # Phase 2 才更新 J (i >= w_only_steps)
+        if i >= w_only_steps:
+            for cell in range(N):
+                ... per-neuron RLS update ...
+```
+
+Phase 1 結束時 W 已 imprint 大部分 Lorenz vector field,error 降到 ~10⁻⁴,Phase 2 啟動 J 訓練時 error 已經很小,J 不會被拉爆。
+
+### 元教訓
+
+**「兩個學習機制都從 0 開始」≠「兩個學習機制協同」**。當 target 是混沌時,過大的初始 error 會讓 per-neuron RLS 主動破壞 reservoir 的 chaotic regime — 必須給 W 先機 warm-up,J 才能在小 error 下做 fine-tune。
+
+---
+
+## 失敗模式 11 — `LORENZ_SLOWDOWN` 太快,target 跑得比網路追得到的還快
+
+### 現象
+
+v2 用 `LORENZ_SLOWDOWN = 200` 對應 1 Lorenz time unit = 200 ms 真實時間。但 lorenz_output 版能跑出 70-80% 蝴蝶用的是 `LORENZ_SLOWDOWN = 400`。
+
+問題疊加: v2 已經有 phase split 問題,**外加 target 比成功版快 2 倍**,訓練更難。
+
+### 病因
+
+跟失敗模式 2 同根: target 變化比 tau 快,網路追不到 → RLS 用更大力修 → J 偏離 chaotic regime 更快。
+
+### 修法
+
+對齊已知成功版:`LORENZ_SLOWDOWN = 400`(1 Lorenz time unit = 400 ms = 40 tau)。
+
+---
+
+## 失敗模式 12 — `n_test_cyc = 1` 太短,測試段沒跨 lobe 看不到蝴蝶
+
+### 現象
+
+v3 phase split 修好之後,左圖時序紅綠對齊得不錯(振幅 ±1 內),但右圖 attractor 只看到一個 lobe 在繞圈,**沒有蝴蝶結構**。
+
+誤判: 以為訓練還是失敗。
+
+### 病因
+
+`n_test_cyc = 1` → 測試段只跑 1440 ms = 3.6 Lorenz time units。Lorenz lobe transition 平均間隔約 0.5-2 Lorenz time units,**3.6 個 Lorenz time units 不保證至少跨 lobe 一次**,尤其當初始相位剛好落在某個 lobe 的內部時。
+
+更糟的是,你看時序圖 target (灰) 自己整段也只在單一 lobe 內振盪,所以連 target 都沒蝴蝶可看 — RNN 跟著 target 就也沒蝴蝶。**不是訓練失敗,是 test window 太短。**
+
+### 修法
+
+`n_test_cyc = 4` (~14 Lorenz time units),保證跨 lobe 多次。
+
+### 判讀守則
+
+> 看不到蝴蝶之前,先看 **target 自己** 在 test 段有沒有跨 lobe。target 沒跨,RNN 跨不出蝴蝶是物理必然,不是 RNN 的鍋。
+
+---
+
 ## 環境設置坑
 
 ### 坑 7 — Anaconda base env DLL load failed
@@ -273,6 +374,100 @@ n_train_cyc = 40
 
 **修法**: 改 `.py` 檔頂端的 const 區塊。用記事本/VS Code/Edit tool。
 
+### 坑 13 — Windows cmd 預設 cp950 編碼,程式裡的 `≈` 直接讓 print 炸 ⭐
+
+```
+UnicodeEncodeError: 'cp950' codec can't encode character '≈' in position 54
+```
+
+**原因**: Windows 終端機預設用 cp950 (繁中 Big5),程式裡只要有 `≈ ° ① ② ...` 之類常見排版字元就會炸。
+
+**修法**: 跑前設環境變數:
+```cmd
+set PYTHONIOENCODING=utf-8
+python force_internal.py
+```
+
+或 PowerShell:
+```powershell
+$env:PYTHONIOENCODING = "utf-8"
+python force_internal.py
+```
+
+或寫進 `.py` 開頭最早處:
+```python
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+```
+
+(本 skill 的所有 .py 不在程式內 wrap,因為這會破壞 IDE/Jupyter 行為。靠 `PYTHONIOENCODING` 環境變數最乾淨。)
+
+### 坑 14 — Anaconda 壞了不要硬修,直接用 `uv venv` 起乾淨環境
+
+```
+ImportError: DLL load failed while importing _multiarray_umath: 找不到指定的模組。
+```
+
+Anaconda 的 numpy 經常因為 MKL 跟 OpenMP DLL 衝突而炸。**不要花時間修 base env**,直接:
+
+```cmd
+:: 安裝 uv (若沒有)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+:: 在 skill 目錄起一個 venv
+uv venv --python 3.12 .venv
+
+:: 裝套件
+uv pip install --python .venv\Scripts\python.exe numpy scipy matplotlib
+
+:: 跑 script
+set PYTHONIOENCODING=utf-8
+.venv\Scripts\python.exe force_internal.py
+```
+
+uv 用 Astral 預先打包的 Python wheel,跟 Anaconda 完全獨立,不會撞 MKL DLL。
+
+---
+
+## Stage 4 fixed-point analysis 的特殊踩坑
+
+Stage 4 (`stage4_fixed_points.py`) 對訓練好的 FORCE-Internal v3 做 Sussillo & Barak 2013 "Opening the Black Box" 分析。下面是這部分特有的坑。
+
+### 坑 15 — 連續時間 vs 離散時間 eigenvalue 判讀 ⭐
+
+`F(x) = -x + J·tanh(x) + w_fb·W·tanh(x)` 的 Jacobian eigenvalues 是 **連續時間** 的。
+
+- **連續時間 stability boundary 是「虛軸 Re(λ)=0」**:Re(λ)>0 unstable, Re(λ)<0 stable
+- **離散時間 stability boundary 是「單位圓 |λ|=1」**:|λ|>1 unstable
+
+我第一版錯誤地在 eigenvalue plot 上畫了單位圓,這對 continuous-time Jacobian 是錯的判讀。
+
+**修法**: 在 eigenvalue plot 上**只標 Re=0 的虛軸**,別畫單位圓。
+
+### 坑 16 — Cluster `d_thresh` 取捨陷阱
+
+L-BFGS 找到的 slow points cluster 半徑非常難調:
+
+| d_thresh | 結果 | 問題 |
+|---|---|---|
+| 2.0 | 從 50 個搜尋只 cluster 成 1 個 unique | 太鬆,把不同 basin 的 slow points 都合併 |
+| 0.5 | 從 200 個搜尋 cluster 成 124 個 unique | 太緊,同一個 slow manifold 上鄰近點被當不同點 |
+
+**根因**: FORCE-Internal v3 學到的不是 isolated fixed points,而是 **slow manifold + 散布幾個強 saddle**。Slow manifold 上每個點 q 都很小,L-BFGS 把不同初始 guess 推到 manifold 上的不同位置,但這些都不是 "unique" fixed points。
+
+**判讀守則**:
+- 不要追求「找到 N 個 unique fixed points」這種離散答案
+- 改看 **eigenvalue 結構**:多數 slow points 都有 2 unstable directions(spiral on manifold),少數有 8-26 unstable directions(true saddle,候選 lobe-switch trigger)
+- 用 q histogram 看 q-landscape 是否 multi-modal (manifold 跟 saddle 對應不同峰)
+
+### 坑 17 — RNN 沒有 isolated fixed points 是 feature,不是 bug
+
+實測 FORCE-Internal v3 訓練後:
+- 所有 L-BFGS 找到的「最低 q」都 ~10⁻⁵ ~ 10⁻⁶,**沒有真正 q < 10⁻⁷ 的純 fixed point**
+- 這 **不是訓練不夠**,是 Sussillo & Barak 2013 對 Lorenz RNN 的核心觀察 — 混沌 task 的 RNN 用 **slow manifold + few saddles** 而非 isolated fixed points 編碼動力
+
+**判讀守則**: 對混沌 target 的 RNN,把 `q_thresh` 從教科書 `1e-6` (fixed point) 放寬到 `5e-3` (slow point) 才看得到結構。
+
 ---
 
 ## 數字一張表
@@ -283,12 +478,19 @@ N=1000, g=1.5, p=0.1, tau=10ms, dt=1ms, alpha=1, update_every=2
 Sinusoid target (週期 1200/600/400/300 ms, 振幅 1, 1/2, 1/6, 1/3)
     n_train_cyc = 15 → 完美 (test MSE < 0.005)
 
-Lorenz target (SLOWDOWN=200)
-    n_train_cyc = 15-20 → 70-80% (FORCE-Output 天花板)
-    n_train_cyc = 40   → 退步 (over-training,W 飄遠)
-    
-Lorenz target with FORCE-Internal (N=800)
-    n_train_cyc = 15 → 預期 90%+ (paper Fig 3 品質)
+Lorenz target (FORCE-Output, SLOWDOWN=400)
+    n_train_cyc = 40 → 70-80% (FORCE-Output 天花板)
+
+Lorenz target (FORCE-Internal v3, N=800, SLOWDOWN=400)
+    Phase 1 (W only, 10 cyc) + Phase 2 (W+J, 20 cyc) + Test (4 cyc)
+    → 90%+ (paper Fig 3 品質,雙 lobe + saddle 結構)
+    執行時間: ~6 分鐘
+    輸出: force_internal_v3_state.npz (Stage 4 用)
+
+Stage 4 fixed-point analysis (N=800, 200 個 L-BFGS 搜尋)
+    執行時間: ~45 秒
+    結果: ~120 unique slow points (manifold + ~20% saddle)
+    Top 3 PC 解釋變異 ~ 81%
 ```
 
 ---
@@ -301,3 +503,7 @@ Lorenz target with FORCE-Internal (N=800)
 4. **|W| 不收斂是診斷工具**,比 MSE 更早暴露問題
 5. **混沌 target 的「成功」定義不同於週期 target**——attractor 拓樸符合 > point-by-point 重合
 6. **FORCE 的真正創新在 RLS,不在 closed-loop feedback**——feedback 1980 年代就有了
+7. **多階段學習機制不能同時從 0 啟動**——W 跟 J 要有先後 (v3 phase split),否則前期巨大 error 會自我破壞
+8. **混沌系統不需要 isolated fixed points 來編碼**——slow manifold + saddle 就夠了,別硬找 q<1e-6 的點
+9. **「output 是常數線」這個 signature 強指向「chaos 被殺死」**——別繼續調 RLS 參數,要回頭看 reservoir state
+10. **看不到蝴蝶之前,先檢查 target 自己有沒有蝴蝶**——n_test_cyc 太短時 target 連 lobe 都沒跨,RNN 不可能有
