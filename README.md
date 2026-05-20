@@ -108,6 +108,16 @@ python lecture-notes/scripts/main.py \
 
 **Trigger：** 「做 HTML 簡報」、「網頁版簡報」、「互動式簡報」、「可分享連結的簡報」
 
+### soil-deck-pipeline
+
+**用途：** 研究素材 → 簡報的「總指揮」工作流。串接 NotebookLM MCP（匯出研讀成果）、SOIL 大綱、Codex/ChatGPT gpt-image-2 生圖，最後整合成 HTML 互動簡報 + PowerPoint。內建 Windows / PowerShell / python-pptx 踩坑解法。
+
+**輸出：** 編排流程本身；實際 deck 由 soil-html-deck / soil-image-deck / soil-teaching-deck 產出。
+
+**Trigger：** 「從 NotebookLM 做簡報」、「研究資料到簡報的完整流程」、「HTML 簡報跟 PowerPoint 一起做」、「製作 HTML PPT 跟 PowerPoint PPT 的工作流」
+
+**附帶資產：** [`docs/windows-build-pitfalls.md`](soil-deck-pipeline/docs/windows-build-pitfalls.md)（10 大踩坑）、[`scripts/pptx_pil_stub.py`](soil-deck-pipeline/scripts/pptx_pil_stub.py)（PIL 壞掉時的 python-pptx stub）、[`scripts/compress_images.ps1`](soil-deck-pipeline/scripts/compress_images.ps1)、[`scripts/sync_to_pages.ps1`](soil-deck-pipeline/scripts/sync_to_pages.ps1)（一鍵發布到 GitHub Pages）
+
 ### 共同設計憲法
 
 三個 Skill 都遵守：
