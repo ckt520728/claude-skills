@@ -1,0 +1,10 @@
+{
+  "name": "classroom-vote-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Helper script for the classroom-vote Claude Code skill. Writes a vote document to Firestore using the Firebase Web SDK.",
+  "dependencies": {
+    "firebase": "^10.13.2"
+  }
+}
