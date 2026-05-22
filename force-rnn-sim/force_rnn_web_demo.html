@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORCE 神經計算動力學互動平台 · Sussillo &amp; Abbott 2009</title>
+<style>
+  :root{
+    --bg:#070b14; --panel:#0c1322; --panel2:#0f1828; --border:#1b2740;
+    --cyan:#2de2e6; --mag:#ff2a6d; --amber:#ffb142; --gray:#8a93a6;
+    --txt:#d7e0f0; --dim:#6b7791; --grid:#15203a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI",-apple-system,system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;}
+  .wrap{max-width:1480px;margin:0 auto;padding:18px 22px 60px;}
+  header{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;
+    border-bottom:1px solid var(--border);padding-bottom:14px;}
+  h1{font-size:21px;margin:0;font-weight:600;letter-spacing:.3px;}
+  h1 .acc{color:var(--cyan);}
+  .sub{color:var(--dim);font-size:13px;}
+  .sub code{color:var(--amber);font-family:"Cascadia Code",Consolas,monospace;font-size:12px;}
+
+  .grid{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;}
+  @media(max-width:1080px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .panel h2{font-size:13px;margin:0 0 12px;color:var(--cyan);text-transform:uppercase;
+    letter-spacing:1.2px;font-weight:600;}
+
+  /* controls */
+  .ctl{margin-bottom:16px;}
+  .ctl label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--txt);margin-bottom:6px;}
+  .ctl label .val{color:var(--amber);font-family:"Cascadia Code",Consolas,monospace;font-weight:600;}
+  input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:4px;
+    background:linear-gradient(90deg,var(--cyan),var(--mag));outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#fff;border:2px solid var(--cyan);cursor:pointer;box-shadow:0 0 8px var(--cyan);}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;
+    border:2px solid var(--cyan);cursor:pointer;}
+  .hint{font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.4;}
+
+  .tasks{display:flex;flex-direction:column;gap:7px;margin-bottom:6px;}
+  .tasks button{text-align:left;background:var(--panel2);border:1px solid var(--border);
+    color:var(--txt);padding:9px 11px;border-radius:8px;cursor:pointer;font-size:12.5px;transition:.15s;}
+  .tasks button .t-sub{display:block;color:var(--dim);font-size:10.5px;margin-top:2px;}
+  .tasks button:hover{border-color:var(--cyan);}
+  .tasks button.active{border-color:var(--cyan);background:rgba(45,226,230,.09);box-shadow:0 0 0 1px var(--cyan) inset;}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+  .btns button{padding:9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;
+    font-size:12px;font-weight:600;transition:.15s;background:var(--panel2);color:var(--txt);}
+  .btns button:hover{filter:brightness(1.25);}
+  .b-train{border-color:var(--cyan)!important;color:var(--cyan)!important;}
+  .b-train.off{border-color:var(--mag)!important;color:var(--mag)!important;}
+  .b-perturb{border-color:var(--amber)!important;color:var(--amber)!important;}
+  .b-reset{grid-column:span 2;}
+
+  /* viz */
+  .vizgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:760px){.vizgrid{grid-template-columns:1fr;}}
+  .vcard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;}
+  .vcard h3{margin:0 0 4px;font-size:12.5px;color:var(--txt);font-weight:600;}
+  .vcard .vd{font-size:10.5px;color:var(--dim);margin-bottom:8px;line-height:1.4;}
+  canvas{width:100%;display:block;border-radius:8px;background:#05080f;}
+  .full{grid-column:span 2;}
+  @media(max-width:760px){.full{grid-column:span 1;}}
+
+  /* stats bar */
+  .stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 13px;flex:1;min-width:108px;}
+  .stat .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;}
+  .stat .v{font-size:17px;font-family:"Cascadia Code",Consolas,monospace;color:var(--cyan);margin-top:2px;}
+  .stat .v.mag{color:var(--mag);}
+  .stat .v.amb{color:var(--amber);}
+
+  .eqn{font-family:"Cascadia Code",Consolas,monospace;font-size:11.5px;color:var(--gray);
+    background:#070c16;border:1px solid var(--border);border-radius:8px;padding:10px 12px;line-height:1.8;margin-top:4px;}
+  .eqn b{color:var(--cyan);}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--dim);margin-top:6px;flex-wrap:wrap;}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="acc">FORCE</span> 神經計算動力學互動平台 <span style="color:var(--dim);font-size:14px;font-weight:400;">— 混沌循環網路的即時馴服</span></h1>
+    <div class="sub">原生 JS 高維動力學引擎 · 即時模擬 <code>N</code> 個非線性神經元的 chaotic RNN · Recursive Least Squares (RLS) 線上學習 · 基於 Sussillo &amp; Abbott (2009) <i>Neuron</i></div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ 控制面板 ============ -->
+    <div>
+      <div class="panel">
+        <h2>目標動力學任務</h2>
+        <div class="tasks" id="tasks">
+          <button data-task="sine1" class="active">① 單一諧振正弦波 (1 Hz)
+            <span class="t-sub">經典動力系統基準測試</span></button>
+          <button data-task="mix">② 雙頻疊加正弦波 (1 + 2.5 Hz)
+            <span class="t-sub">驗證多頻率高階動力學學習</span></button>
+          <button data-task="ecg">③ 生理心電圖節律 (ECG)
+            <span class="t-sub">高非線性 · 不對稱週期 · 尖銳波峰</span></button>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <h2>動力學參數</h2>
+        <div class="ctl">
+          <label>混沌增益 <b style="color:var(--cyan)">g</b><span class="val" id="vg">1.50</span></label>
+          <input type="range" id="g" min="0.5" max="2.5" step="0.05" value="1.5">
+          <div class="hint">g &gt; 1 進入混沌 regime（FORCE 的必要條件）。改變會即時重縮放 J。</div>
+        </div>
+        <div class="ctl">
+          <label>反饋強度 <b style="color:var(--cyan)">g<sub>FB</sub></b><span class="val" id="vgfb">1.00</span></label>
+          <input type="range" id="gfb" min="0" max="2" step="0.05" value="1.0">
+          <div class="hint">closed-loop 反饋 w<sub>fb</sub>·z 的縮放。設 0 等於斷開反饋。</div>
+        </div>
+        <div class="ctl">
+          <label>神經元數量 <b style="color:var(--cyan)">N</b><span class="val" id="vn">220</span></label>
+          <input type="range" id="n" min="80" max="500" step="20" value="220">
+          <div class="hint">改變會重建整個網路（放開滑桿才套用）。越大越精準但越耗算力。</div>
+        </div>
+        <div class="ctl">
+          <label>RLS 正則化 <b style="color:var(--cyan)">α</b><span class="val" id="va">1.00</span></label>
+          <input type="range" id="alpha" min="0.25" max="20" step="0.25" value="1.0">
+          <div class="hint">P = I/α 初始化。α 越小學習越激進；過小會讓 |W| 暴增。改變會重置 P。</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <h2>實驗操作</h2>
+        <div class="btns">
+          <button class="b-train" id="btnTrain">訓練中：ON</button>
+          <button class="b-perturb" id="btnPerturb">注入脈衝擾動</button>
+          <button class="b-reset" id="btnReset">重置網路 (seed 42)</button>
+        </div>
+        <div class="hint" style="margin-top:9px;">
+          <b style="color:var(--mag)">解鉗 (Closed-Loop)</b>：關閉訓練後 RLS 停止，網路僅靠 w<sub>fb</sub>·z 自持續運轉——驗證是否已建立自主閉環動力骨架。<br><br>
+          <b style="color:var(--amber)">脈衝擾動</b>：瞬間把狀態踢離流形，觀察軌跡如何幾何收斂回吸引子（CTD 強韌性）。
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 視覺化 ============ -->
+    <div>
+      <div class="vizgrid">
+        <div class="vcard full">
+          <h3>時域波形追蹤器 <span style="color:var(--dim);font-weight:400;font-size:11px;">— 一階誤差控制 (First-Order Error Control)</span></h3>
+          <div class="vd">即時對比目標訊號與網路輸出 z = wᵀr，半透明紅色遮罩填滿兩者間的瞬時誤差區域。</div>
+          <canvas id="track" height="240"></canvas>
+          <div class="legend">
+            <span><i style="background:var(--gray)"></i>目標 target</span>
+            <span><i style="background:var(--cyan)"></i>網路輸出 z = wᵀr</span>
+            <span><i style="background:rgba(255,42,109,.55)"></i>誤差遮罩 |z − f|</span>
+          </div>
+        </div>
+
+        <div class="vcard">
+          <h3>吸引子相位投影 <span style="color:var(--dim);font-weight:400;font-size:11px;">2D Projection</span></h3>
+          <div class="vd">隨機正交投影矩陣將 N 維狀態 r 即時投影至平面；漸變褪色軌跡呈現混沌坍縮為極限環流形。</div>
+          <canvas id="phase" height="260"></canvas>
+        </div>
+
+        <div class="vcard">
+          <h3>神經元放電柵欄圖 <span style="color:var(--dim);font-weight:400;font-size:11px;">Raster</span></h3>
+          <div class="vd">滾動繪製前 20 個神經元的放電速率 r ∈ [−1, 1] 熱圖，重現多通道電極記錄視覺。</div>
+          <canvas id="raster" height="260"></canvas>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">模式</div><div class="v" id="sMode">TRAIN</div></div>
+        <div class="stat"><div class="k">即時 MSE</div><div class="v" id="sMse">—</div></div>
+        <div class="stat"><div class="k">‖W‖ 讀出權重</div><div class="v amb" id="sW">0.000</div></div>
+        <div class="stat"><div class="k">模擬時間</div><div class="v" id="sT">0 ms</div></div>
+        <div class="stat"><div class="k">迭代步數</div><div class="v" id="sStep">0</div></div>
+        <div class="stat"><div class="k">FPS</div><div class="v mag" id="sFps">—</div></div>
+      </div>
+
+      <div class="eqn">
+        <b>前向動力學：</b> τ ẋ = −x + J·r + g<sub>FB</sub>·w<sub>fb</sub>·z &nbsp;&nbsp;|&nbsp;&nbsp; r = tanh(x) &nbsp;&nbsp;|&nbsp;&nbsp; z = wᵀr<br>
+        <b>RLS 學習：</b> e⁻ = z − f(t) &nbsp;|&nbsp; k = P·r / (1 + rᵀP·r) &nbsp;|&nbsp; P ← P − k(P·r)ᵀ &nbsp;|&nbsp; w ← w − e⁻·k<br>
+        <span style="color:var(--dim)">設定：J 稀疏度 10% · σ(J)=g/√(pN) · τ=10ms · dt=1ms · RLS 每 2 步更新 · seed=42（Sussillo &amp; Abbott 2009 典型值）</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   FORCE-Output RNN — 原生 JS 即時模擬引擎
+   方程式與參數對齊 Sussillo & Abbott 2009 / force_sinusoid.py
+   ========================================================================= */
+
+// ---- 可重現 PRNG (mulberry32) + Box-Muller 高斯 ----
+let _seed = 42;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let rand = mulberry32(_seed);
+let _g2=null;
+function gauss(){if(_g2!==null){const v=_g2;_g2=null;return v;}
+  let u=0,v=0;while(u===0)u=rand();while(v===0)v=rand();
+  const m=Math.sqrt(-2*Math.log(u)),a=2*Math.PI*v;_g2=m*Math.sin(a);return m*Math.cos(a);}
+
+// ---- 固定模擬常數 ----
+const TAU=10.0, DT=1.0, P_CONN=0.1, UPDATE_EVERY=2, STEPS_PER_FRAME=5;
+const PULSE_AMP=2.0;
+
+// ---- 可調參數 ----
+let N=220, gGain=1.5, gFB=1.0, alpha=1.0;
+let task="sine1";
+let training=true;
+let perturbPending=false;
+
+// ---- 網路狀態 ----
+let Jbase, Jeff, wfb, W, P, x, r, Pr, proj0, proj1;
+let z=0, simTime=0, stepCount=0;
+
+// ---- 視覺化緩衝 ----
+const TRACK_WIN=900;          // 時域顯示視窗 (sim-ms)
+let tgtHist=[], zHist=[];
+const PHASE_LEN=650;          // 相位軌跡長度
+let phX=[], phY=[];
+let phMinX=-1,phMaxX=1,phMinY=-1,phMaxY=1;
+const RAST_COLS=240, RAST_ROWS=20;
+let rastBuf=[];               // 每欄是 Float32Array(RAST_ROWS)
+
+// ---- 診斷 ----
+let mseAccum=0, mseCount=0, mseDisplay=0;
+
+function buildNetwork(){
+  rand = mulberry32(_seed); _g2=null;
+  Jbase=new Float64Array(N*N);
+  Jeff =new Float64Array(N*N);
+  const sigma=gGain/Math.sqrt(P_CONN*N); // 注意：Jbase 存 g=1 版，Jeff 再乘 g
+  const baseSigma=1.0/Math.sqrt(P_CONN*N);
+  for(let i=0;i<N;i++){
+    for(let j=0;j<N;j++){
+      let val=0;
+      if(i!==j && rand()<P_CONN) val=gauss()*baseSigma;
+      Jbase[i*N+j]=val;
+    }
+  }
+  wfb=new Float64Array(N);
+  for(let i=0;i<N;i++) wfb[i]=(rand()-0.5)*2;
+  W=new Float64Array(N);
+  P=new Float64Array(N*N);
+  for(let i=0;i<N;i++) P[i*N+i]=1.0/alpha;
+  x=new Float64Array(N); r=new Float64Array(N); Pr=new Float64Array(N);
+  for(let i=0;i<N;i++){x[i]=0.5*gauss(); r[i]=Math.tanh(x[i]);}
+  // 隨機正交投影
+  proj0=new Float64Array(N); proj1=new Float64Array(N);
+  for(let i=0;i<N;i++){proj0[i]=gauss(); proj1[i]=gauss();}
+  let n0=0; for(let i=0;i<N;i++) n0+=proj0[i]*proj0[i]; n0=Math.sqrt(n0);
+  for(let i=0;i<N;i++) proj0[i]/=n0;
+  let dot=0; for(let i=0;i<N;i++) dot+=proj1[i]*proj0[i];
+  for(let i=0;i<N;i++) proj1[i]-=dot*proj0[i];
+  let n1=0; for(let i=0;i<N;i++) n1+=proj1[i]*proj1[i]; n1=Math.sqrt(n1);
+  for(let i=0;i<N;i++) proj1[i]/=n1;
+
+  recomputeJeff();
+  z=0; simTime=0; stepCount=0;
+  tgtHist=[]; zHist=[]; phX=[]; phY=[]; rastBuf=[];
+  mseAccum=0; mseCount=0; mseDisplay=0;
+}
+function recomputeJeff(){
+  for(let k=0;k<N*N;k++) Jeff[k]=gGain*Jbase[k];
+}
+
+// ---- 目標訊號 f(t) ----
+function targetAt(t){
+  if(task==="sine1"){
+    return Math.sin(2*Math.PI*t/1000);
+  }else if(task==="mix"){
+    return (0.8*Math.sin(2*Math.PI*t/1000) + 0.5*Math.sin(2*Math.PI*2.5*t/1000))/1.0;
+  }else{ // ecg, period 1000ms
+    const ph=(t%1000)/1000;
+    const G=(c,w,a)=>a*Math.exp(-((ph-c)*(ph-c))/(2*w*w));
+    let v = G(0.20,0.022,0.10)   // P
+          + G(0.355,0.010,-0.13) // Q
+          + G(0.385,0.011,1.00)  // R
+          + G(0.420,0.013,-0.24) // S
+          + G(0.620,0.042,0.32); // T
+    return v*1.05 - 0.07;
+  }
+}
+
+// ---- 單步動力學 + RLS ----
+function stepSim(){
+  // x += (dt/tau)(-x + J·r + gFB·wfb·z)
+  const coef=DT/TAU;
+  for(let i=0;i<N;i++){
+    let Jr=0; const row=i*N;
+    for(let j=0;j<N;j++) Jr+=Jeff[row+j]*r[j];
+    x[i]+= coef*(-x[i]+Jr+gFB*wfb[i]*z);
+  }
+  if(perturbPending){ for(let i=0;i<N;i++) x[i]+=PULSE_AMP*gauss(); perturbPending=false; }
+  for(let i=0;i<N;i++) r[i]=Math.tanh(x[i]);
+  let zz=0; for(let i=0;i<N;i++) zz+=W[i]*r[i]; z=zz;
+
+  const tgt=targetAt(simTime);
+  const err=z-tgt;
+
+  if(training && stepCount>0 && stepCount%UPDATE_EVERY===0){
+    // Pr = P·r
+    for(let i=0;i<N;i++){let s=0;const row=i*N;for(let j=0;j<N;j++)s+=P[row+j]*r[j];Pr[i]=s;}
+    let rPr=0; for(let i=0;i<N;i++) rPr+=r[i]*Pr[i];
+    const c=1.0/(1.0+rPr);
+    // P -= c·Pr·Prᵀ ; W -= c·err·Pr
+    for(let i=0;i<N;i++){
+      const ci=c*Pr[i]; const row=i*N;
+      for(let j=0;j<N;j++) P[row+j]-=ci*Pr[j];
+      W[i]-=c*err*Pr[i];
+    }
+  }
+
+  // 診斷 MSE（移動平均）
+  mseAccum+=err*err; mseCount++;
+  if(mseCount>=400){ mseDisplay=mseAccum/mseCount; mseAccum=0; mseCount=0; }
+
+  // 視覺緩衝
+  tgtHist.push(tgt); zHist.push(z);
+  if(tgtHist.length>TRACK_WIN){tgtHist.shift(); zHist.shift();}
+  let px=0,py=0;
+  for(let i=0;i<N;i++){px+=proj0[i]*r[i]; py+=proj1[i]*r[i];}
+  phX.push(px); phY.push(py);
+  if(phX.length>PHASE_LEN){phX.shift(); phY.shift();}
+  if(stepCount%1===0){
+    const col=new Float32Array(RAST_ROWS);
+    const k=Math.min(RAST_ROWS,N);
+    for(let i=0;i<k;i++) col[i]=r[i];
+    rastBuf.push(col);
+    if(rastBuf.length>RAST_COLS) rastBuf.shift();
+  }
+
+  simTime+=DT; stepCount++;
+}
+
+/* ====================== 渲染 ====================== */
+const cTrack=document.getElementById("track"), xTrack=cTrack.getContext("2d");
+const cPhase=document.getElementById("phase"), xPhase=cPhase.getContext("2d");
+const cRast =document.getElementById("raster"), xRast =cRast.getContext("2d");
+
+function fitCanvas(c){
+  const w=c.clientWidth, h=c.clientHeight;
+  if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+}
+
+function drawTrack(){
+  fitCanvas(cTrack); const w=cTrack.width,h=cTrack.height,ctx=xTrack;
+  ctx.clearRect(0,0,w,h); ctx.fillStyle="#05080f"; ctx.fillRect(0,0,w,h);
+  // grid
+  ctx.strokeStyle="#15203a"; ctx.lineWidth=1; ctx.beginPath();
+  for(let gy=0;gy<=4;gy++){const y=h*gy/4;ctx.moveTo(0,y);ctx.lineTo(w,y);} ctx.stroke();
+  ctx.strokeStyle="#22304f"; ctx.beginPath(); ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+
+  const n=tgtHist.length; if(n<2)return;
+  const A=1.6; // 縱軸半幅
+  const X=i=>w*i/(TRACK_WIN-1);
+  const Y=v=>h/2 - (v/A)*(h/2*0.92);
+
+  // 誤差遮罩（紅色填充帶）
+  ctx.beginPath();
+  for(let i=0;i<n;i++) ctx.lineTo(X(i),Y(tgtHist[i]));
+  for(let i=n-1;i>=0;i--) ctx.lineTo(X(i),Y(zHist[i]));
+  ctx.closePath(); ctx.fillStyle="rgba(255,42,109,0.30)"; ctx.fill();
+
+  // target
+  ctx.strokeStyle="rgba(138,147,166,0.85)"; ctx.lineWidth=2.4; ctx.beginPath();
+  for(let i=0;i<n;i++){const xx=X(i),yy=Y(tgtHist[i]);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke();
+  // output
+  ctx.strokeStyle="#2de2e6"; ctx.lineWidth=1.6; ctx.shadowColor="#2de2e6"; ctx.shadowBlur=6; ctx.beginPath();
+  for(let i=0;i<n;i++){const xx=X(i),yy=Y(zHist[i]);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);} ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+function drawPhase(){
+  fitCanvas(cPhase); const w=cPhase.width,h=cPhase.height,ctx=xPhase;
+  ctx.fillStyle="rgba(5,8,15,0.30)"; ctx.fillRect(0,0,w,h); // 拖尾殘影
+  const n=phX.length; if(n<3)return;
+  // 自適應邊界（平滑追蹤）
+  let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+  for(let i=0;i<n;i++){const a=phX[i],b=phY[i];if(a<mnx)mnx=a;if(a>mxx)mxx=a;if(b<mny)mny=b;if(b>mxy)mxy=b;}
+  const pad=0.15;
+  phMinX+=( (mnx-(mxx-mnx)*pad)-phMinX)*0.05; phMaxX+=( (mxx+(mxx-mnx)*pad)-phMaxX)*0.05;
+  phMinY+=( (mny-(mxy-mny)*pad)-phMinY)*0.05; phMaxY+=( (mxy+(mxy-mny)*pad)-phMaxY)*0.05;
+  const X=v=>w*(v-phMinX)/(phMaxX-phMinX+1e-9);
+  const Y=v=>h-h*(v-phMinY)/(phMaxY-phMinY+1e-9);
+  for(let i=1;i<n;i++){
+    const a=i/n;                 // 越新越亮
+    ctx.strokeStyle="rgba(45,226,230,"+(0.04+0.9*a*a)+")";
+    ctx.lineWidth=0.6+1.6*a;
+    ctx.beginPath(); ctx.moveTo(X(phX[i-1]),Y(phY[i-1])); ctx.lineTo(X(phX[i]),Y(phY[i])); ctx.stroke();
+  }
+  // 當前點
+  ctx.fillStyle="#ff2a6d"; ctx.shadowColor="#ff2a6d"; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(X(phX[n-1]),Y(phY[n-1]),3.2,0,7); ctx.fill(); ctx.shadowBlur=0;
+}
+
+function rateColor(v){ // v in [-1,1] -> diverging blue-black-red(-ish)
+  v=Math.max(-1,Math.min(1,v));
+  if(v>=0){const t=v;return `rgb(${Math.round(20+235*t)},${Math.round(30+90*t)},${Math.round(60-20*t)})`;}
+  else{const t=-v;return `rgb(${Math.round(20+20*t)},${Math.round(30+120*t)},${Math.round(60+175*t)})`;}
+}
+function drawRaster(){
+  fitCanvas(cRast); const w=cRast.width,h=cRast.height,ctx=xRast;
+  ctx.clearRect(0,0,w,h); ctx.fillStyle="#05080f"; ctx.fillRect(0,0,w,h);
+  const cols=rastBuf.length; if(cols<1)return;
+  const rows=Math.min(RAST_ROWS,N);
+  const cw=w/RAST_COLS, ch=h/rows;
+  for(let c=0;c<cols;c++){
+    const col=rastBuf[c]; const xx=w - (cols-c)*cw;
+    for(let rI=0;rI<rows;rI++){
+      ctx.fillStyle=rateColor(col[rI]);
+      ctx.fillRect(xx, rI*ch, cw+0.6, ch+0.6);
+    }
+  }
+}
+
+/* ====================== 主迴圈 ====================== */
+let lastFpsT=performance.now(), frames=0, fps=0;
+function loop(){
+  for(let s=0;s<STEPS_PER_FRAME;s++) stepSim();
+  drawTrack(); drawPhase(); drawRaster();
+
+  // 統計
+  document.getElementById("sMode").textContent = training?"TRAIN":"CLOSED-LOOP";
+  document.getElementById("sMode").className = "v"+(training?"":" mag");
+  document.getElementById("sMse").textContent = mseDisplay<1e-4?mseDisplay.toExponential(2):mseDisplay.toFixed(5);
+  let wn=0; for(let i=0;i<N;i++) wn+=W[i]*W[i];
+  document.getElementById("sW").textContent = Math.sqrt(wn).toFixed(3);
+  document.getElementById("sT").textContent = Math.round(simTime)+" ms";
+  document.getElementById("sStep").textContent = stepCount.toLocaleString();
+
+  frames++; const now=performance.now();
+  if(now-lastFpsT>=500){fps=frames*1000/(now-lastFpsT);frames=0;lastFpsT=now;
+    document.getElementById("sFps").textContent=fps.toFixed(0);}
+  requestAnimationFrame(loop);
+}
+
+/* ====================== UI 綁定 ====================== */
+document.querySelectorAll("#tasks button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("#tasks button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    task=b.dataset.task;
+    // 切任務：清空 W 與緩衝重新學
+    W.fill(0); for(let i=0;i<N;i++){for(let j=0;j<N;j++)P[i*N+j]= i===j?1.0/alpha:0;}
+    tgtHist=[];zHist=[];mseAccum=0;mseCount=0;mseDisplay=0;
+  };
+});
+const gEl=document.getElementById("g"),gfbEl=document.getElementById("gfb"),
+      nEl=document.getElementById("n"),aEl=document.getElementById("alpha");
+gEl.oninput=()=>{gGain=+gEl.value;document.getElementById("vg").textContent=gGain.toFixed(2);recomputeJeff();};
+gfbEl.oninput=()=>{gFB=+gfbEl.value;document.getElementById("vgfb").textContent=gFB.toFixed(2);};
+nEl.oninput=()=>{document.getElementById("vn").textContent=nEl.value;};
+nEl.onchange=()=>{N=+nEl.value;buildNetwork();};
+aEl.oninput=()=>{alpha=+aEl.value;document.getElementById("va").textContent=alpha.toFixed(2);
+  for(let i=0;i<N;i++){for(let j=0;j<N;j++)P[i*N+j]= i===j?1.0/alpha:0;}};
+
+const btnTrain=document.getElementById("btnTrain");
+btnTrain.onclick=()=>{training=!training;btnTrain.textContent="訓練中："+(training?"ON":"OFF（解鉗）");
+  btnTrain.classList.toggle("off",!training);};
+document.getElementById("btnPerturb").onclick=()=>{perturbPending=true;};
+document.getElementById("btnReset").onclick=()=>{
+  gGain=1.5;gFB=1.0;N=220;alpha=1.0;training=true;
+  gEl.value=1.5;gfbEl.value=1.0;nEl.value=220;aEl.value=1.0;
+  document.getElementById("vg").textContent="1.50";document.getElementById("vgfb").textContent="1.00";
+  document.getElementById("vn").textContent="220";document.getElementById("va").textContent="1.00";
+  btnTrain.textContent="訓練中：ON";btnTrain.classList.remove("off");
+  buildNetwork();
+};
+
+buildNetwork();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
