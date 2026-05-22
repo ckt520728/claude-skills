@@ -11,6 +11,10 @@ Sussillo & Abbott 2009 *Neuron* FORCE algorithm 的最小可運行 demo,加上 S
 | `force_internal.py` | **FORCE-Internal v3 (phase-split)** | Lorenz attractor x 分量 | ~6 分鐘 | **Fig 3 (paper 主結果)** |
 | `stage4_fixed_points.py` | Fixed-point + Jacobian analysis | (讀 v3 訓練好的網路 state) | ~45 秒 | Sussillo & Barak 2013 |
 
+## 互動網頁版 (純瀏覽器，免裝 Python)
+
+`force_rnn_web_demo.html` — 單檔、零依賴、原生 JS 把 FORCE-Output 演算法做成瀏覽器端 60fps 即時互動：三任務 (1Hz 正弦 / 1+2.5Hz 雙頻 / ECG 節律)、時域誤差遮罩 + 隨機正交 2D 相位投影 + 神經元放電柵欄，可即時調 g / g_FB / N / α、注入脈衝擾動、切換 closed-loop。直接用瀏覽器開即可。
+
 ## 安裝
 
 **首選 (Anaconda 壞掉時的 fallback,實測 OK):**
