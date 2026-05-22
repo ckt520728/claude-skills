@@ -4,6 +4,7 @@
 > 從 `force-rnn-sim` skill 的 Python/matplotlib 離線模擬，移植成**純原生 JS、
 > 瀏覽器端 60fps 即時運行的單檔互動網頁**。
 > 產出：[`force-rnn-sim/force_rnn_web_demo.html`](../force-rnn-sim/force_rnn_web_demo.html)
+> **線上 demo（GitHub Pages）**：https://ckt520728.github.io/claude-skills/force-rnn-sim/force_rnn_web_demo.html
 
 ---
 
