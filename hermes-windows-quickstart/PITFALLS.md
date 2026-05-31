@@ -18,7 +18,7 @@ related:
 
 ## 一句話總結
 
-> 在 Windows 上把 Nous Research 的 Hermes Agent(v0.14.0)從零安裝、接通 Telegram bot、設定 CRON 每日自動推播 AI 新聞,**全程踩了 18 個坑**。本筆記是給未來重灌、教別人、或踩同樣坑時的 cheatsheet。
+> 在 Windows 上把 Nous Research 的 Hermes Agent(v0.14.0)從零安裝、接通 Telegram bot、設定 CRON 每日自動推播 AI 新聞,**初版踩 20 個坑(2026-05-26 完成 1-20),後續維運 quota 危機補 4 個(2026-05-31 補 21-24)= 共 24 個坑**。本筆記是給未來重灌、教別人、或踩同樣坑時的 cheatsheet。
 
 ## 系統環境
 
@@ -260,6 +260,98 @@ related:
 
 ---
 
+## 🔁 Phase 1.5 後續踩坑(2026-05-31 補 · Quota 危機與 CLI 救援)
+
+### 踩坑 21 ⭐ Quota 用完時 Chat 無法改自己的 Main Model(自反性死結)
+
+- **背景**:2026-05-31 觀察到 morning-research-brief 跟 daily-ai-news 都報 quota 滿(`HTTP 429 Gemini quota exhausted`、`HTTP 404 deepseek-v4-pro requires credits`),想對 Telegram bot 說「請把 Main Model 改成 X」結果 bot 也回:
+
+  ```
+  ⚠️ The model provider failed after retries.
+  I kept raw provider details out of chat;
+  check gateway logs for diagnostics.
+  ```
+
+- **原因**:**Telegram 對話本身也是用 Main Model 在跑**——當 Main Model 壞掉(quota 滿、付費模型沒儲值、API endpoint 失效),bot 連解析「請改模型」這句話的能力都沒有,當然改不了。等於是 bot 沒辦法用對話修自己
+- **解法**:**完全繞過 Telegram 跟 Dashboard,直接用 PowerShell CLI**:
+
+  ```powershell
+  # 1. 停掉 gateway
+  Ctrl+C  (在原本跑 hermes gateway run 的視窗按)
+
+  # 2. 重啟 gateway(清乾淨 in-memory 的舊模型快照)
+  hermes gateway run
+
+  # 3. 新開一個 PowerShell 視窗,跑互動式模型選單
+  hermes model
+
+  # 4. 選 1 (Nous Portal)
+  # 5. 在 Nous Portal 子選單裡選一個可用的免費模型
+  ```
+
+- **重點教訓**:踩坑 18 的「對話為主」原則**有例外**——當對話通道本身故障時,**Dashboard / CLI 才是唯一救星**。判斷準則更新:
+
+  ```
+  Chat 通 + 想做什麼            → 對話建造(快)
+  Chat 壞了 / 想動到「跑 chat 的那個模型」本身 → 必走 CLI
+  ```
+
+### 踩坑 22:`hermes model` 互動選單,前 17 項才是 Nous Portal,後面全要 API key
+
+- **現象**:跑 `hermes model` → 看到一長串 provider 清單(40+ 項)→ 順手選了一個看起來像免費的(例如 23 號 StepFun Step Plan)→ 被要求填 `STEPFUN_API_KEY`,卡住
+- **原因**:清單裡的 provider 分兩類:
+  - **1–17 號**:多數是 Nous Portal 路徑或 OAuth 免費路徑(不用 key)
+  - **18–39 號**:幾乎全是 "direct API"——意思是「直接打那家公司的官方 API」,**要妳自己有付費 key**
+- **關鍵辨識**:
+  - ✅ 第 1 項 `Nous Portal (Nous Research subscription)` ← 主要免費入口
+  - ✅ 第 17 項 `Google Gemini via OAuth + Code Assist (free tier supported; no API key needed)` ← Google 自家免費
+  - ❌ 第 23 項 `StepFun Step Plan via Step Plan API` ← 要 STEPFUN_API_KEY,**這個是付費**
+  - ✅ 但 StepFun 在 **Nous Portal 子選單裡**有 `stepfun/step-3.7-flash:free` ← 這個才是免費!
+- **解法**:
+  - 在 provider 主選單**只選 1 號 Nous Portal**(或 17 號 Google OAuth)
+  - 進子選單後再選具體模型(`stepfun/step-3.7-flash:free`、`nousresearch/hermes-3-llama-3.1-405b` 等)
+  - 不小心進到 direct API 的 key 提問,**按 Enter 就 Cancel**
+
+### 踩坑 23:Nous Portal 提供的 StepFun free model 有 30 天免費 quota(Nous Research 官方郵件公告)
+
+- **背景**:2026-05-31 收到 Nous Research 官方郵件,公告 StepFun step-3.7-flash 在 Nous Portal 上 **30 天免費 quota** 開放使用。這是擺脫 Gemini Flash quota 困境的關鍵 backup
+- **要點**:
+  - 模型 ID:`stepfun/step-3.7-flash:free`(注意 `:free` 後綴跟 `via Nous Portal` 來源)
+  - 不是 direct API(那個要 STEPFUN_API_KEY)
+  - 切換指令(CLI):`hermes model` → 1 (Nous Portal) → 選 stepfun/step-3.7-flash:free
+  - 切完顯示 `Default model set to: stepfun/step-3.7-flash:free (via Nous Portal)`
+- **驗證有效**:2026-05-31 切到 StepFun 後 chat 立刻恢復,morning-research-brief 跟 daily-ai-news 也都跑通,結果包含真實 arxiv URL(`arxiv.org/abs/2605.30343v1` 等)
+- **未來防呆**:Nous Portal 經常會輪換不同模型的免費 promo,**訂閱 Nous Research 官方郵件**就會收到通知。避免被單一模型(尤其 Gemini Flash)綁死
+
+### 踩坑 24:`hermes model` 改完 Main Model 後,gateway 不會自動 reload
+
+- **現象**:用 `hermes model` 互動選單改了 Main Model,**設定檔已更新**,但對 bot 講話還是用舊模型(舊錯誤繼續出現)
+- **原因**:Gateway 啟動時把模型載入記憶體,**改設定不會自動 reload**
+- **解法**:**改完模型必須重啟 gateway**——回原 gateway 視窗 `Ctrl+C` → 重跑 `hermes gateway run`
+- **預防**:CLI 改模型後**立刻**重啟 gateway,別先去 Telegram 測
+
+### 2026-05-31 救援黃金 SOP(背下來)
+
+下次遇到「Telegram bot 不回應 / quota 滿 / 模型失效」,**立刻**依序做:
+
+```
+Step 1: 回 gateway 視窗 → Ctrl+C 停掉
+Step 2: 同視窗打 hermes gateway run 重啟
+Step 3: 開「新的」PowerShell 視窗
+Step 4: 跑 hermes model
+Step 5: 選 1 (Nous Portal)
+Step 6: 在子選單選一個有 :free 後綴的可用模型
+        (例如 stepfun/step-3.7-flash:free
+        或 nousresearch/hermes-3-llama-3.1-405b)
+Step 7: 回原 gateway 視窗 → 再 Ctrl+C → hermes gateway run
+        (確保新模型載入記憶體)
+Step 8: Telegram 對 bot 打「你好」測試
+```
+
+整套大約 2 分鐘可以救回。
+
+---
+
 ## 最終可用配置(2026-05-26 狀態)
 
 ### 模型設定
@@ -339,3 +431,6 @@ related:
 4. **「沒 web search」≠「不能上網」**:Gemini Flash 沒 browser-based web search,但 Hermes 能直接 curl/Python 呼叫 API。**指定 API endpoint 給 Agent,不要叫它「搜尋網路」**——前者真實,後者編造
 5. **Agent 自己修錯的威力**:踩坑 15 的「Chat not found」是 Hermes 自己診斷、自己跑工具鏈、自己改設定修好的,只用了一句「請幫我修正傳送的頻道」。這就是 agentic AI 的真正價值
 6. **PubMed E-utilities 是醫療研究自動化的金礦**:免費、無 key、官方支援、能 fetch 完整 abstract。對醫師/研究者來說,這個 API 應該變成 daily driver,Google Scholar 對醫學文獻可以省
+7. **「對話為主」有例外:當對話本身故障,CLI 才是救星**(踩坑 21 教的):平時改 CRON、改 prompt、改設定 → 對話建造最快。但當 quota 滿 / 模型壞掉 / chat 本身失效 → 必須回 PowerShell CLI(`hermes model` + `hermes gateway run`)修。Bot 沒辦法用對話修自己
+8. **真免費 ≠ 看起來免費**(踩坑 22 教的):`hermes model` 互動選單 40 項 provider,**只有 1 號(Nous Portal)跟 17 號(Google OAuth)是真免費**,18 號之後幾乎全是 "direct API" 要付費 key。任何 "via Nous Portal" 後綴的模型才是真免費 tier
+9. **訂閱 Nous Research 郵件追蹤免費 quota promo**(踩坑 23):他們不定期會把熱門模型開放 30 天免費(例如 2026-05 的 StepFun step-3.7-flash:free),提前知道才能在 Gemini quota 用完前換備胎,不會被單一模型綁死
