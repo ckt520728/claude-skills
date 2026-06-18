@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ratcliff DDM 互動模擬器 · Two-Choice Decision Making</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a33;
+    --panel-2: #1a2244;
+    --line: #2a3464;
+    --text: #e9ecf5;
+    --muted: #9aa3c7;
+    --accent: #6cf0c2;
+    --correct: #6cf0c2;
+    --error: #ff7a8a;
+    --neutral: #ffd166;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", "Microsoft JhengHei", sans-serif; }
+  h1 { font-size: 18px; margin: 0; }
+  h2 { font-size: 13px; margin: 0 0 8px 0; color: var(--muted); letter-spacing: .04em;
+    text-transform: uppercase; }
+  header { padding: 14px 18px; background: linear-gradient(180deg, #0e1530 0%, #0b1020 100%);
+    border-bottom: 1px solid var(--line); display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  header a { color: var(--accent); text-decoration: none; font-size: 12px; }
+  main { display: grid; grid-template-columns: 320px 1fr; gap: 14px; padding: 14px; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; }
+  .group { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .group:last-child { border-bottom: 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 8px 0; }
+  .row label { font-size: 12px; color: var(--text); }
+  .row .name { color: var(--muted); margin-left: 6px; font-style: italic; }
+  .row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .row .v { width: 56px; text-align: right; font-variant-numeric: tabular-nums;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 3px 6px; font-size: 12px; }
+  button { background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 12px; }
+  button:hover { background: #243064; }
+  button.primary { background: var(--accent); color: #06301f; border-color: transparent;
+    font-weight: 600; }
+  button.primary:hover { background: #82f5d0; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .preset { font-size: 11px; padding: 6px 10px; }
+  .grid-canvases { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 1200px) { .grid-canvases { grid-template-columns: 1fr; } }
+  canvas { width: 100%; height: 280px; background: #0a0f24; border-radius: 8px;
+    display: block; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+  .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 10px; }
+  .stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .05em; }
+  .stat .val { font-size: 18px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 4px; vertical-align: middle; }
+  details { background: var(--panel-2); border-radius: 8px; padding: 8px 12px;
+    border: 1px solid var(--line); margin-top: 10px; font-size: 12px; line-height: 1.6; }
+  details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  code { background: #0a0f24; padding: 2px 5px; border-radius: 4px; }
+  .badge { display: inline-block; background: var(--panel-2); padding: 2px 8px;
+    border-radius: 10px; font-size: 11px; color: var(--muted); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Ratcliff Drift Diffusion Model · 互動模擬器</h1>
+    <div class="sub">Two-choice, one-selection decision-making · 即時 Monte-Carlo 模擬 · 所有參數可調</div>
+  </div>
+  <div>
+    <a href="https://github.com/ckt520728/claude-skills/tree/master/ddm-simulator" target="_blank">GitHub · ddm-simulator</a>
+    &nbsp;·&nbsp;
+    <span class="badge">Ratcliff 2008 / 2014 / 2022</span>
+  </div>
+</header>
+
+<main>
+  <aside class="panel">
+    <h2>參數控制 (Parameters)</h2>
+
+    <div class="group">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">核心參數</div>
+
+      <div class="row">
+        <label>v <span class="name">drift rate</span></label>
+        <input id="v" type="range" min="-0.5" max="0.5" step="0.01" value="0.20">
+        <span class="v" id="v_val">0.20</span>
+      </div>
+      <div class="row">
+        <label>a <span class="name">boundary</span></label>
+        <input id="a" type="range" min="0.05" max="0.30" step="0.005" value="0.12">
+        <span class="v" id="a_val">0.120</span>
+      </div>
+      <div class="row">
+        <label>z/a <span class="name">starting bias</span></label>
+        <input id="zr" type="range" min="0.1" max="0.9" step="0.01" value="0.50">
+        <span class="v" id="zr_val">0.50</span>
+      </div>
+      <div class="row">
+        <label>Ter <span class="name">non-decision (s)</span></label>
+        <input id="ter" type="range" min="0.10" max="0.60" step="0.005" value="0.30">
+        <span class="v" id="ter_val">0.300</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">跨試驗變異性 (Across-trial)</div>
+      <div class="row">
+        <label>η <span class="name">SD of v</span></label>
+        <input id="eta" type="range" min="0" max="0.20" step="0.005" value="0.08">
+        <span class="v" id="eta_val">0.080</span>
+      </div>
+      <div class="row">
+        <label>s<sub>z</sub> <span class="name">range of z</span></label>
+        <input id="sz" type="range" min="0" max="0.08" step="0.002" value="0.04">
+        <span class="v" id="sz_val">0.040</span>
+      </div>
+      <div class="row">
+        <label>s<sub>t</sub> <span class="name">range of Ter (s)</span></label>
+        <input id="st" type="range" min="0" max="0.30" step="0.005" value="0.10">
+        <span class="v" id="st_val">0.100</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">數值與模擬</div>
+      <div class="row">
+        <label>s <span class="name">within-trial noise (scaling)</span></label>
+        <input id="s" type="range" min="0.05" max="0.20" step="0.005" value="0.10">
+        <span class="v" id="s_val">0.100</span>
+      </div>
+      <div class="row">
+        <label>dt <span class="name">step (s)</span></label>
+        <input id="dt" type="range" min="0.0005" max="0.005" step="0.0005" value="0.001">
+        <span class="v" id="dt_val">0.001</span>
+      </div>
+      <div class="row">
+        <label>N <span class="name">trials</span></label>
+        <input id="nt" type="range" min="200" max="5000" step="100" value="1500">
+        <span class="v" id="nt_val">1500</span>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="run" class="primary">▶ Run trials</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="btns" style="margin-top:8px;">
+      <button class="preset" data-preset="easy">Easy stim (high v)</button>
+      <button class="preset" data-preset="hard">Hard stim (low v)</button>
+      <button class="preset" data-preset="speed">Speed instr (low a)</button>
+      <button class="preset" data-preset="accuracy">Accuracy instr (high a)</button>
+      <button class="preset" data-preset="bias">Prob. bias (z↑)</button>
+      <button class="preset" data-preset="aging">Aging (a↑, Ter↑)</button>
+    </div>
+
+    <details>
+      <summary>關於模型 · 點開展開</summary>
+      <p><b>核心方程</b>：<br>
+      <code>dx = v·dt + s·√dt·N(0,1)</code><br>
+      上邊界 <code>a</code> = correct，下邊界 <code>0</code> = error，起始點 <code>z = (z/a)·a</code>。<br>
+      <code>RT = Decision Time + Ter</code></p>
+      <p><b>跨試驗變異</b>（Ratcliff 2008 必備）：<br>
+      v ~ N(v, η)，z ~ U(z−s<sub>z</sub>/2, z+s<sub>z</sub>/2)，Ter ~ U(Ter−s<sub>t</sub>/2, Ter+s<sub>t</sub>/2)。<br>
+      η 主導「<i>慢錯誤</i>」、s<sub>z</sub> 主導「<i>快錯誤</i>」。</p>
+      <p><b>縮放</b>：固定 <code>s=0.1</code> 是 Ratcliff 慣例；同時放大 a/v/s 不改變預測。</p>
+      <p>來源：Ratcliff 2008, 2014, 2022（aging on driving）。詳見 README。</p>
+    </details>
+  </aside>
+
+  <section class="panel">
+    <h2>即時模擬視覺化</h2>
+    <div class="grid-canvases">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">證據累積路徑 (sample paths)</div>
+        <canvas id="cv_paths"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--correct);"></span>correct (hit a)</span>
+          <span><span class="dot" style="background:var(--error);"></span>error (hit 0)</span>
+          <span><span class="dot" style="background:var(--neutral);"></span>start point z</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">RT 分布 (correct ↑ / error ↓)</div>
+        <canvas id="cv_rtdist"></canvas>
+        <div class="legend">
+          <span>histogram bin = 25 ms · 對稱鏡像顯示</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">分位數機率圖 (.1 .3 .5 .7 .9)</div>
+        <canvas id="cv_qpp"></canvas>
+        <div class="legend">
+          <span>X = response probability · Y = RT quantile (s)</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">心理測量函數 (sweep over v)</div>
+        <canvas id="cv_psy"></canvas>
+        <div class="legend">
+          <span>掃描 v ∈ [−0.4, 0.4] · 200 trials/點 · 即時計算</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="lbl">Accuracy</div><div class="val" id="st_acc">—</div></div>
+      <div class="stat"><div class="lbl">Mean RT (correct)</div><div class="val" id="st_mrc">—</div></div>
+      <div class="stat"><div class="lbl">Mean RT (error)</div><div class="val" id="st_mre">—</div></div>
+      <div class="stat"><div class="lbl">N trials</div><div class="val" id="st_n">—</div></div>
+    </div>
+
+    <details>
+      <summary>解讀指南 (interpretive cues) · 點開展開</summary>
+      <ul style="padding-left:18px;margin:6px 0;">
+        <li><b>v 增加</b> → accuracy ↑、mean RT ↓、分布尾巴變短（Ratcliff 2008 Exp 1）。</li>
+        <li><b>a 增加</b> → accuracy ↑、mean RT ↑、speed-accuracy tradeoff（Exp 2）。在天花板區域，a↑ 仍可拉長 RT。</li>
+        <li><b>z/a &gt; 0.5</b> → 偏好上邊界，錯誤反應變慢且減少（probability bias）。</li>
+        <li><b>η 大</b> → 錯誤 RT &gt; 正確 RT（典型 RT pattern）。</li>
+        <li><b>s<sub>z</sub> 大</b> → 錯誤 RT &lt; 正確 RT（快錯誤反轉，常見於 speed instruction）。</li>
+        <li><b>Aging (2022 driving paper)</b>: 老年人主要 a↑ 與 Ter↑，v 多半不下降——意即「謹慎」與「動作慢」，不是「感知變差」。</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+// =======================================================================
+// 1) RNG (Box-Muller for normal distribution)
+// =======================================================================
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+function uniform(lo, hi) { return lo + (hi - lo) * Math.random(); }
+
+// =======================================================================
+// 2) Single-trial DDM simulation
+//    Returns { rt, correct, path? }
+//    If keepPath = true, also returns the x(t) trajectory for plotting.
+// =======================================================================
+function simulateTrial(p, keepPath = false) {
+  // Sample trial-specific parameters from across-trial distributions
+  const v_i  = p.v + p.eta * randn();
+  const z_mu = p.zr * p.a;
+  const z_i  = Math.min(p.a - 1e-4, Math.max(1e-4,
+                 z_mu + (Math.random() - 0.5) * p.sz));
+  const ter_i = p.ter + (Math.random() - 0.5) * p.st;
+
+  const sqdt = Math.sqrt(p.dt);
+  let x = z_i;
+  let t = 0;
+  const maxT = 5.0;            // safety cutoff (5 s decision time)
+  const path = keepPath ? [{ t: 0, x: x }] : null;
+
+  while (t < maxT) {
+    x += v_i * p.dt + p.s * sqdt * randn();
+    t += p.dt;
+    if (keepPath) path.push({ t, x });
+    if (x >= p.a) return { rt: t + Math.max(0, ter_i), correct: true,  path };
+    if (x <= 0)   return { rt: t + Math.max(0, ter_i), correct: false, path };
+  }
+  // Timeout — treat as missing
+  return { rt: NaN, correct: null, path };
+}
+
+// =======================================================================
+// 3) Batch simulation
+// =======================================================================
+function runBatch(p, n, keepNPaths = 0) {
+  const out = { rts_c: [], rts_e: [], paths: [], n_total: 0, n_correct: 0, n_error: 0 };
+  for (let i = 0; i < n; i++) {
+    const keep = i < keepNPaths;
+    const r = simulateTrial(p, keep);
+    if (keep) out.paths.push(r);
+    if (r.correct === null) continue;
+    out.n_total++;
+    if (r.correct) { out.rts_c.push(r.rt); out.n_correct++; }
+    else           { out.rts_e.push(r.rt); out.n_error++; }
+  }
+  return out;
+}
+
+// =======================================================================
+// 4) Helpers
+// =======================================================================
+function quantile(arr_sorted, q) {
+  if (arr_sorted.length === 0) return NaN;
+  const idx = (arr_sorted.length - 1) * q;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if (lo === hi) return arr_sorted[lo];
+  return arr_sorted[lo] * (hi - idx) + arr_sorted[hi] * (idx - lo);
+}
+function mean(arr) {
+  if (arr.length === 0) return NaN;
+  let s = 0; for (const v of arr) s += v;
+  return s / arr.length;
+}
+
+// =======================================================================
+// 5) DPI-aware canvas resizing
+// =======================================================================
+function setupCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  cv.width  = Math.floor(r.width  * dpr);
+  cv.height = Math.floor(r.height * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: r.width, h: r.height };
+}
+
+// =======================================================================
+// 6) Drawing — sample paths
+// =======================================================================
+function drawPaths(cv, p, paths) {
+  const { ctx, w, h } = setupCanvas(cv);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 38, padR = 12, padT = 16, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  // Determine time axis from longest path
+  let tMax = 1.0;
+  for (const r of paths) if (r.path && r.path.length) {
+    tMax = Math.max(tMax, r.path[r.path.length - 1].t);
+  }
+  tMax = Math.min(2.5, Math.max(0.4, tMax * 1.05));
+
+  const X = t => padL + (t / tMax) * plotW;
+  const Y = x => padT + plotH - (x / p.a) * plotH;
+
+  // axes
+  ctx.strokeStyle = '#2a3464'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // bounds
+  ctx.strokeStyle = '#9aa3c7'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(padL, Y(p.a)); ctx.lineTo(padL + plotW, Y(p.a)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(padL, Y(0));   ctx.lineTo(padL + plotW, Y(0));   ctx.stroke();
+  ctx.setLineDash([]);
+
+  // starting point
+  const z = p.zr * p.a;
+  ctx.strokeStyle = '#ffd166'; ctx.setLineDash([2, 4]);
+  ctx.beginPath(); ctx.moveTo(padL, Y(z)); ctx.lineTo(padL + plotW, Y(z)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // labels
+  ctx.fillStyle = '#9aa3c7'; ctx.font = '11px ui-sans-serif';
+  ctx.fillText('a',  6, Y(p.a) + 4);
+  ctx.fillText('0',  6, Y(0)   + 4);
+  ctx.fillText('z',  6, Y(z)   + 4);
+  ctx.fillText('time (s)', padL + plotW - 50, padT + plotH + 18);
+  for (let i = 0; i <= 4; i++) {
+    const t = (i / 4) * tMax;
+    ctx.fillText(t.toFixed(2), padL + (i / 4) * plotW - 10, padT + plotH + 14);
+  }
+
+  // paths
+  ctx.lineWidth = 1.2;
+  for (const r of paths) {
+    if (!r.path) continue;
+    ctx.strokeStyle = r.correct === true  ? 'rgba(108,240,194,0.7)'
+                     : r.correct === false ? 'rgba(255,122,138,0.7)'
+                                           : 'rgba(154,163,199,0.3)';
+    ctx.beginPath();
+    for (let i = 0; i < r.path.length; i++) {
+      const pt = r.path[i];
+      if (i === 0) ctx.moveTo(X(pt.t), Y(pt.x));
+      else         ctx.lineTo(X(pt.t), Y(pt.x));
+    }
+    ctx.stroke();
+  }
+}
+
+// =======================================================================
+// 7) Drawing — RT distribution (mirror histogram)
+// =======================================================================
+function drawRTDist(cv, rts_c, rts_e) {
+  const { ctx, w, h } = setupCanvas(cv);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 38, padR = 12, padT = 12, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const midY  = padT + plotH / 2;
+
+  const allRT = rts_c.concat(rts_e);
+  if (allRT.length === 0) { return; }
+  let tMin = Math.max(0.0, Math.min(...allRT) - 0.1);
+  let tMax = Math.min(3.0, Math.max(...allRT) + 0.1);
+  if (tMax - tMin < 0.4) tMax = tMin + 0.4;
+
+  const binW = 0.025; // 25 ms bins
+  const nBin = Math.max(1, Math.ceil((tMax - tMin) / binW));
+  const histC = new Array(nBin).fill(0);
+  const histE = new Array(nBin).fill(0);
+  for (const t of rts_c) {
+    const i = Math.floor((t - tMin) / binW);
+    if (i >= 0 && i < nBin) histC[i]++;
+  }
+  for (const t of rts_e) {
+    const i = Math.floor((t - tMin) / binW);
+    if (i >= 0 && i < nBin) histE[i]++;
+  }
+  const maxCount = Math.max(1, ...histC, ...histE);
+  const halfH    = plotH / 2 - 4;
+
+  // axes
+  ctx.strokeStyle = '#2a3464'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, midY); ctx.lineTo(padL + plotW, midY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.stroke();
+
+  // bars
+  const barW = plotW / nBin;
+  for (let i = 0; i < nBin; i++) {
+    const x0 = padL + i * barW;
+    if (histC[i] > 0) {
+      const h0 = (histC[i] / maxCount) * halfH;
+      ctx.fillStyle = 'rgba(108,240,194,0.85)';
+      ctx.fillRect(x0, midY - h0, barW - 1, h0);
+    }
+    if (histE[i] > 0) {
+      const h0 = (histE[i] / maxCount) * halfH;
+      ctx.fillStyle = 'rgba(255,122,138,0.85)';
+      ctx.fillRect(x0, midY, barW - 1, h0);
+    }
+  }
+
+  // labels
+  ctx.fillStyle = '#9aa3c7'; ctx.font = '11px ui-sans-serif';
+  ctx.fillText('correct', padL + 4, padT + 12);
+  ctx.fillText('error',   padL + 4, padT + plotH - 4);
+  for (let i = 0; i <= 4; i++) {
+    const t = tMin + (i / 4) * (tMax - tMin);
+    ctx.fillText(t.toFixed(2) + 's', padL + (i / 4) * plotW - 12, padT + plotH + 14);
+  }
+}
+
+// =======================================================================
+// 8) Drawing — Quantile probability plot
+// =======================================================================
+function drawQPP(cv, rts_c, rts_e) {
+  const { ctx, w, h } = setupCanvas(cv);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 42, padR = 12, padT = 14, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const n = rts_c.length + rts_e.length;
+  if (n === 0) return;
+
+  const pC = rts_c.length / n;
+  const pE = rts_e.length / n;
+  const qs = [0.1, 0.3, 0.5, 0.7, 0.9];
+  const rcS = rts_c.slice().sort((a, b) => a - b);
+  const reS = rts_e.slice().sort((a, b) => a - b);
+  const qC = qs.map(q => quantile(rcS, q));
+  const qE = qs.map(q => quantile(reS, q));
+
+  const allY = qC.concat(qE).filter(v => !isNaN(v));
+  const yMin = Math.max(0, Math.min(...allY) - 0.05);
+  const yMax = Math.min(3, Math.max(...allY) + 0.05);
+
+  const X = p => padL + p * plotW;
+  const Y = t => padT + plotH - ((t - yMin) / (yMax - yMin)) * plotH;
+
+  // axes
+  ctx.strokeStyle = '#2a3464'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // x ticks 0, .25, .5, .75, 1
+  ctx.fillStyle = '#9aa3c7'; ctx.font = '11px ui-sans-serif';
+  for (let i = 0; i <= 4; i++) {
+    const p = i / 4;
+    ctx.fillText(p.toFixed(2), X(p) - 10, padT + plotH + 14);
+  }
+  // y ticks
+  for (let i = 0; i <= 4; i++) {
+    const t = yMin + (i / 4) * (yMax - yMin);
+    ctx.fillText(t.toFixed(2), 4, Y(t) + 4);
+  }
+  ctx.fillText('p(response)', padL + plotW - 70, padT + plotH + 14);
+  ctx.save(); ctx.translate(10, padT + 12); ctx.rotate(-Math.PI/2);
+  ctx.fillText('RT quantile (s)', -plotH/2, -0); ctx.restore();
+
+  // dots: correct
+  ctx.fillStyle = 'rgba(108,240,194,0.95)';
+  for (const t of qC) if (!isNaN(t)) {
+    ctx.beginPath(); ctx.arc(X(pC), Y(t), 4, 0, 2*Math.PI); ctx.fill();
+  }
+  // dots: error
+  ctx.fillStyle = 'rgba(255,122,138,0.95)';
+  for (const t of qE) if (!isNaN(t)) {
+    ctx.beginPath(); ctx.arc(X(pE), Y(t), 4, 0, 2*Math.PI); ctx.fill();
+  }
+}
+
+// =======================================================================
+// 9) Drawing — Psychometric sweep (run async, light load)
+// =======================================================================
+function drawPsy(cv, p, points) {
+  const { ctx, w, h } = setupCanvas(cv);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 42, padR = 12, padT = 14, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const X = v => padL + ((v + 0.4) / 0.8) * plotW;
+  const Y = acc => padT + plotH - acc * plotH;
+
+  // axes
+  ctx.strokeStyle = '#2a3464'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  ctx.fillStyle = '#9aa3c7'; ctx.font = '11px ui-sans-serif';
+  for (let i = 0; i <= 4; i++) {
+    const v = -0.4 + (i / 4) * 0.8;
+    ctx.fillText(v.toFixed(2), X(v) - 10, padT + plotH + 14);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const acc = i / 4;
+    ctx.fillText(acc.toFixed(2), 4, Y(acc) + 4);
+  }
+  ctx.fillText('drift v', padL + plotW - 50, padT + plotH + 14);
+  ctx.save(); ctx.translate(10, padT + 12); ctx.rotate(-Math.PI/2);
+  ctx.fillText('P(correct)', -plotH/2 - 20, 0); ctx.restore();
+
+  // ref line at 0.5
+  ctx.strokeStyle = '#9aa3c7'; ctx.setLineDash([2, 4]);
+  ctx.beginPath(); ctx.moveTo(padL, Y(0.5)); ctx.lineTo(padL + plotW, Y(0.5)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // current v marker
+  ctx.strokeStyle = '#ffd166'; ctx.setLineDash([2, 4]);
+  ctx.beginPath(); ctx.moveTo(X(p.v), padT); ctx.lineTo(X(p.v), padT + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // line + dots
+  ctx.strokeStyle = '#6cf0c2'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const pt = points[i];
+    if (i === 0) ctx.moveTo(X(pt.v), Y(pt.acc));
+    else         ctx.lineTo(X(pt.v), Y(pt.acc));
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#6cf0c2';
+  for (const pt of points) {
+    ctx.beginPath(); ctx.arc(X(pt.v), Y(pt.acc), 3, 0, 2*Math.PI); ctx.fill();
+  }
+}
+
+// =======================================================================
+// 10) UI wiring
+// =======================================================================
+const ids = ['v','a','zr','ter','eta','sz','st','s','dt','nt'];
+const getParams = () => {
+  const p = {};
+  for (const id of ids) p[id] = parseFloat(document.getElementById(id).value);
+  return { v: p.v, a: p.a, zr: p.zr, ter: p.ter,
+           eta: p.eta, sz: p.sz, st: p.st,
+           s: p.s, dt: p.dt, n: Math.round(p.nt) };
+};
+
+function updateLabels() {
+  document.getElementById('v_val').textContent   = (+document.getElementById('v').value).toFixed(2);
+  document.getElementById('a_val').textContent   = (+document.getElementById('a').value).toFixed(3);
+  document.getElementById('zr_val').textContent  = (+document.getElementById('zr').value).toFixed(2);
+  document.getElementById('ter_val').textContent = (+document.getElementById('ter').value).toFixed(3);
+  document.getElementById('eta_val').textContent = (+document.getElementById('eta').value).toFixed(3);
+  document.getElementById('sz_val').textContent  = (+document.getElementById('sz').value).toFixed(3);
+  document.getElementById('st_val').textContent  = (+document.getElementById('st').value).toFixed(3);
+  document.getElementById('s_val').textContent   = (+document.getElementById('s').value).toFixed(3);
+  document.getElementById('dt_val').textContent  = (+document.getElementById('dt').value).toFixed(4);
+  document.getElementById('nt_val').textContent  = Math.round(+document.getElementById('nt').value);
+}
+
+function setPreset(name) {
+  const presets = {
+    easy:     { v: 0.35, a: 0.12, zr: 0.5, ter: 0.30, eta: 0.08, sz: 0.04, st: 0.10 },
+    hard:     { v: 0.08, a: 0.12, zr: 0.5, ter: 0.30, eta: 0.08, sz: 0.04, st: 0.10 },
+    speed:    { v: 0.20, a: 0.08, zr: 0.5, ter: 0.30, eta: 0.08, sz: 0.06, st: 0.10 },
+    accuracy: { v: 0.20, a: 0.18, zr: 0.5, ter: 0.30, eta: 0.08, sz: 0.04, st: 0.10 },
+    bias:     { v: 0.20, a: 0.12, zr: 0.7, ter: 0.30, eta: 0.08, sz: 0.04, st: 0.10 },
+    aging:    { v: 0.18, a: 0.18, zr: 0.5, ter: 0.42, eta: 0.10, sz: 0.04, st: 0.14 },
+  };
+  const p = presets[name]; if (!p) return;
+  for (const k of Object.keys(p)) {
+    const el = document.getElementById(k); if (el) el.value = p[k];
+  }
+  updateLabels();
+  runSimulation();
+}
+
+let lastResult = null;
+
+function runSimulation() {
+  const P = getParams();
+  // Capture ~12 sample paths for visualization (sub-sample for speed)
+  const keepN = 12;
+  const t0 = performance.now();
+  const out = runBatch(P, P.n, keepN);
+  const t1 = performance.now();
+  lastResult = out;
+
+  // Draw
+  drawPaths(document.getElementById('cv_paths'), P, out.paths);
+  drawRTDist(document.getElementById('cv_rtdist'), out.rts_c, out.rts_e);
+  drawQPP(document.getElementById('cv_qpp'), out.rts_c, out.rts_e);
+
+  // Stats
+  const acc = out.n_total ? out.n_correct / out.n_total : NaN;
+  document.getElementById('st_acc').textContent = isNaN(acc) ? '—' : (acc * 100).toFixed(1) + '%';
+  document.getElementById('st_mrc').textContent = out.rts_c.length
+    ? (mean(out.rts_c) * 1000).toFixed(0) + ' ms' : '—';
+  document.getElementById('st_mre').textContent = out.rts_e.length
+    ? (mean(out.rts_e) * 1000).toFixed(0) + ' ms' : '—';
+  document.getElementById('st_n').textContent = out.n_total + '  (' + (t1 - t0).toFixed(0) + ' ms)';
+
+  // Psychometric sweep — lighter, async to avoid blocking
+  schedulePsychometric(P);
+}
+
+let psyToken = 0;
+function schedulePsychometric(P) {
+  const myToken = ++psyToken;
+  const vs = [];
+  for (let v = -0.4; v <= 0.4 + 1e-9; v += 0.08) vs.push(+v.toFixed(3));
+  const trialsPerPoint = 200;
+  const points = [];
+  let i = 0;
+  function step() {
+    if (myToken !== psyToken) return;       // newer request superseded us
+    if (i >= vs.length) {
+      drawPsy(document.getElementById('cv_psy'), P, points);
+      return;
+    }
+    const Pi = Object.assign({}, P, { v: vs[i] });
+    const out = runBatch(Pi, trialsPerPoint, 0);
+    const acc = out.n_total ? out.n_correct / out.n_total : NaN;
+    points.push({ v: vs[i], acc: isNaN(acc) ? 0 : acc });
+    drawPsy(document.getElementById('cv_psy'), P, points);
+    i++;
+    setTimeout(step, 0);
+  }
+  step();
+}
+
+// Init
+window.addEventListener('load', () => {
+  for (const id of ids) {
+    document.getElementById(id).addEventListener('input', updateLabels);
+  }
+  document.getElementById('run').addEventListener('click', runSimulation);
+  document.getElementById('reset').addEventListener('click', () => {
+    setPreset('easy');                       // a sensible default
+  });
+  document.querySelectorAll('.preset').forEach(b => {
+    b.addEventListener('click', () => setPreset(b.dataset.preset));
+  });
+  window.addEventListener('resize', () => {
+    if (lastResult) {
+      const P = getParams();
+      drawPaths(document.getElementById('cv_paths'), P, lastResult.paths);
+      drawRTDist(document.getElementById('cv_rtdist'), lastResult.rts_c, lastResult.rts_e);
+      drawQPP(document.getElementById('cv_qpp'), lastResult.rts_c, lastResult.rts_e);
+    }
+  });
+  updateLabels();
+  runSimulation();
+});
+</script>
+</body>
+</html>
