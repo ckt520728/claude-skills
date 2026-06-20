@@ -1,0 +1,125 @@
+# Skill: Connect Google Calendar & Gmail to a Vite/React Dashboard
+
+## Overview
+Step-by-step guide to wire up Google Calendar and Gmail APIs to a local dashboard using OAuth 2.0 (refresh-token flow), based on a real integration session. Includes all pitfalls encountered.
+
+---
+
+## Architecture
+- **Frontend**: React + Vite (port 5173) — panels call `/api/calendar` and `/api/gmail`
+- **Backend**: Express server (port 3001) — holds OAuth credentials, calls Google APIs
+- **Proxy**: `vite.config.ts` proxies `/api/calendar` and `/api/gmail` to `http://127.0.0.1:3001`
+- **Auth flow**: one-time browser OAuth → refresh token stored in `.env`
+
+---
+
+## Prerequisites
+- Google Cloud project created
+- **Google Calendar API** and **Gmail API** enabled (APIs & Services → Enabled APIs)
+- OAuth 2.0 credential of type **Web application** created
+
+---
+
+## Step-by-Step Setup
+
+### 1. Create OAuth Credentials (Google Cloud Console)
+1. Go to **APIs & Services → Credentials → + Create Credentials → OAuth 2.0 Client ID**
+2. Application type: **Web application** (NOT Desktop app)
+3. Under **Authorized redirect URIs**, add exactly:
+   ```
+   http://localhost:3001/auth/callback
+   ```
+4. Save → copy **Client ID** and **Client Secret**
+
+### 2. Add Credentials to `.env`
+```env
+GOOGLE_CLIENT_ID=<your-client-id>.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-<your-secret>
+GOOGLE_REFRESH_TOKEN=
+```
+Leave `GOOGLE_REFRESH_TOKEN` blank — the OAuth callback fills it automatically.
+
+### 3. Add Yourself as a Test User
+In **APIs & Services → OAuth consent screen → Test users**, add your Gmail address.
+Required because the app is in Testing publishing status.
+
+### 4. Start the Backend Server
+```bash
+npm run server
+```
+Confirm it prints:
+```
+🚀 API server → http://127.0.0.1:3001
+⚠️  No refresh token found. Run OAuth setup: http://127.0.0.1:3001/auth/login
+```
+
+### 5. Run the OAuth Flow
+Open in browser: `http://127.0.0.1:3001/auth/login`
+- Google consent screen appears → grant Calendar + Gmail read access
+- On success the server writes `GOOGLE_REFRESH_TOKEN=<value>` into `.env` automatically
+- Page shows: ✅ Authorization successful!
+
+### 6. Restart and Verify
+```bash
+npm run dev:all   # starts Vite (5173) + Express (3001) concurrently
+```
+Open `http://127.0.0.1:5173` — Calendar and Email panels show live data.
+
+---
+
+## Pitfalls Encountered
+
+### ❌ Pitfall 1 — Extra character in Client Secret
+**Symptom:** `Auth error: invalid_client — {"error":"invalid_client","error_description":"The provided client secret is invalid."}`
+**Cause:** Client secret was copy-pasted with an extra character at the end (`GOCSPX-...XS` instead of `GOCSPX-...X`).
+**Fix:** Download credentials JSON from Google Cloud Console and copy the secret from there to avoid typos.
+
+### ❌ Pitfall 2 — App not verified / access blocked
+**Symptom:** Google shows "Access blocked: [App name] has not completed the Google verification process"
+**Cause:** App is in Testing mode and the Google account used is not in the test users list.
+**Fix:** APIs & Services → OAuth consent screen → Test users → Add your Gmail address.
+
+### ❌ Pitfall 3 — Wrong credential type (Desktop app)
+**Symptom:** `invalid_client` at the token exchange step despite correct credentials
+**Cause:** Using a Desktop app type OAuth credential with a redirect URI — Desktop apps don't support custom redirect URIs in Google's flow.
+**Fix:** Create a new credential with type **Web application** and configure the redirect URI explicitly.
+
+### ❌ Pitfall 4 — Redirect URI mismatch
+**Symptom:** `redirect_uri_mismatch` error from Google
+**Cause:** The URI registered in Google Cloud Console (`http://127.0.0.1:3001/...`) differs from the one the server uses (`http://localhost:3001/...`). These are not interchangeable.
+**Fix:** Add `http://localhost:3001/auth/callback` exactly — no trailing slash, no HTTPS, no 127.0.0.1.
+
+### ❌ Pitfall 5 — Server not running when opening auth URL
+**Symptom:** Browser shows "localhost refused connection"
+**Cause:** Tried to open `http://127.0.0.1:3001/auth/login` before running `npm run server`.
+**Fix:** Always start the server first, confirm it prints the startup message, then open the browser.
+
+### ❌ Pitfall 6 — Server not restarted after `.env` change
+**Symptom:** Server still uses old credentials / stale refresh token
+**Cause:** Node loads `dotenv` once at startup; editing `.env` after start has no effect.
+**Fix:** Stop and restart the server after any `.env` change.
+
+---
+
+## Key Files Reference
+| File | Purpose |
+|------|---------|
+| `.env` | Holds all API keys including Google credentials |
+| `server/index.js` | Express backend: OAuth endpoints + Google API calls |
+| `vite.config.ts` | Proxies `/api/calendar` and `/api/gmail` to port 3001 |
+| `src/services/gmail.ts` | Frontend fetch to `/api/gmail/messages` |
+| `src/services/calendar.ts` | Frontend fetch to `/api/calendar/events` |
+| `src/components/panels/EmailPanel.tsx` | Gmail UI panel |
+| `src/components/panels/CalendarPanel.tsx` | Calendar UI panel |
+
+---
+
+## Quick Debug Tip
+If you get an unclear `invalid_client`, temporarily enhance the error in `server/index.js` callback:
+```js
+} catch (err) {
+  console.error(JSON.stringify(err?.response?.data ?? err.message))
+  res.status(500).send(`Auth error: ${err.message} — ${JSON.stringify(err?.response?.data ?? '')}`)
+}
+```
+Google's `error_description` field ("The provided client secret is invalid", "redirect_uri_mismatch", etc.) pinpoints the exact issue.
