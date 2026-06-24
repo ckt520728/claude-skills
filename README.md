@@ -78,7 +78,26 @@ python lecture-notes/scripts/main.py \
 
 ---
 
-## SOIL 三件套簡報 Skill（2026-05-09 新增）
+## soil-deck — SOIL 三合一簡報 Skill（2026-05-09 合併版）
+
+> ⭐ **推薦入口**：把原本分開的三個 SOIL 簡報 skill 合併成單一 skill，三種模式共用前 5 顆引擎。
+
+**用途：** 在同一個 skill 內提供三種簡報路徑，依使用者場景自動分流：
+1. 純圖片 `.pptx`（image 模式）
+2. 可編輯文字 `.pptx`（teaching 模式）
+3. HTML 簡報（html 模式）
+
+**Trigger：** 任一模式的觸發詞都會進入 `soil-deck`，第一步問「你要哪一種輸出格式」。
+
+**完整文件：** [`soil-deck/SKILL.md`](soil-deck/SKILL.md)
+**Mode 子檔：** [`modes/image-deck.md`](soil-deck/modes/image-deck.md) / [`modes/teaching-deck.md`](soil-deck/modes/teaching-deck.md) / [`modes/html-deck.md`](soil-deck/modes/html-deck.md)
+**打包腳本：** [`scripts/pack_pptx.py`](soil-deck/scripts/pack_pptx.py)
+
+---
+
+## SOIL 三件套簡報 Skill（2026-05-09 原版，向後相容保留）
+
+> ⚠️ 新使用情境建議用上方 `soil-deck` 合併版。下面這三個資料夾保留供既有自動化引用。
 
 依李俊儀教授 SOIL 教學設計六引擎 + 林長揚 30 條簡報原則打造的三種簡報生成 Skill。圖像生成統一呼叫 OpenAI `gpt-image-2`（ChatGPT/Codex 訂閱者免另設 API key 即可使用）。
 
