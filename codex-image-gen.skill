@@ -1,33 +1,17 @@
 ---
 name: codex-image-gen
-description: "先由 Claude 生成優化的圖像設計 prompt，再調用 Codex / OpenAI Image Gen（gpt-image-1）生圖。觸發詞：「幫我生圖」「畫一張」「設計圖案」「生成圖片」「image gen」「codex 生圖」「用 AI 畫」「生成封面」「製作縮圖」「banner 設計」「logo 設計」「infographic 圖片」。不適用：需要互動式向量設計（用 Canva MCP）、文件排版（用 pptx/pdf skill）。先決條件：需要 OpenAI API Key 並設定於 claude_desktop_config.json（見 CLAUDE.md），或改用 Canva MCP 替代。"
+description: "由 Claude 生成優化的圖像設計 prompt，用戶再自行貼到 Codex 環境生圖。觸發詞：「幫我生圖」「畫一張」「設計圖案」「生成圖片」「image gen」「codex 生圖」「用 AI 畫」「生成封面」「製作縮圖」「banner 設計」「logo 設計」「infographic 圖片」「幫我寫 prompt」「生圖 prompt」。不適用：需要互動式向量設計（用 Canva MCP）、文件排版（用 pptx/pdf skill）。"
 ---
 
 # Codex Image Gen Skill
 
-Claude 先根據用戶描述生成專業 image prompt，再調用 OpenAI Image Gen 生圖。整個流程在 Claude 對話中完成，不需切換工具或複製貼上。
-
----
-
-## 🔑 先決條件確認
-
-在開始前，確認環境狀態：
-
-**有 OpenAI API Key（推薦路徑）**
-- `claude_desktop_config.json` 已加入 `openai-image-gen` MCP server
-- MCP 工具名稱為 `generate_image`（來自 `@lpenguin/openai-image-mcp`）
-
-**無 API Key（Canva 替代路徑）**
-- 使用已連線的 Canva MCP（`mcp__72c71957-*`）
-- 工具：`generate-design`，限設計類型（poster、instagram_post、youtube_thumbnail 等）
+Claude 根據用戶描述生成專業 image prompt，用戶再貼到 Codex 環境生圖。
 
 ---
 
 ## Core Workflow
 
-### Phase 1 — 需求訪談（1–3 個問題，不要超問）
-
-從用戶描述中萃取以下資訊。**已知的不問**，最多只問缺少的關鍵項：
+### Phase 1 — 需求訪談（最多問 3 項缺少的資訊，已知的不問）
 
 | 要素 | 範例 |
 |------|------|
@@ -35,69 +19,46 @@ Claude 先根據用戶描述生成專業 image prompt，再調用 OpenAI Image G
 | **風格** | 科技感、手繪、極簡、賽博龐克、水彩、3D 渲染 |
 | **色調** | 深藍+金色、莫蘭迪色、高對比黑白 |
 | **尺寸 / 比例** | 1:1（方形）、16:9（橫）、9:16（直）、自由 |
-| **文字需求** | 是否要在圖中加標題文字（Image Gen 的文字效果有限） |
+| **文字需求** | 是否要在圖中加標題文字（Image Gen 文字效果有限，建議後製）|
 
 ### Phase 2 — 生成 Image Prompt
 
-根據訪談結果，Claude 生成 **英文** prompt（Image Gen 模型對英文最佳）。
+生成**英文** prompt（Codex Image Gen 對英文效果最好）。
 
-**Prompt 結構模板：**
-
-```
-[SUBJECT]: {主體描述，具體、清晰}
-[STYLE]: {藝術風格 + 技法，例如 "digital art, cinematic lighting, 8K"}
-[COMPOSITION]: {構圖規則，例如 "rule of thirds, subject centered, wide angle"}
-[COLOR]: {色調，例如 "deep blue and gold palette, high contrast"}
-[MOOD]: {氛圍，例如 "futuristic, professional, inspiring"}
-[TECHNICAL]: {技術參數，例如 "sharp focus, no blur, photorealistic"}
-[NEGATIVE]: {排除項，例如 "no text, no watermark, no distortion"}
-```
-
-**實際輸出範例（YouTube 教學縮圖）：**
+**Prompt 結構：**
 
 ```
-A professional educator at a futuristic holographic desk, surrounded by floating
-glowing data nodes and circuit patterns, looking directly at camera with confident
-expression. Digital art style, cinematic lighting with blue and orange rim light,
-rule of thirds composition, dark navy background with golden accent highlights,
-professional and inspiring mood, sharp focus, 8K resolution quality.
-No text overlay, no watermark.
+[SUBJECT]: 主體描述，具體清晰
+[STYLE]: 藝術風格 + 技法（例如 digital art, cinematic lighting, 8K）
+[COMPOSITION]: 構圖（例如 rule of thirds, subject centered）
+[COLOR]: 色調（例如 deep blue and gold palette, high contrast）
+[MOOD]: 氛圍（例如 futuristic, professional, inspiring）
+[TECHNICAL]: sharp focus, high detail, no artifacts, no distortion
+[NEGATIVE]: no text, no watermark（如用戶不要文字入圖）
 ```
 
-向用戶展示 prompt 並詢問是否調整，確認後進入 Phase 3。
+**輸出格式：**
 
-### Phase 3 — 生圖
-
-**路徑 A：OpenAI Image Gen MCP（需 API Key）**
-
-呼叫 `generate_image` 工具：
+向用戶展示完整 prompt，格式如下：
 
 ```
-model: gpt-image-1
-prompt: {Phase 2 確認的 prompt}
-size: 1024x1024 | 1536x1024 | 1024x1536
-quality: low | medium | high
-output_format: png
+📋 Codex Image Prompt（直接複製貼到 Codex）
+
+──────────────────────────────
+{完整英文 prompt}
+──────────────────────────────
+
+📐 建議尺寸：{1024×1024 / 1536×1024 / 1024×1536}
+🎨 建議品質：low（草稿）→ 確認構圖後再用 high（最終版）
 ```
 
-尺寸對應：
-- `1024x1024` → 方形（Instagram、縮圖）
-- `1536x1024` → 橫向（YouTube 封面、Banner）
-- `1024x1536` → 直向（限時動態、手機桌布）
+詢問用戶是否需要調整 prompt，確認後即完成。
 
-**路徑 B：Canva MCP（無 API Key 替代）**
+### Phase 3 — 迭代（選用）
 
-呼叫 `generate-design`：
-- 將 prompt 翻譯為中文摘要作為 `query`
-- 選擇對應 `design_type`：`youtube_thumbnail` / `poster` / `instagram_post` / `logo`
-
-### Phase 4 — 輸出與迭代
-
-生圖後：
-1. 展示圖片給用戶
-2. 詢問是否需要調整（風格 / 構圖 / 色調 / 重新生成）
-3. 若需調整，修改 prompt 並重跑 Phase 3
-4. 儲存最終 prompt 至 `docs/image-briefs/`（若在 `2026-open-code` 專案中）
+若用戶貼回 Codex 生出的圖後想調整：
+- 描述哪裡不滿意（色調？構圖？風格？）
+- Claude 修改 prompt 並重新輸出，用戶再貼回 Codex
 
 ---
 
@@ -113,18 +74,18 @@ output_format: png
 | 手繪插畫 | `hand-drawn illustration, sketch style, ink lines` |
 | 3D 渲染 | `3D render, octane render, volumetric lighting` |
 | 水彩 | `watercolor painting, soft edges, paper texture` |
-| 電影感 | `cinematic, dramatic lighting, film grain, widescreen` |
+| 電影感 | `cinematic, dramatic lighting, film grain` |
 
 ### 光線關鍵詞
 
 | 效果 | 英文關鍵詞 |
 |------|-----------|
-| 環境光 | `soft ambient light, diffused lighting` |
+| 柔和環境光 | `soft ambient light, diffused lighting` |
 | 戲劇性 | `dramatic rim light, strong shadows` |
 | 黃金時刻 | `golden hour, warm sunset tones` |
 | 工作室感 | `studio lighting, white background, product shot` |
 
-### 品質提升詞（固定加入）
+### 品質固定加入
 
 ```
 sharp focus, high detail, professional quality, no artifacts, no distortion
@@ -132,24 +93,12 @@ sharp focus, high detail, professional quality, no artifacts, no distortion
 
 ---
 
-## 常見錯誤排除
+## 常見問題排除
 
-| 問題 | 解法 |
-|------|------|
-| 圖中文字扭曲 | prompt 加 `no text` 或 `text-free`，文字改用 Canva 後製 |
+| 問題 | Prompt 調整方式 |
+|------|----------------|
+| 圖中文字扭曲 | 加 `no text, text-free`，文字改用 Canva 後製 |
 | 臉孔變形 | 加 `photorealistic face, symmetrical features, correct anatomy` |
 | 背景雜亂 | 加 `clean background, minimal background, solid color background` |
-| 色調不對 | 具體描述顏色：`deep navy blue #1a237e, golden yellow #ffd700` |
-| MCP 未連線 | 確認 `claude_desktop_config.json` 有 `openai-image-gen` 條目並重啟 Claude |
-
----
-
-## 費用估算（OpenAI gpt-image-1）
-
-| 品質 | 每張費用（USD） | 建議用途 |
-|------|---------------|---------|
-| low | ~$0.011 | 草稿、測試 |
-| medium | ~$0.042 | 一般使用 |
-| high | ~$0.167 | 最終輸出 |
-
-> 建議：先用 `low` 確認構圖，滿意後再用 `high` 生最終版。
+| 色調不準 | 改用十六進位色碼：`deep navy blue #1a237e, golden yellow #ffd700` |
+| 效果不如預期 | 先用 low 品質確認構圖，滿意後再切 high |
