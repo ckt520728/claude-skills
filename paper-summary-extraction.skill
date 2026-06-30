@@ -102,14 +102,32 @@ full_text_available: {{true / false}}
 
 ### Step 3 — 決定檔案名稱與儲存路徑
 
+**路徑結構：**
 ```
-檔案名稱格式：YYYY-{{第一作者姓}}-{{關鍵字1}}-{{關鍵字2}}.md
-範例：2024-Chen-CKD-cognitive-decline.md
-
-儲存路徑：G:\我的雲端硬碟\Second Brain\知識庫\
+G:\我的雲端硬碟\Second Brain\知識庫\
+    └── {{Agent 資料夾}}\
+            └── YYYY-{{第一作者姓}}-{{關鍵字1}}-{{關鍵字2}}.md
 ```
 
-呼叫 `obsidian_create_file` 或 `obsidian_append_content` 寫入。
+**Agent 資料夾對照：**
+
+| 使用的 Agent | 資料夾名稱 |
+|------------|----------|
+| Claude Code（本 Skill） | `2026 Claude Code` |
+| Hermes Agent | `2026 Hermes Agent` |
+| Codex | `2026 Codex` |
+| OpenCode | `2026 OpenCode` |
+| 其他 / 未知 | `2026 Other` |
+
+**完整路徑範例：**
+```
+G:\我的雲端硬碟\Second Brain\知識庫\2026 Claude Code\2024-Chen-CKD-cognitive-decline.md
+G:\我的雲端硬碟\Second Brain\知識庫\2026 Hermes Agent\2025-Wang-uremic-toxin-brain.md
+```
+
+在 Step 1 識別來源時，同步確認使用者當前使用的 Agent，若未說明則預設填入 `2026 Claude Code`。
+
+呼叫 `obsidian_create_file` 或 `obsidian_append_content` 寫入，若 Agent 資料夾不存在則先建立。
 
 若同名檔案已存在，詢問用戶：
 - 覆蓋
@@ -122,8 +140,9 @@ full_text_available: {{true / false}}
 ```
 ✅ 摘要卡片已儲存
 
-📄 檔案：G:\我的雲端硬碟\Second Brain\知識庫\{{檔案名稱}}.md
+📄 檔案：G:\我的雲端硬碟\Second Brain\知識庫\{{Agent 資料夾}}\{{檔案名稱}}.md
 📚 來源：{{輸入來源}}
+🤖 Agent：{{使用的 Agent}}
 🏷️ 標籤：{{tags}}
 
 下一步選項：
