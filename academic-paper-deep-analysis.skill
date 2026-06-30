@@ -326,7 +326,66 @@ Agent 資料夾對照（同 paper-summary-extraction Skill）：
 [B] 生成 IG 短文（3 個版本）
 [C] 生成輪播圖文字素材
 [D] 提取可測試假說，規劃後續研究
+[N] Phase 4 → NotebookLM 橋接：將 Adversarial Critique 轉為 NLM 定向查詢清單
 [E] 完成
+```
+
+---
+
+### 選項 [N] 執行細節 — Phase 4 → NotebookLM 橋接
+
+用戶選擇 `[N]` 後，執行以下流程：
+
+**步驟 1：萃取 Adversarial Critique 問題**
+
+從第 6 層（侷限）與第 7 層（意涵）的分析中，自動識別三類批評點：
+
+```
+R1 方法論嚴謹性批評：
+  Fatal weakness（致命弱點）：
+  Major weakness（主要弱點）：
+  → 轉化為 NLM 查詢：「哪些來源提供了 [反例/因果設計/驗證數據]？」
+
+R2 實證有效性批評：
+  Fatal weakness：
+  Major weakness：
+  → 轉化為 NLM 查詢：「[概念 A] 與 [概念 B] 的整合證據在哪些來源中出現？」
+
+R3 新穎性與可複製性批評：
+  Major weakness：
+  Minor weakness：
+  → 轉化為 NLM 查詢：「是否有獨立團隊驗證 [核心主張]？時間範圍？」
+```
+
+**步驟 2：輸出 NLM 定向查詢清單**
+
+```
+📋 NotebookLM 定向查詢清單
+（建議在 NLM 介面逐一執行，或貼入本對話繼續分析）
+
+查詢 1（對應 R1）：[精確問題]
+查詢 2（對應 R1）：[精確問題]
+查詢 3（對應 R2）：[精確問題]
+查詢 4（對應 R2）：[精確問題]
+查詢 5（對應 R3）：[精確問題]
+
+執行後，將 NLM 回應貼回此對話，Claude 將：
+→ 整合回填至分析報告的侷限性段落
+→ 產出文章「討論」段落草稿
+→ 或觸發 social-post-generation Skill（爭議觀點版本）
+```
+
+**步驟 3：NLM 回應整合（用戶貼回後）**
+
+```
+收到 NLM 回應後，Claude 自動執行：
+
+[補強] 更新分析報告的「第 6 層侷限」與「待解問題」段落
+[生成] 產出文章討論素材：
+  - 爭議背景（1–2 段）
+  - 各方最強論點（條列）
+  - 朱醫師立場（留白供手動填寫）
+[可選] 觸發 social-post-generation → 跨域思考版 Facebook 長文
 ```
 
 ---
@@ -337,8 +396,13 @@ Agent 資料夾對照（同 paper-summary-extraction Skill）：
 paper-summary-extraction（快速摘要）
          ↓ 若需深挖
 academic-paper-deep-analysis（本 Skill，七層精讀）
+         │
+         ├─[N]→ Phase 4 Critique → NotebookLM 定向查詢 → 補強材料
+         │                                    ↓
+         │                          文章討論段落草稿
+         │
          ↓ 完成後可觸發
-社群短文生成 Skill（Phase 2，待開發）
+social-post-generation Skill（Phase 2 ✅）
 輪播圖設計 Skill（Phase 3，待開發）
 ```
 
