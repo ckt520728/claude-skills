@@ -1,0 +1,158 @@
+---
+name: paper-summary-extraction
+description: "從多種來源萃取學術論文或知識筆記，生成結構化繁體中文摘要卡片，儲存至 Obsidian Second Brain 知識庫。觸發詞：「幫我整理這篇論文」「萃取摘要」「paper summary」「整理 PubMed」「分析這篇文獻」「幫我讀這篇」「筆記整理」「NotebookLM 摘要」「PMID 整理」「PDF 摘要」。不適用：非學術性文章、社群媒體貼文整理（改用社群短文生成 Skill）。"
+---
+
+# 論文摘要萃取 Skill（Paper Summary Extraction）
+
+從 PubMed、本地 PDF、Notion 筆記或 NotebookLM 取得原始內容，生成結構化摘要卡片，寫入 Obsidian `知識庫/`。
+
+---
+
+## 輸入來源對照
+
+| 輸入類型 | 識別方式 | 使用工具 |
+|---------|---------|---------|
+| PubMed URL 或 PMID | URL 含 pubmed 或純數字 ID | `pubmed__get_article_metadata` + `get_full_text_article` |
+| 本地 PDF 路徑 | 副檔名 `.pdf` | Read 工具讀取文字層 |
+| Notion 筆記 | Notion URL 或頁面名稱 | `notion-fetch` |
+| NotebookLM 筆記 | 提及 NotebookLM 或 notebook | `notebook_get` → `notebook_query` |
+| 純文字貼入 | 其他 | 直接處理 |
+
+---
+
+## Core Workflow
+
+### Step 1 — 識別來源，取得原始內容
+
+**來源 A：PubMed URL 或 PMID**
+```
+1. 從輸入中擷取 PMID（純數字）
+2. 呼叫 pubmed__get_article_metadata(pmid) 取得基本資訊
+3. 呼叫 pubmed__get_full_text_article(pmid) 取得全文（若有開放取用）
+4. 若全文不可取，以 abstract 為主，於卡片標注「僅摘要」
+```
+
+**來源 B：本地 PDF**
+```
+1. 使用 Read 工具讀取 PDF 文字層
+2. 若 PDF 為掃描圖檔（無文字層），告知用戶需先 OCR 處理
+3. 從文字中識別 DOI / PMID，補查 PubMed metadata
+```
+
+**來源 C：Notion 筆記**
+```
+1. 呼叫 notion-fetch(url 或頁面名稱) 取得筆記內容
+2. 將 Notion 內容視為「已有初步整理的素材」，在卡片中標注來源
+```
+
+**來源 D：NotebookLM（主要來源）**
+```
+1. 呼叫 notebook_list 列出現有筆記本，請用戶確認目標筆記本
+2. 呼叫 notebook_get(notebook_id) 取得筆記本資訊與來源清單
+3. 呼叫 notebook_query(notebook_id, query="主要發現與臨床意義") 取得 AI 整理內容
+4. 若有多個來源，可多次查詢後整合
+```
+
+### Step 2 — 生成結構化摘要卡片
+
+輸出格式為 **Obsidian Markdown**，使用 YAML frontmatter：
+
+```markdown
+---
+title: "{{論文標題}}"
+authors: "{{第一作者}} et al."
+journal: "{{期刊名稱}}"
+year: {{年份}}
+pmid: "{{PMID}}"
+doi: "{{DOI}}"
+tags: [論文摘要, {{主題標籤}}, {{疾病/領域標籤}}]
+source: "{{輸入來源：PubMed / PDF / Notion / NotebookLM}}"
+date_added: "{{今日日期 YYYY-MM-DD}}"
+full_text_available: {{true / false}}
+---
+
+# {{論文標題}}
+
+## 研究背景與問題
+{{2–3 句：這篇論文要解決什麼問題，背景為何}}
+
+## 研究方法
+{{研究設計、樣本數、介入方式、追蹤時間等重點}}
+
+## 關鍵發現
+- {{發現一：數字/結論要具體}}
+- {{發現二}}
+- {{發現三}}
+- {{發現四（視需要）}}
+- {{發現五（視需要）}}
+
+## 臨床意義
+{{對腎臟科 / 認知神經科學 / AI 工作流程的關聯，用朱醫師的跨域視角詮釋}}
+
+## 侷限性
+{{方法、樣本、推論上的主要限制}}
+
+## 朱醫師評語
+> （留白，待手動填寫）
+
+## 延伸閱讀
+- {{相關論文或關鍵字，可連結至其他 Obsidian 筆記}}
+```
+
+### Step 3 — 決定檔案名稱與儲存路徑
+
+```
+檔案名稱格式：YYYY-{{第一作者姓}}-{{關鍵字1}}-{{關鍵字2}}.md
+範例：2024-Chen-CKD-cognitive-decline.md
+
+儲存路徑：G:\我的雲端硬碟\Second Brain\知識庫\
+```
+
+呼叫 `obsidian_create_file` 或 `obsidian_append_content` 寫入。
+
+若同名檔案已存在，詢問用戶：
+- 覆蓋
+- 建立新版本（加 `-v2` 後綴）
+- 取消
+
+### Step 4 — 完成確認
+
+寫入成功後回報：
+```
+✅ 摘要卡片已儲存
+
+📄 檔案：G:\我的雲端硬碟\Second Brain\知識庫\{{檔案名稱}}.md
+📚 來源：{{輸入來源}}
+🏷️ 標籤：{{tags}}
+
+下一步選項：
+[A] 根據此摘要生成 Facebook 長文草稿
+[B] 根據此摘要生成 IG 短文
+[C] 繼續萃取下一篇論文
+[D] 完成
+```
+
+---
+
+## 主題標籤參考
+
+| 領域 | 建議標籤 |
+|------|---------|
+| 腎臟科 | `CKD` `透析` `腎移植` `電解質` `高血壓` `蛋白尿` |
+| 認知神經科學 | `記憶` `認知功能` `神經可塑性` `睡眠` `老化` |
+| AI工具 | `Claude` `MCP` `LLM` `AI工作流程` |
+| 跨域 | `腎臟-認知` `尿毒素-腦` `CKD-dementia` |
+| 文章類型 | `RCT` `系統性回顧` `統合分析` `觀察性研究` `病例報告` |
+
+---
+
+## 常見問題排除
+
+| 問題 | 處理方式 |
+|------|---------|
+| PubMed 無全文 | 標注「摘要版」，建議用戶提供 PDF |
+| PDF 無文字層（掃描檔）| 告知需先 OCR，推薦 Adobe Acrobat 或 PDF24 |
+| NotebookLM 筆記本太多 | 列出最近 5 個，請用戶選擇 |
+| Obsidian 路徑不存在 | 確認 `G:\我的雲端硬碟\Second Brain\知識庫\` 存在，否則提示用戶建立 |
+| 論文為中文期刊 | 標籤加 `中文文獻`，作者欄保留原文 |
