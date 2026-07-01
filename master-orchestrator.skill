@@ -1,0 +1,411 @@
+---
+name: master-orchestrator
+description: "輸入一個知識來源（論文/書籍/影片），自動依序執行完整永動機管線：Phase 1 萃取 → NLM Bridge 補強 → 社群貼文 → 輪播圖 → 影片腳本，輸出一份完整 Content Package。觸發詞：「跑完整管線」「全部幫我做」「master orchestrator」「永動機」「一鍵生成」「完整內容包」「全自動生成」「full pipeline」「幫我跑完所有 skill」「一次跑完」。不適用：只需要單一格式（直接觸發對應 Skill 更快）。"
+---
+
+# Master Orchestrator Skill
+
+輸入一個知識來源，自動編排所有 Skill 依序執行，產出一份包含**分析報告 + 社群貼文 + 輪播圖 + 影片腳本**的完整 Content Package。
+
+---
+
+## 永動機管線架構
+
+```
+來源（論文/書籍/影片/描述）
+        ↓
+[Stage 1] Phase 1 萃取 ──────────────→ Obsidian 知識庫
+        ↓ Content Seed
+[Stage 2] NLM Bridge（可選）────────→ Obsidian（補強報告）
+        ↓ Content Seed（更新）
+[Stage 3] Phase 2 社群貼文 ──────────→ Obsidian 內容草稿
+        ↓
+[Stage 4] Phase 3 輪播圖 ────────────→ Canva 設計連結
+        ↓
+[Stage 5] Phase 4b 影片腳本 ─────────→ Obsidian 內容草稿
+        ↓
+[Package] Content Package Dashboard
+```
+
+---
+
+## Content Seed（跨 Stage 傳遞格式）
+
+每個 Stage 完成後，萃取以下壓縮摘要傳給下一個 Stage，**不傳遞完整分析報告**（避免 context 爆炸）：
+
+```
+━━━━ CONTENT SEED ━━━━
+主題：[論文標題 / 書名章節 / 影片主題]
+來源類型：[論文 / 書籍 / 影片 / 描述]
+核心主張（1 句）：
+支撐點：
+  1.
+  2.
+  3.
+關鍵數據 / 數字：[重要量化結果]
+臨床 / 實踐意涵：[1–2 句]
+爭議點（若有）：[NLM Bridge 後更新]
+Obsidian 報告路徑：[完整路徑，供各 Skill 讀取]
+━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+## 管線模式（5 種）
+
+| 模式 | 執行 Stages | 適用情境 | 預估時間 |
+|------|-----------|---------|---------|
+| `FULL` | 1 → 2 → 3 → 4 → 5 | 重要論文/書籍，全力輸出 | 長（逐步執行）|
+| `ANALYSIS` | 1 → 2 | 需要深挖知識，暫不生成內容 | 中 |
+| `CONTENT` | 3 → 4 → 5 | 已有分析報告，直接生成內容 | 中 |
+| `EXPRESS` | 1 → 3 | 快速出貼文，跳過 NLM 和影片 | 短 |
+| `CUSTOM` | 用戶自選 | 靈活配置 | 視選擇而定 |
+
+---
+
+## Source → Phase 1 Skill 路由表
+
+| 來源類型 | 識別特徵 | 自動選擇的 Skill |
+|---------|---------|----------------|
+| 學術論文 | PubMed URL / PMID / 論文 PDF | `academic-paper-deep-analysis` |
+| 書籍章節 | 書名 + 章節 / 書籍 PDF/EPUB | `book-chapter-deep-analysis` |
+| 影片演講 | YouTube URL / 逐字稿 | `video-talk-deep-analysis` |
+| 快速摘要 | 指定「快速」或「只要摘要」| `paper-summary-extraction` |
+| 純主題描述 | 無原始素材 | 跳過 Stage 1，直接 Stage 3 |
+
+---
+
+## Core Workflow
+
+### Step 0 — 快速配置（3 個問題）
+
+```
+[1] 來源是什麼？
+    [貼入 / 提供路徑 / 描述主題]
+
+[2] 管線模式？
+    FULL / ANALYSIS / CONTENT / EXPRESS / CUSTOM
+    （輸入 F/A/C/E/X，預設 FULL）
+
+[3] 執行方式？
+    AUTO：各 Stage 自動銜接，完成後統一展示
+    CONFIRM：每個 Stage 完成後暫停，由朱醫師確認後繼續
+    （預設 CONFIRM，方便中途調整方向）
+```
+
+確認後顯示**管線預覽**：
+
+```
+🚀 管線預覽
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+模式：{{模式名稱}}  執行方式：{{AUTO / CONFIRM}}
+來源：{{來源摘要}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Stage 1] Phase 1 萃取    → academic-paper-deep-analysis
+[Stage 2] NLM Bridge      → nlm-bridge（5 個定向查詢）
+[Stage 3] 社群貼文        → social-post-generation
+[Stage 4] 輪播圖          → carousel-design
+[Stage 5] 影片腳本        → video-script（HeyGen + Reels）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+輸入「開始」啟動，或修改設定。
+```
+
+---
+
+### Stage 1 — Phase 1 萃取
+
+**執行指令：** 依路由表呼叫對應 Skill，按該 Skill 的完整 Core Workflow 執行。
+
+**Stage 1 完成條件：** 分析報告已存至 Obsidian，取得報告路徑。
+
+**Stage 1 結束後，萃取 Content Seed：**
+
+從分析報告中提煉：
+- 論文快照的「一句話論文主旨」→ 核心主張
+- 第 1 層「最核心宣稱」→ 支撐點
+- 第 2 層「關鍵結果」→ 關鍵數據
+- 第 7 層「臨床意涵」→ 臨床/實踐意涵
+- 第 6 層「Fatal weakness 前 3 項」→ 爭議點（供 Stage 2 使用）
+
+**Stage 1 進度顯示（CONFIRM 模式）：**
+
+```
+✅ Stage 1 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 分析報告：{{Obsidian 路徑}}
+🌱 Content Seed 已萃取
+
+核心主張：{{1 句}}
+支撐點：{{3 點摘要}}
+關鍵數據：{{重要數字}}
+爭議點識別：{{N 個 Fatal weakness 待補強}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[繼續 Stage 2：NLM Bridge] / [跳過至 Stage 3] / [停在此步驟]
+```
+
+---
+
+### Stage 2 — NLM Bridge（FULL / ANALYSIS 模式）
+
+**執行指令：** 以 Content Seed 中的爭議點呼叫 `nlm-bridge`，模式 A，自動萃取 R1/R2/R3 批評。
+
+**NLM 筆記本選擇：**
+- 若 Content Seed 的 Obsidian 報告路徑已標注筆記本名稱 → 自動使用
+- 否則呼叫 `notebook_list` 列出選項，請用戶確認
+
+**執行查詢數：** 預設 5 個（完整 FULL 模式），ANALYSIS 模式可追加至 7 個。
+
+**Stage 2 完成後更新 Content Seed：**
+
+```
+爭議點（更新）：{{NLM 補強後的爭議框架，含兩方論點摘要}}
+```
+
+**Stage 2 進度顯示（CONFIRM 模式）：**
+
+```
+✅ Stage 2 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔬 NLM 查詢：{{N}} 個
+📚 筆記本來源：{{N}} 個
+補強摘要：{{1–2 句：NLM 找到了什麼 / 確認了什麼弱點}}
+分析報告已更新：{{Obsidian 路徑}}（追加 NLM 補強段落）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[繼續 Stage 3：社群貼文] / [停在此步驟]
+```
+
+---
+
+### Stage 3 — 社群貼文（Phase 2）
+
+**執行指令：** 以 Content Seed 呼叫 `social-post-generation`，生成所有格式：
+
+```
+輸入：Content Seed（壓縮摘要，不傳完整報告）
+自動判斷：
+  - 論文主題 → 學術同儕風 + 醫師科普風
+  - 跨域主題 → 跨域思考風
+  - 爭議點存在 → 自動加入「跨域思考版」含爭議觀點
+```
+
+**Stage 3 輸出清單：**
+- Facebook 長文 A/B/C（3 個風格版本）
+- IG 短文 1/2/3（3 個版本）
+- Substack 中文版 + 英文版
+
+**全部草稿存至 Obsidian：**
+```
+G:\我的雲端硬碟\Second Brain\內容草稿\{{YYYY-MM}}\
+  {{YYYY-MM-DD}}-{{主題關鍵字}}-social-drafts.md
+```
+
+**Stage 3 進度顯示（CONFIRM 模式）：**
+
+```
+✅ Stage 3 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 社群貼文草稿：8 個版本
+📄 儲存：{{Obsidian 路徑}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[繼續 Stage 4：輪播圖] / [停在此步驟]
+```
+
+---
+
+### Stage 4 — 輪播圖（Phase 3）
+
+**執行指令：** 以 Content Seed 呼叫 `carousel-design`：
+
+```
+輸入：Content Seed
+自動設定：
+  - 風格：依主題自動判斷（論文 → A 學術感 / AI → B 科技藍 / 腎臟 → C 醫療白）
+  - 頁數：8 頁（預設）
+  - 平台：IG 1:1（預設）
+```
+
+**Canva Widget 交互（必要步驟）：**
+- 生成大綱確認表 → 呼叫 `request-outline-review`
+- **CONFIRM 模式**：暫停，等用戶在 Canva Widget 確認大綱後繼續
+- **AUTO 模式**：生成最佳大綱，提示用戶在 Widget 確認，確認後自動繼續
+
+**Stage 4 進度顯示（CONFIRM 模式）：**
+
+```
+✅ Stage 4 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 Canva 輪播設計：{{設計連結 / Widget 中查看}}
+📐 格式：IG 1:1，{{N}} 頁，{{風格名稱}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[繼續 Stage 5：影片腳本] / [停在此步驟]
+```
+
+---
+
+### Stage 5 — 影片腳本（Phase 4b）
+
+**執行指令：** 以 Content Seed 呼叫 `video-script`：
+
+```
+輸入：Content Seed
+預設輸出：H（HeyGen）+ R（Reels）雙版本，60 秒
+爭議點存在時：自動加入辯證風格的 Reels 腳本備選版
+```
+
+**腳本存至 Obsidian：**
+```
+G:\我的雲端硬碟\Second Brain\內容草稿\{{YYYY-MM}}\
+  {{YYYY-MM-DD}}-{{主題關鍵字}}-video-script.md
+```
+
+**Stage 5 進度顯示（CONFIRM 模式）：**
+
+```
+✅ Stage 5 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎥 HeyGen 腳本：60 秒
+🎬 Reels 直拍腳本：60 秒
+📄 儲存：{{Obsidian 路徑}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+---
+
+### Step Final — Content Package Dashboard
+
+所有 Stage 完成後，呈現完整 Content Package：
+
+```
+🎉 Content Package 完成
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+主題：{{主題}}
+來源：{{來源類型 + 摘要}}
+執行模式：{{模式}}
+完成時間：{{今日日期}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 本次產出清單：
+
+[Stage 1] 深度分析報告 ✅
+  📄 {{Obsidian 路徑}}
+  層次：七層分析（Phase 0–7）
+
+[Stage 2] NLM Bridge 補強 ✅（若執行）
+  🔬 {{N}} 個查詢 × {{N}} 個來源
+  📄 分析報告已更新
+
+[Stage 3] 社群貼文草稿 ✅
+  📄 {{Obsidian 路徑}}
+  📘 Facebook 長文：3 個風格版本
+  📱 IG 短文：3 個版本
+  📧 Substack：中文版 + English version
+
+[Stage 4] 輪播圖設計 ✅
+  🎨 Canva 設計：{{設計連結 / 請在 Canva Widget 查看}}
+  📐 {{N}} 頁 / {{風格}} / IG 1:1
+
+[Stage 5] 影片腳本 ✅
+  📄 {{Obsidian 路徑}}
+  🎥 HeyGen 腳本：{{N}} 秒
+  🎬 Reels 腳本：{{N}} 秒
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗓️ 建議發布排程：
+
+  第 1 天：Facebook 長文（建立深度）
+  第 2 天：IG 輪播圖（圖像吸引）
+  第 3 天：IG 短文 / Reels 影片（互動觸及）
+  第 7 天：Substack 電子報（深度訂閱者）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+後續選項：
+  [VIEW-S3]  顯示社群貼文草稿全文
+  [VIEW-S5]  顯示影片腳本全文
+  [HEYGEN]   立即呼叫 HeyGen MCP 生成 AI 主播影片
+  [EXPORT]   匯出輪播圖 PNG（呼叫 Canva export-design）
+  [NEW]      輸入下一個來源，開始新管線
+  [DONE]     完成
+```
+
+---
+
+## CUSTOM 模式設定介面
+
+輸入 `X`（CUSTOM）後，顯示：
+
+```
+📋 自訂管線配置
+
+請選擇要執行的 Stages（可多選，輸入編號）：
+
+[1] Phase 1 萃取
+    子選項：快速摘要（paper-summary-extraction）
+            or 深度分析（academic-paper-deep-analysis）— 預設
+[2] NLM Bridge（需先完成 Stage 1）
+    子選項：查詢數 3 / 5 / 7
+[3] 社群貼文
+    子選項：全部格式 / 僅 Facebook / 僅 IG / 僅 Substack
+[4] 輪播圖
+    子選項：8 頁（預設）/ 指定頁數
+            風格 A/B/C/D / 自動判斷（預設）
+[5] 影片腳本
+    子選項：HeyGen + Reels（預設）/ 加入 Sora / 僅 HeyGen
+            時長 30s / 60s / 90s
+
+範例輸入：「1 3 4」= 分析 + 貼文 + 輪播，跳過 NLM 和影片
+```
+
+---
+
+## Context 管理原則
+
+**為何不直接傳遞完整分析報告：**
+- Phase 1 深度分析報告通常 5,000–15,000 字
+- 加上 NLM Bridge 輸出，context 在 Stage 3 前就已高度佔用
+- 後續 Skill 生成品質下降
+
+**Content Seed 壓縮原則：**
+- 核心主張：≤ 50 字
+- 3 個支撐點：每點 ≤ 30 字
+- 關鍵數據：≤ 3 個數字（含單位）
+- 臨床意涵：≤ 50 字
+- 爭議點：≤ 80 字（含兩方立場摘要）
+- **總計 ≤ 300 字**
+
+完整報告存 Obsidian，各 Skill 如需原文，透過 `obsidian_get_file_contents` 讀取指定段落，不在 context 中全量展開。
+
+---
+
+## 與其他 Skill 的關係
+
+```
+master-orchestrator（本 Skill）
+    │
+    ├── Stage 1 → academic-paper-deep-analysis ─┐
+    │            book-chapter-deep-analysis      │ (擇一)
+    │            video-talk-deep-analysis        │
+    │            paper-summary-extraction       ─┘
+    │
+    ├── Stage 2 → nlm-bridge
+    │
+    ├── Stage 3 → social-post-generation
+    │
+    ├── Stage 4 → carousel-design
+    │
+    └── Stage 5 → video-script
+```
+
+**各 Skill 保持獨立可單獨觸發**，Master Orchestrator 只是編排層，不重新實作邏輯。
+
+---
+
+## 常見問題排除
+
+| 問題 | 處理方式 |
+|------|---------|
+| Stage 中途想修改方向 | CONFIRM 模式下隨時輸入指令修改；AUTO 模式輸入「PAUSE」暫停 |
+| NLM MCP 未連線（Stage 2）| 輸出手動查詢清單，用戶執行後貼回，繼續後續 Stage |
+| Canva Widget 需要確認（Stage 4）| CONFIRM 模式自動暫停等待；AUTO 模式提示後等待 5 秒再繼續 |
+| 某個 Stage 品質不滿意 | 輸入「REDO Stage X」重新執行該 Stage；其他 Stage 不受影響 |
+| 來源判斷錯誤（選錯 Phase 1 Skill）| Step 0 中明確告知來源類型即可修正 |
+| FULL 模式時間太長 | 改用 EXPRESS 模式（Stage 1 + 3）；影片和輪播之後補做 |

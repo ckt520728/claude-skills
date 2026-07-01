@@ -1,0 +1,294 @@
+---
+name: carousel-design
+description: "從 Phase 1/2 分析輸出或主題描述，生成 IG/FB 輪播圖投影片設計，使用 Canva MCP 生成多頁美化設計。觸發詞：「幫我做輪播圖」「carousel」「輪播」「IG 輪播」「設計投影片」「做輪播」「製作輪播圖」「輪播設計」「carousel design」「幫我設計輪播」「做一組 IG slides」「做一組 slides」「輪播貼文」。不適用：單張圖片（用 codex-image-gen.skill）、純文字社群貼文（用 social-post-generation.skill）、短影音腳本（用 video-script.skill）。"
+---
+
+# Carousel Design Skill（Phase 3）
+
+從任何 Phase 1 知識萃取 Skill 的輸出、社群貼文草稿，或手動描述主題，生成 Instagram/Facebook 輪播圖投影片設計，透過 Canva MCP 呼叫生成多頁美化版面，供朱醫師審閱後手動發布。
+
+---
+
+## 品牌輪播風格（4 種）
+
+| 代號 | 名稱 | 適用主題 | 視覺描述 |
+|-----|------|---------|---------|
+| A | 學術感 | 論文解析、研究發現、實證知識 | 白底 + 深海軍藍，serif 標題，極簡線條，引用格式感 |
+| B | 科技藍 | AI 工具、工作流程、技術教學 | 深底 + 霓虹青色 Accent，數字視覺化，未來感 |
+| C | 醫療白 | 腎臟科衛教、臨床建議、健康知識 | 全白 + 薄荷綠或珊瑚紅 Accent，乾淨清晰，無壓迫感 |
+| D | 品牌色 | 個人品牌、跨域思考、人生哲學 | 深藍 + 金色，高端質感，強調專業身份 |
+
+若用戶未指定，Claude 依主題**自動判斷**並說明選擇原因。
+
+---
+
+## 輸入來源
+
+| 來源類型 | 操作方式 |
+|---------|---------|
+| Phase 1 Skill 輸出（貼入）| 直接從分析報告萃取核心概念 |
+| Obsidian 摘要卡片 `.md` 路徑 | Read 工具讀取檔案 |
+| social-post-generation 草稿 | 將長文重構為輪播格式 |
+| 用戶手動描述主題 | 詢問 3–5 個核心要點後生成 |
+
+---
+
+## Core Workflow
+
+### Step 0 — 確認輸入與設定
+
+```
+來源：[Phase 1 輸出 / Obsidian 路徑 / 手動描述 / 社群貼文草稿]
+主題/標題：[自動萃取，或請用戶提供]
+目標平台：[IG（1:1）/ FB（16:9）/ 通用（預設 IG 方形）]
+輪播風格：[A 學術感 / B 科技藍 / C 醫療白 / D 品牌色 / 自動判斷]
+投影片數量：[7–10 張，預設 8 張]
+特殊指示（選填）：[例：結尾要加 QR Code 提示、第一頁用衝擊性數字開場]
+```
+
+---
+
+### Step 1 — 萃取輪播大綱
+
+從輸入材料提煉輪播結構，輸出**大綱確認表**讓用戶核對後再進行。
+
+**標準 8 頁輪播架構：**
+
+```
+P1  封面（Cover）
+    → Hook 標題（≤ 15 字：製造好奇、數字衝擊或提問）
+    → 副標題（≤ 20 字：說明本篇主題）
+
+P2  問題 / 背景（Context）
+    → 「你知道嗎？」或「很多人以為…」
+    → 建立問題場景，讓讀者覺得「這跟我有關」
+
+P3–P6  核心內容（每頁一個要點）
+    → 標題 ≤ 15 字 + 說明 2–3 行
+    → 若有重要數據，獨立一頁做數字強調
+
+P7  總結 / 關鍵洞見（Insight）
+    → 最重要的一句話金句
+    → 可加入朱醫師個人觀點
+
+P8  行動呼籲（CTA）
+    → 號召讀者按讚 / 收藏 / 留言 / 追蹤
+    → 個人品牌標語 + 帳號名稱（@朱國大醫師）
+```
+
+**大綱確認格式（輸出給用戶確認）：**
+
+```
+📋 輪播大綱（共 8 頁）—— 請確認或指定修改
+
+P1 封面：「[主標題]」/ 副標：[副標題]
+P2 背景：[問題描述，1 句]
+P3 要點 1：[標題]
+P4 要點 2：[標題]
+P5 要點 3：[標題]
+P6 要點 4：[標題]（或數字強調頁）
+P7 洞見：[金句 1 句]
+P8 CTA：[行動號召文案]
+
+輸入「確認」繼續，或「修改 P3 為...」指定調整。
+```
+
+---
+
+### Step 2 — 生成各頁詳細文案
+
+大綱確認後，生成每頁完整文案（作為 Canva MCP 的 outline 輸入，也供用戶備存）：
+
+**每頁輸出格式：**
+```
+P[N]：[頁面用途]
+  標題：[≤ 15 字]
+  內文：[≤ 40 字；條列或短段落]
+  視覺元素建議：[圖示方向、數字強調、背景色提示]
+```
+
+**各頁字數硬規範（輪播可讀性原則）：**
+
+| 頁面類型 | 標題 | 內文上限 |
+|---------|------|---------|
+| 封面 | ≤ 15 字 | ≤ 20 字（副標） |
+| 內容頁 | ≤ 15 字 | ≤ 40 字（2–3 條） |
+| 數字強調頁 | 大數字醒目顯示 | ≤ 20 字說明 |
+| 總結頁 | ≤ 15 字 | ≤ 30 字金句 |
+| CTA 頁 | ≤ 10 字 | ≤ 20 字號召 |
+
+---
+
+### Step 3 — Canva MCP 生成設計
+
+#### 3a. 呼叫 `request-outline-review`
+
+將 Step 2 文案轉為 outline 格式，呼叫 `request-outline-review`：
+- 讓用戶在 **Canva Widget UI** 中預覽並確認投影片大綱
+- 若用戶在 Widget 要求修改（加頁、刪頁、改順序），重新呼叫 `request-outline-review`，**不可跳過審閱步驟直接呼叫 `generate-design-structured`**
+
+#### 3b. 用戶於 Widget 確認後，呼叫 `generate-design-structured`
+
+**參數對照：**
+
+```
+design_type: "presentation"
+topic:        [主題摘要，≤ 150 字]
+audience:     "台灣醫療/健康知識社群，30–50 歲受過教育的讀者，對醫療/AI/學習有興趣"
+length:       "8 slides"（或依實際頁數調整）
+style:        依風格代號：
+  A 學術感  → "clean academic white background, deep navy blue accents, minimal serif typography, citation style"
+  B 科技藍  → "dark tech background, neon cyan and electric blue accents, futuristic minimal, data visualization style"
+  C 醫療白  → "clean white medical background, mint green or coral accent, professional healthcare, clear readable typography"
+  D 品牌色  → "deep navy blue and gold, premium brand identity, sophisticated elegant, professional physician"
+presentation_outlines: [Step 2 各頁 title + description 的陣列]
+```
+
+**`presentation_outlines` 陣列格式：**
+```json
+[
+  { "title": "P1 標題文字", "description": "副標 + 視覺提示" },
+  { "title": "P2 標題", "description": "說明文字" },
+  ...
+]
+```
+
+---
+
+### Step 4 — 設計輸出與後續選項
+
+Canva 設計生成後，呈現選項：
+
+```
+✅ 輪播圖設計已在 Canva 生成
+
+🎨 設計：請在 Canva Widget 中查看或開啟設計連結
+📐 格式：IG 1:1 / FB 16:9
+🎭 風格：[所選風格名稱]
+📄 頁數：[N 頁]
+
+後續選項：
+[A] 在 Canva 中手動微調設計（直接開啟連結編輯）
+[E] 匯出為 PNG 圖片（呼叫 export-design，逐頁匯出）
+[S] 儲存文案草稿至 Obsidian
+[G] 生成配套社群說明文（呼叫 social-post-generation → 知識型 IG 短文）
+[R] 重新生成不同風格版本（回到 Step 3b）
+[N] 重做大綱（回到 Step 1）
+```
+
+---
+
+### Step 5 — 匯出設計（選項 [E]）
+
+若用戶選擇匯出：
+- 呼叫 `export-design`，格式 `PNG`，解析度選 `high`（適合 IG 發布）
+- 若為 IG：每頁獨立匯出，依序命名 `P1.png`、`P2.png` … 供排列上傳
+- 若匯出失敗，告知用戶在 Canva 介面手動下載
+
+---
+
+### Step 6 — 儲存文案至 Obsidian（選項 [S]）
+
+**檔案命名：**
+```
+YYYY-MM-DD-[主題關鍵字]-carousel.md
+範例：2026-07-01-CKD-cognitive-decline-carousel.md
+```
+
+**儲存路徑：**
+```
+G:\我的雲端硬碟\Second Brain\內容草稿\{{YYYY-MM}}\
+```
+
+**檔案結構：**
+```markdown
+---
+title: "{{主題}}"
+type: carousel
+style: "{{代號 + 風格名稱}}"
+platform: [Instagram, Facebook]
+canva_url: "{{Canva 設計連結（若有）}}"
+slide_count: {{N}}
+date_created: "{{今日日期}}"
+status: draft
+source_skill: "{{來源 Skill，例：academic-paper-deep-analysis}}"
+---
+
+## 輪播大綱
+[大綱確認表內容]
+
+## 各頁文案
+### P1 封面
+標題：
+副標：
+
+### P2 背景
+標題：
+內文：
+
+### P3–P6 核心要點
+...
+
+### P7 總結洞見
+標題：
+金句：
+
+### P8 CTA
+文案：
+
+## 配套社群說明文
+> （執行 [G] 後填入，或留白待手動補充）
+
+## 朱醫師備注
+> （留白，待手動填寫）
+```
+
+---
+
+## 與其他 Skill 的串接關係
+
+```
+paper-summary-extraction          ─┐
+academic-paper-deep-analysis      ─┤
+book-chapter-deep-analysis        ─┼─→ carousel-design（本 Skill）
+video-talk-deep-analysis          ─┤         ↓ 設計完成後
+social-post-generation            ─┘   [G] 呼叫 social-post-generation
+                                            → IG 知識型短文（配套說明）
+```
+
+完整輸出管線範例：
+```
+論文 PDF
+  → academic-paper-deep-analysis（七層精讀）
+      → [N] Phase 4 → NLM 定向查詢（補強材料）
+      → carousel-design（本 Skill：輪播投影片）
+          → social-post-generation（IG 說明文）
+              → Canva 發布 + Facebook 長文配套
+```
+
+---
+
+## 系列輪播處理（超過 10 頁時）
+
+若輸入材料過豐富，詢問用戶是否拆為系列：
+
+```
+此主題內容豐富，建議拆為：
+  Part 1：[主題 A — 4 個核心點]（8 頁）
+  Part 2：[主題 B — 4 個核心點]（8 頁）
+
+是否分兩次生成？（建議：Part 1 先發，Part 2 一週後發，增加帳號互動持續性）
+```
+
+---
+
+## 常見問題排除
+
+| 問題 | 處理方式 |
+|------|---------|
+| Canva Widget 未顯示大綱審閱界面 | 提醒用戶確認 Canva MCP 已連線；或請用戶重新整理頁面 |
+| 用戶在 Widget 要求修改大綱 | 更新大綱後重新呼叫 `request-outline-review`，不可跳過 |
+| 生成風格不符預期 | 用 [R] 重新生成，或建議用戶在 Canva 直接套用不同模板 |
+| 文字在設計中溢出 | 縮減各頁內文至字數上限以內，或拆分至多頁 |
+| 品牌色與設計不符 | 告知用戶在 Canva 介面手動替換品牌色；記錄色碼備用 |
+| 無法匯出（export 失敗）| 提供 Canva 介面手動下載的步驟引導 |

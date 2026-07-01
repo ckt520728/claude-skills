@@ -1,131 +1,295 @@
-# CLAUDE.md（全域）
+# CLAUDE.md
 
-行為準則。改寫自 Andrej Karpathy 公開分享的 CLAUDE.md 模板。
-
-**Tradeoff:** 這份規則偏向謹慎勝於速度。瑣碎任務自行判斷。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ---
 
-## 關於我
+## 專案定位
 
-- 臨床醫師,專長腎臟病、糖尿病、複雜內科急症
-- 認知神經科學博士
-
-## 語言偏好
-
-- 對話、文件、commit message 一律**繁體中文**
-- 技術專有名詞(API 名稱、變數、library 名)保留英文
-- 回應力求簡潔,白話文,先給結論
+**專案名稱：** AI 內容永動機（AI Content Perpetual Engine）
+**個人品牌：** 朱國大醫師
+**專案目標：** 建立一套半自動化的內容生產系統——從多元知識來源萃取，經 Claude Skill 處理，產出多格式內容草稿，由本人審閱後手動發布。
+**未來規劃：** 設計為可複製模板，供其他醫師移植使用（個人隱私資料不納入模板）。
 
 ---
 
-## 1. 先思考再寫程式
+## 永動機架構
 
-**不假設、不掩飾困惑、把取捨擺出來。**
-
-實作前:
-- 把假設明說。不確定就問。
-- 多種解讀並存時,逐一提出——不要默默選一個。
-- 有更簡單做法,要說。該推回就推回。
-- 不清楚就停下來。指明哪裡不清楚。問。
-
-## 2. 簡潔優先
-
-**用最少的程式碼解決問題。不投機。**
-
-- 不加沒被要求的功能。
-- 一次性程式碼不抽象化。
-- 沒被要求的「彈性」或「配置」一律不做。
-- 不為不可能發生的情境寫錯誤處理。
-- 200 行能寫成 50 行,就重寫。
-
-自問:「資深工程師會不會說這寫太複雜?」會 → 簡化。
-
-## 3. 外科手術式變更
-
-**只動該動的。只清自己的爛攤子。**
-
-編輯既有檔案時:
-- 不「順手改善」鄰近程式碼、註解、格式。
-- 沒壞就不重構。
-- 即使不認同既有風格,還是配合它。
-- 看到不相關的死碼,**提一下**——但不要刪。
-
-你的變更若產生孤兒:
-- 移除**你的**變更使其變成未使用的 import / 變數 / function。
-- 不要刪除預先存在的死碼,除非被明確要求。
-
-測試:每一行變更都能直接對應使用者的請求。
-
-## 4. 目標驅動的執行
-
-**定義成功標準。迴圈直到驗證通過。**
-
-把任務轉成可驗證的目標:
-- 「加驗證」→「先寫測試,再讓測試通過」
-- 「修 bug」→「先寫能重現 bug 的測試,再讓測試通過」
-- 「重構 X」→「重構前後測試都通過」
-
-多步驟任務先列計畫:
 ```
-1. [步驟] → 驗證:[檢查]
-2. [步驟] → 驗證:[檢查]
-3. [步驟] → 驗證:[檢查]
+知識來源（Input）
+    │
+    ▼
+[ 萃取層 ] ── Claude Skill 將原始素材結構化
+    │         （paper / book / video / NLM）
+    ▼
+[ 批判層 ] ── Phase 4 Adversarial Critique
+    │         Fatal / Major weakness → 結構化研究問題
+    │                  │
+    │                  ▼
+    │         [ NotebookLM 定向查詢 ]
+    │         用 critique 問題精確打撈跨來源證據
+    │                  │
+    │                  ▼
+    │         NLM 回應 → 補強分析材料
+    │
+    ▼
+[ 生成層 ] ── Claude 依格式生成內容草稿
+    │         （社群貼文 / 電子報 / 文章討論段落）
+    ▼
+[ 審閱層 ] ── 朱醫師審閱、修改、核准
+    │
+    ▼
+[ 發布層 ] ── 手動發布至各平臺
 ```
 
-明確的成功標準讓你可以獨立迴圈。模糊的標準(「讓它能動」)需要不斷被打斷確認。
+### Phase 4 → NotebookLM 橋接工作流程
 
----
+**發現日期：** 2026-06-30
+**觸發情境：** 分析 Khunti 2026 MLTC/CKM 筆記本（47 來源）時發現
 
-## 5. 研究論文產出管線（EEG/MEG × MCI/AD）
+Multi-Engine Research（如 phcssm / Robin MAS）在 **Phase 4 Consensus Adversarial Critique** 產出三類批評者視角：
 
-此節定義研究專案的標準產出方式。沿用 PHCSSM 專案的成功管線。
+| 反思者 | 批評焦點 | 對應 NLM 查詢策略 |
+|--------|---------|-----------------|
+| R1 方法論嚴謹性 | 異質性、因果推論框架 | 查詢：「哪些研究提供了因果推論設計？」 |
+| R2 實證有效性 | 文獻流整合、外推限制 | 查詢：「MASLD 與 MLTC 框架的整合點在哪？」 |
+| R3 新穎性與可複製性 | 獨立驗證、時效性 | 查詢：「Ariadne Principles 的實施證據是否更新？」 |
 
-### 5.1 關於我（研究補充）
+**為何比一般查詢更有效：**
+- Critique 問題已內建**領域脈絡**，不是空泛提問
+- Fatal weakness = 最值得深挖的知識缺口
+- NLM 的跨來源整合能力在此才真正發揮
 
-- 研究主軸:**用機器學習演算法分析 EEG/MEG 訊號**,做 MCI 與早期 AD 的**早期診斷**,並**預測 MCI 階段的進展(MCI→AD progression)**。
-- 既有臨床醫師(腎臟病、糖尿病、複雜內科急症)+ 認知神經科學博士身分不變。
+**輸出的雙重用途：**
+1. **知識補強**：回填分析報告的侷限性段落
+2. **內容生成**：直接作為文章「討論」或「爭議觀點」素材，驅動高品質社群貼文
 
-### 5.2 每個研究專案的標準三件產出
+### 知識來源（Input Sources）
 
-| 產出 | 語言 | 規格 |
+| 類型 | 來源 |
+|------|------|
+| 學術論文 | PubMed 搜尋 + 本地 PDF 資料庫 |
+| 閱讀筆記 | Notion（MCP 已連線）|
+| 知識整理 | NotebookLM（MCP 已連線）|
+| 個人筆記 | Obsidian Second Brain（MCP 已連線）、Word 檔 |
+| 影片內容 | YouTube 逐字稿 |
+| 書籍 | 電子書 PDF / EPUB 摘要 |
+| 臨床經驗 | 朱醫師手動輸入 |
+
+### 輸出格式（Output Formats）
+
+| 格式 | 平臺 | 備註 |
 |------|------|------|
-| `academic paper` | **英文** | APA 7th:in-text citation `(Author, Year)` + 文末 alphabetical reference list(含 DOI、期刊、卷期頁) |
-| `popular-science blog` | **繁體中文** | 一般讀者取向,白話、有故事性,不堆術語 |
-| `wrap-up + pitfalls 文件` | 繁中 | 本次 session 的設計決策、執行統計(agents / 秒數 / tokens)、踩坑紀錄;沿用 PHCSSM session-notes 格式 |
+| 部落格長文 | Facebook（現階段）| 建議未來遷移至 Ghost 或 Substack |
+| 社群長文 | Facebook | |
+| 社群短文 | Instagram、其他平臺 | |
+| 輪播圖 | Instagram + Facebook | 風格依內容定：學術感／科技藍／醫療白／品牌色 |
+| 短影音腳本 | Sora / HeyGen / Higgsfield | Claude 產腳本，影片生成在平臺端操作 |
 
-### 5.3 多代理人工作流基礎
+### 觸發方式
 
-以 PHCSSM v3.0 為模板(`phcssm_multi_agent_analysis_workflow_v3.js`,Robin MAS 架構):structured JSON schemas、Grounding Check Gate(每個 claim 對應原文)、BTL Tournament(兩兩比對解矛盾,優於 LLM 直接評分)、Consensus Reflectors(≥2/3 同意才列入)、Self-Healing Synthesis(漏項自動 retry 一次)。
-
-可直接複用的 schema(只需改 `description`):`ANALYSIS_SCHEMA`、`GROUNDING_SCHEMA`、`BTL_SCHEMA`、`CRITIQUE_SCHEMA`、`REFLECTOR_CONSENSUS_SCHEMA`、`SYNTHESIS_SCHEMA`。
-
-### 5.4 兩種模式(每次 session 擇一)
-
-- **Literature review**:跨多篇文獻綜整 → 原創 review / research paper,多來源 APA 參考清單。先讓使用者確認「要回答什麼研究問題」再開跑。
-- **Single-paper critique**:PHCSSM 式,對單一目標論文做接地 / BTL / reflector 深度拆解。需在 Phase 0 把論文全文(非摘要)放進 `PAPER` 常數——見 §5.6 坑洞。
-
-### 5.5 零捏造鐵則(APA 專屬)
-
-延續工作區零捏造原則,對引用加嚴:
-
-- 每個 claim 必須對應**真實來源**;**禁止捏造參考文獻、DOI、頁碼、數字、作者職稱**。
-- in-text citation 與文末 reference list 必須**一一對應**,不得有對不上的條目。
-- 無法從來源確認的 claim 一律**留空或標「待確認」**(沿用 PHCSSM 坑洞:科普稿曾把作者誤稱「研究生」,實為「教授」)。
-
-### 5.6 命名與雙存(save)慣例
-
-- 檔名:`YYYY-MM-DD_<project>_academic_analysis.md`、`_blog_popular_science.md`、`_Session.md`;workflow 為 `<project>_workflow_v#.js`。
-- **雙存**:commit 到 repo `ckt520728/claude-skills`,**且**複製到 `G:\我的雲端硬碟\Second Brain\知識庫\2026 Claude code`。
-- 編碼 UTF-8 無 BOM;英文 paper / 繁中 blog。
-- 重要坑洞:`PAPER` / 數字常數要從**全文**抽取,不要從摘要手抄(PHCSSM 曾因此混入錯誤數字,靠 Grounding Gate 才攔下)。
-
-### 5.7 環境更新註記
-
-舊踩坑「G: 槽無法從 Claude Code shell 存取」**已過時**:現在 Bash 工具能直接讀寫 `G:\我的雲端硬碟\Second Brain\知識庫\2026 Claude code`(POSIX 掛載為 `/g/我的雲端硬碟/...`)。
-
-⚠️ 正確路徑含 **`我的雲端硬碟`**(Google Drive「我的雲端硬碟」根),不是最初寫的 `G:\Second Brain\...`。
+永動機為**半自動**，觸發點依情境而定：
+- 讀完論文或書籍章節後手動觸發
+- 有臨床案例或想法時隨時輸入
+- 定期掃描 Notion / Obsidian 新增筆記
 
 ---
 
-**這份規則有效的訊號:** diff 裡沒有多餘變動、不再因過度設計而重寫、釐清問題出現在實作之前而非錯誤之後。
+## 內容主題範疇
+
+- 腎臟科臨床知識與最新文獻
+- 認知神經科學研究與應用
+- AI 工具（Claude Code、MCP、Skill 開發）教學
+- 醫師 AI 工作流程實作
+- 跨域學習經驗
+- 人生哲學與思考框架
+
+---
+
+## 已連線 MCP 工具
+
+| 工具 | 用途 | 備註 |
+|------|------|------|
+| **NotebookLM MCP** | 知識整理、來源摘要 | `nlm login` 重新驗證 |
+| **Notion MCP** | 閱讀筆記讀寫 | |
+| **Obsidian MCP** | Second Brain 讀寫 | Vault：`G:\我的雲端硬碟\Second Brain` |
+| **Canva MCP** | 輪播圖設計生成 | `generate-design` 工具 |
+| **GitHub CLI** | 版本控制、Skill 管理 | 帳號：`ckt520728` |
+| **Firebase CLI** | 網站部署 | 主專案：`my-teaching-tools-ckt520728` |
+
+### 影音生成平臺（手動操作，非 MCP）
+
+| 平臺 | 用途 |
+|------|------|
+| **Sora** | 短影音生成 |
+| **HeyGen** | AI 虛擬主播影片 |
+| **Higgsfield** | 短影音生成 |
+
+Claude 負責產出**影片腳本與旁白文字**，實際生圖／生影在平臺端操作。
+
+### 圖片生成（Codex Image Gen）
+
+Claude 生成優化英文 Prompt → 朱醫師貼至 Codva 生圖。
+詳見 `codex-image-gen.skill`。
+
+---
+
+## Skill 庫
+
+自訂 Skill 集中於 GitHub repo：[ckt520728/claude-skills](https://github.com/ckt520728/claude-skills)
+本地備份同步至：`G:\我的雲端硬碟\Second Brain\創作庫\2026_Claude_code_skills\`
+
+與本專案直接相關的 Skill：
+- `codex-image-gen.skill` — 生成 Codex Image Gen prompt
+- `paper-summary-extraction.skill` — 論文摘要萃取，輸出 Obsidian 卡片（Phase 1 ✅）
+- `academic-paper-deep-analysis.skill` — 單篇論文七層深度分析
+- `book-chapter-deep-analysis.skill` — 書籍逐章深度分析（概念→證據→範例→批判→意涵→引文）
+- `video-talk-deep-analysis.skill` — 影片演講深度分析（概念→證據→範例→批判→科學意涵）
+- `social-post-generation.skill` — 社群貼文生成：Facebook 長文（3 風格）× IG 短文（3 版本）× Substack 中英雙語（Phase 2 ✅）
+- `carousel-design.skill` — 輪播圖設計：Canva MCP 生成多頁投影片（4 種品牌風格）（Phase 3 ✅）
+- `master-orchestrator.skill` — 全管線編排：一個來源 → 完整 Content Package（Phase 5 ✅）
+- `nlm-bridge.skill` — NLM Bridge：Adversarial Critique → 定向 NLM 查詢 → 雙軌合成（補強分析 + 爭議討論草稿）（Phase 4a ✅）
+- `video-script.skill` — 短影音腳本：HeyGen AI 主播 / Reels 直拍 / Sora 視覺三格式（Phase 4b ✅）
+- `paper-summary-extraction.skill` — 論文快速摘要 → Obsidian（Phase 1 永動機）
+- `academic-paper-deep-analysis.skill` — 單篇論文七層深度分析（Master Prompt 20260106）
+
+---
+
+## 常用指令
+
+```bash
+# GitHub
+gh repo list ckt520728
+
+# Firebase
+firebase use my-teaching-tools-ckt520728
+firebase deploy
+
+# NotebookLM
+nlm login                        # 重新驗證
+nlm login switch <profile>       # 切換 Google 帳號
+```
+
+---
+
+## 模板化原則（供未來開源使用）
+
+移植此系統給其他醫師時，需替換以下項目：
+
+| 項目 | 原始值 | 替換為 |
+|------|--------|--------|
+| 個人品牌名稱 | 朱國大醫師 | `{{DOCTOR_NAME}}` |
+| GitHub 帳號 | `ckt520728` | `{{GITHUB_USERNAME}}` |
+| Firebase 專案 ID | `my-teaching-tools-ckt520728` | `{{FIREBASE_PROJECT_ID}}` |
+| Obsidian Vault 路徑 | `G:\我的雲端硬碟\Second Brain` | `{{OBSIDIAN_VAULT_PATH}}` |
+| 內容主題 | 腎臟科 × 認知神經科學 × AI | `{{CONTENT_DOMAIN}}` |
+| 發布平臺帳號 | Facebook / Instagram（個人） | `{{SOCIAL_ACCOUNTS}}` |
+
+---
+
+## 部落格平臺規劃
+
+| 平臺 | 語言 | 策略 | 狀態 |
+|------|------|------|------|
+| **Facebook** | 中文 | 現階段主力，長文發布 | 使用中 |
+| **Substack** | 中英雙語 | 訂閱制電子報，國際讀者 | 待開設 |
+| **方格子** | 繁體中文 | 台灣讀者，付費文章 | 待開設 |
+
+Substack 有 API 可半自動發布；方格子目前需手動。
+
+---
+
+## 影音生成平臺
+
+| 平臺 | 串接方式 | 狀態 | 需求 |
+|------|---------|------|------|
+| **HeyGen** | 官方 MCP（`heygen-mcp`） | ✅ 已安裝 | uvx heygen-mcp，API Key 已設定 |
+| **Sora** | OpenAI API（`sora-2` / `sora-2-pro`） | 待安裝 | OpenAI API Key |
+| **Higgsfield** | Python SDK CLI wrapper | 暫緩 | Creator 方案 $15+/月 |
+
+Claude 負責產出**影片腳本與旁白文字**，生圖／生影在平臺端操作（HeyGen MCP 安裝後可直接在 Claude 觸發）。
+
+### HeyGen MCP 安裝設定
+
+在 `claude_desktop_config.json` 的 `mcpServers` 加入：
+
+```json
+"heygen-mcp": {
+  "command": "npx",
+  "args": ["-y", "heygen-mcp"],
+  "env": {
+    "HEYGEN_API_KEY": "{{HEYGEN_API_KEY}}"
+  }
+}
+```
+
+### Sora API 設定（與 Image Gen 共用 OpenAI Key）
+
+```json
+"openai-video-gen": {
+  "command": "npx",
+  "args": ["-y", "@openai/sora-mcp"],
+  "env": {
+    "OPENAI_API_KEY": "{{OPENAI_API_KEY}}"
+  }
+}
+```
+
+---
+
+## Skill 開發路線圖
+
+```
+Phase 1 ✅：論文摘要萃取 Skill（paper-summary-extraction.skill）
+             輸入：PubMed PMID/URL、本地 PDF、Notion 筆記、NotebookLM
+             輸出：結構化繁中摘要卡片 → Obsidian 知識庫/
+
+Phase 1b ✅：論文深度分析 Skill（academic-paper-deep-analysis.skill）
+             輸入：單篇論文全文/PDF/摘要/NotebookLM 輸出
+             輸出：七層結構化分析報告 → Obsidian 知識庫/
+
+Phase 1c ✅：書籍逐章分析 Skill（book-chapter-deep-analysis.skill）
+             輸入：電子書 PDF/EPUB、章節筆記、NotebookLM 輸出
+             輸出：全書快照 + 逐章分析（概念→證據→範例→批判→意涵→引文）→ Obsidian 知識庫/
+
+Phase 1d ✅：影片演講深度分析 Skill（video-talk-deep-analysis.skill）
+             輸入：YouTube 逐字稿、部分逐字稿、個人筆記、NotebookLM 輸出
+             輸出：五層結構分析（概念→證據→範例→批判→科學意涵）→ Obsidian 知識庫/
+
+Phase 2 ✅：社群貼文生成 Skill（social-post-generation.skill）
+             輸入：任何 Phase 1 Skill 輸出 / Obsidian 摘要卡片 / 用戶手動描述
+             輸出：
+               Facebook 長文：醫師科普版 / 學術同儕版 / 跨域思考版（3 風格）
+               IG 短文：知識型 / 故事型 / 行動呼籲型（3 版本 + Hashtag）
+               Substack：繁體中文版 + English version（中英雙語）
+             草稿存至 Obsidian：G:\我的雲端硬碟\Second Brain\內容草稿\YYYY-MM\
+
+Phase 3 ✅：  輪播圖設計 Skill（carousel-design.skill）
+             輸入：Phase 1/2 Skill 輸出 / Obsidian 摘要卡片 / 用戶手動描述
+             輸出：Canva MCP 多頁投影片設計
+               風格：A 學術感 / B 科技藍 / C 醫療白 / D 品牌色（深藍+金色）
+               Canva 流程：request-outline-review（Widget 審閱）→ generate-design-structured
+               配套 [G]：呼叫 social-post-generation → IG 配套說明文
+
+Phase 5 ✅：   Master Orchestrator（master-orchestrator.skill）
+             輸入：任何知識來源（論文/書籍/影片/主題描述）
+             模式：FULL / ANALYSIS / CONTENT / EXPRESS / CUSTOM
+             執行：Stage 1→2→3→4→5 自動編排，Content Seed 跨 Stage 傳遞（≤300 字壓縮）
+             輸出：完整 Content Package Dashboard + 建議發布排程
+
+Phase 4a ✅：  NLM Bridge 獨立 Skill（nlm-bridge.skill）
+             輸入：Phase 1 分析報告（[N] 選項觸發）/ 直接貼入批評文字 / 手動描述知識缺口
+             核心邏輯：R1/R2/R3 批評 → 5 個定向 NLM 查詢 → 雙軌合成
+             輸出 軌道 1：補強後侷限段落（寫回 Obsidian 原始報告）
+             輸出 軌道 2：爭議討論草稿 → 觸發 social-post / carousel / video-script
+             NLM MCP：自動執行（notebook_query）；未連線時輸出手動查詢清單
+
+Phase 4b ✅：  短影音腳本 Skill（video-script.skill）
+             輸入：Phase 1/2/3 輸出 / Obsidian 摘要卡片 / 用戶手動描述
+             輸出（三格式）：
+               [H] HeyGen AI 虛擬主播腳本（含 [PAUSE]/[EMOTION] 標記）
+               [R] Reels/Shorts 直拍腳本（含視覺指示 + 螢幕字幕建議）
+               [S] Sora 視覺場景腳本（英文 Visual Prompt + 中文旁白）
+             時長：30 / 60 / 90 / 120 / 180 秒
+             HeyGen MCP：已安裝（uvx heygen-mcp）；MCP 連線時自動呼叫，否則輸出純文字版手動貼入
+```
