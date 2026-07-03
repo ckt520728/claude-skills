@@ -98,12 +98,13 @@ credential non-interactively (`credential.helper=manager`); it fails with
 silently:
 
 ```
-# PowerShell tool:
-Set-Location "<repo path>"; git push origin main 2>&1 | Out-String
+# PowerShell tool (use the repo's real default branch — kidney-cognition-lab is `main`,
+# but claude-skills is `master`; check with `git branch --show-current`):
+Set-Location "<repo path>"; git push origin <branch> 2>&1 | Out-String
 ```
 
 PowerShell wraps git's stderr progress as `NativeCommandError` (red text) even on success —
-**trust the `dd..aa  main -> main` line**, not the red wrapper.
+**trust the `dd..aa  <branch> -> <branch>` line**, not the red wrapper.
 
 ## Step 5 — Verify deployment
 
@@ -128,6 +129,8 @@ curl -s "https://ckt520728.github.io/kidney-cognition-lab/index.html" | grep -c 
   `raw.githubusercontent.com` to read file contents verbatim.
 - `blob` GitHub URLs are HTML shells; convert to `raw` for source.
 - `git add` prints a harmless `LF will be replaced by CRLF` warning — ignore it.
+- Branch name varies per repo: `kidney-cognition-lab` uses `main`, `claude-skills` uses
+  `master`. Always confirm with `git branch --show-current` before `git push`.
 - Drive `create_file` can't overwrite (always a new file id); version filenames when re-uploading
   and let the user delete old snapshots in the web UI.
 - Optional companion deliverable: a screenshot-ready 16:9 comparison **slide** via the Artifact
