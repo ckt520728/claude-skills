@@ -4,6 +4,20 @@ A collection of custom Claude Code skills.
 
 ## Skills
 
+### publish-lab-blog
+
+Turns a research analysis, paper, or topic into a house-styled, self-contained **interactive** blog post and publishes it live to the `kidney-cognition-lab` site (GitHub Pages / Vercel), then mirrors to Google Drive. Complements `personal-medical-website` (which builds the site) by shipping individual posts to it.
+
+**Use for:**
+- "幫我寫一篇部落格文章" / "發佈到首頁" / "把這份分析變成網頁文章"
+- Turning a paper deep-analysis into a popular-science web article with inline SVG/canvas graphics
+
+**Covers the field-tested pipeline:** house-style extraction from a template post → self-contained post with an interactive canvas + colorful SVG figures → registration in three places (`blog/`, homepage card, `sitemap.xml`) → citation verification before publish → **push via PowerShell/GCM (not Git Bash)** → deployment verification → Drive mirror.
+
+**Portable artifact:** `publish-lab-blog.skill`
+
+---
+
 ### openclaw-automation
 
 Restores and operationalizes an OpenClaw + LINE assistant on Windows when the local proxy, Cloudflare quick tunnel, or LINE webhook endpoint stops working.
