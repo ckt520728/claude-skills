@@ -280,3 +280,25 @@ xcopy /E /I personal-medical-website "%APPDATA%\Claude\skills\personal-medical-w
 4. **使用者干預點**:長流程一定有暫停讓使用者改方向(outline 階段、gap 分析、triage 分類)
 5. **反 LLM 陳腐用詞清單**:每個 Skill 都有對應領域的禁用詞庫
 6. **協作整合**:每個 Skill 的輸出都可以是另一個 Skill 的輸入,組成完整工作流
+
+---
+
+## Skill 安裝工具（2026-07-07 新增）
+
+### install-skill-pack
+
+安裝下載回來的 Claude Code / Agent skills 集合——**兩種方式**:裝成可整組開關的 **plugin**（本機 marketplace），或攤平成 **全域 skills**（`~/.claude/skills`，短名）。跨平台(Windows / macOS / Linux)。
+
+**Use for:**
+- 「幫我把這個 skills repo 裝進 Claude Code」、「裝成 plugin」、「加進全域 skill」
+- 修 `/plugin install` 失敗、處理 Windows 空格路徑
+
+**決策原則:** 50+ 的領域大集合 → plugin(可 disable 省 context);少數通用 skill → 全域(短名、常開)。核心觀念:**「啟用」是持久的(做一次)、「呼叫」是每次的**。
+
+**內建跨平台腳本:**
+- [`scripts/make_plugin_marketplace.py`](install-skill-pack/scripts/make_plugin_marketplace.py) — 產生 `.claude-plugin/plugin.json` + `marketplace.json`(非標準 `*.plugin.json` Claude Code 不讀)
+- [`scripts/install_global_skills.py`](install-skill-pack/scripts/install_global_skills.py) — 依 repo 的 plugin.json 清單把 skill 複製/symlink 到全域,自動攤平巢狀、跳過 deprecated
+
+**收錄的踩坑:** `/plugin` 是介面內指令非 shell 指令、空格路徑用 junction(`New-Item -ItemType Junction`)/symlink 繞過、命名空間冒號兩邊不能有空格、`/plugin install` 會複製整個 repo 到 cache、Windows MAX_PATH/LFS clone 失敗、SKILL.md 的 API 範例會過時。
+
+**Portable artifact:** `install-skill-pack.skill`
