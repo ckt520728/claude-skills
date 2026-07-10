@@ -134,16 +134,16 @@
 
 ```bash
 mkdir -p slides/generated
-DRAW="python C:/Users/mathr/.claude/skills/draw/draw.py"
+DRAW_SCRIPT="${DRAW_SCRIPT:-draw.py}"
 
 # 並行批次（用 & + wait）
-$DRAW "Premium futuristic tech cover, dark navy background, cyan neon accent, abstract data flow, no readable text" \
+python "$DRAW_SCRIPT" "Premium futuristic tech cover, dark navy background, cyan neon accent, abstract data flow, no readable text" \
   --size 1536x1024 --quality low --name slide-1-cover --outdir slides/generated/ &
 
-$DRAW "Three category icons set, dark navy, cyan and magenta gradients, no readable text" \
+python "$DRAW_SCRIPT" "Three category icons set, dark navy, cyan and magenta gradients, no readable text" \
   --size 1024x1024 --quality low --name slide-5-card1 --outdir slides/generated/ &
 
-$DRAW "Comparison illustration showing old vs new approach, dark navy, cyan vs magenta, no readable text" \
+python "$DRAW_SCRIPT" "Comparison illustration showing old vs new approach, dark navy, cyan vs magenta, no readable text" \
   --size 1536x1024 --quality low --name slide-7-compare --outdir slides/generated/ &
 
 wait

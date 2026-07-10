@@ -279,7 +279,7 @@ image_policy:
 ## 共同依賴
 
 - **draw skill**（gpt-image-2 生圖）
-  - 腳本路徑：`C:/Users/mathr/.claude/skills/draw/draw.py`（Windows）或對應使用者路徑
+  - 腳本路徑：由 `DRAW_SCRIPT` 環境變數指定（預設為 `draw.py`），避免綁定特定使用者路徑
   - 模型：OpenAI `gpt-image-2`
   - 前置：`OPENAI_API_KEY` 已設、OpenAI 組織完成 Individual 驗證
   - 成本：low ≈ NT$0.3/張、medium ≈ NT$1.3/張、high ≈ NT$5.5/張

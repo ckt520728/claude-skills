@@ -135,7 +135,8 @@
 ```bash
 pip install cairosvg Pillow --break-system-packages -q
 
-GEOM_RENDERER="/mnt/skills/user/jh-math-geometry/scripts/geometry_renderer.py"
+GEOM_RENDERER="${GEOM_RENDERER:-geometry_renderer.py}"
+GEOMETRY_SCRIPTS_DIR="${GEOMETRY_SCRIPTS_DIR:-.}"
 echo "幾何渲染器：$GEOM_RENDERER"
 ```
 
@@ -174,8 +175,8 @@ ls /home/claude/geo_out/*.png
 
 ```python
 # /home/claude/geo_custom.py
-import math, sys
-sys.path.insert(0, '/mnt/skills/user/jh-math-geometry/scripts')
+import math, os, sys
+sys.path.insert(0, os.environ.get('GEOMETRY_SCRIPTS_DIR', '.'))
 from geometry_renderer import SVGCanvas
 import cairosvg
 from pathlib import Path
@@ -279,12 +280,12 @@ mkdir -p slides/images
 
 STYLE="扁平向量插畫、深夜藍#0D1B2A 背景、亮青藍#00C6FF 線條、金黃#FFD700 點綴、教室或數位科技情境"
 NEG="不要逼真照片、不要雜亂背景"
-DRAW="python C:/Users/mathr/.claude/skills/draw/draw.py"
+DRAW_SCRIPT="${DRAW_SCRIPT:-draw.py}"
 
-$DRAW "國中生在黑板前看著數學題目困惑思考，${STYLE}，${NEG}" \
+python "$DRAW_SCRIPT" "國中生在黑板前看著數學題目困惑思考，${STYLE}，${NEG}" \
   --size 1024x1024 --quality low --name slide_3_illus1 --outdir slides/images/
 
-$DRAW "一張發光的火箭向上飛，象徵學習突破，${STYLE}，${NEG}" \
+python "$DRAW_SCRIPT" "一張發光的火箭向上飛，象徵學習突破，${STYLE}，${NEG}" \
   --size 1536x1024 --quality low --name slide_10_illus1 --outdir slides/images/
 
 ls slides/images/*.png

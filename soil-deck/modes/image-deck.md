@@ -113,15 +113,15 @@ image_policy:
 
 ```bash
 mkdir -p slides/images
-DRAW="python C:/Users/mathr/.claude/skills/draw/draw.py"
+DRAW_SCRIPT="${DRAW_SCRIPT:-draw.py}"
 SIZE="1536x1024"
 
 # 頁 1（封面升 medium）
-$DRAW "左文右圖。圖像內容：Q版機器人老師...。圖上文字：標題「把 ChatGPT 生圖偷進 Claude Code」、副標「gpt-image-2 × 教學工作流」、標籤「EP15」。風格：扁平向量插畫、16:9 橫版、深夜藍#0D1B2A 背景、亮青藍#00C6FF 主色...。避免：不要逼真照片、不要亂碼。" \
+python "$DRAW_SCRIPT" "左文右圖。圖像內容：Q版機器人老師...。圖上文字：標題「把 ChatGPT 生圖偷進 Claude Code」、副標「gpt-image-2 × 教學工作流」、標籤「EP15」。風格：扁平向量插畫、16:9 橫版、深夜藍#0D1B2A 背景、亮青藍#00C6FF 主色...。避免：不要逼真照片、不要亂碼。" \
   --size $SIZE --quality medium --name page_01 --outdir slides/images/
 
 # 頁 2 起（low）
-$DRAW "全版插畫 + 大問句。圖像內容：一個卡通老師站在兩條岔路前...。圖上文字：標題「能偷進來嗎？」。風格：...。" \
+python "$DRAW_SCRIPT" "全版插畫 + 大問句。圖像內容：一個卡通老師站在兩條岔路前...。圖上文字：標題「能偷進來嗎？」。風格：...。" \
   --size $SIZE --quality low --name page_02 --outdir slides/images/
 ```
 
