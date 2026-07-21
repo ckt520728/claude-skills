@@ -302,3 +302,31 @@ xcopy /E /I personal-medical-website "%APPDATA%\Claude\skills\personal-medical-w
 **收錄的踩坑:** `/plugin` 是介面內指令非 shell 指令、空格路徑用 junction(`New-Item -ItemType Junction`)/symlink 繞過、命名空間冒號兩邊不能有空格、`/plugin install` 會複製整個 repo 到 cache、Windows MAX_PATH/LFS clone 失敗、SKILL.md 的 API 範例會過時。
 
 **Portable artifact:** `install-skill-pack.skill`
+
+---
+
+## 研究工作坊三件套 Skill（2026-07-21 新增）
+
+從研究工作坊素材整合而成的三個「代理式」研究助理 Skill，各自驅動一條真實的本地流程（有 CLI/程式時用之；沒有時優雅降級到 REST API 或範本）。共同設計原則：**零數字捏造、每個聲稱都對照領域基準、來源缺失絕不硬失敗**。
+
+### litreview-agent
+
+一個 benchmark-aware 的文獻回顧／研究助理代理人：依實驗室準則 **與領域標準基準**篩選、排序、解讀新論文，回傳比較式 digest、Excel 比較表、視覺化，以及（可選）NotebookLM 筆記本。以本地 `litreview` CLI（PubMed + arXiv + Obsidian → 去重 → 篩選 → 綜整 → NotebookLM）為機械引擎，無 CLI 時退回開放 REST API。支援各來源查詢覆寫（MeSH vs 純文字）與「廣＋精合併」補回召回。承襲工作坊 LitPilot skill。
+
+**Portable artifact:** `litreview-agent.skill`
+
+---
+
+### datapilot
+
+CIPH 認知訓練研究的資料整理代理人：把各場地新收的受試者檔案匯入、轉換、整合成實驗室 master 格式，驗證、標記問題，產出整合表、驗證報告與整理後的看板。預設走 CIPH master schema，改參考檔即可套用到任何目標 schema。工作坊原樣收錄。
+
+**Portable artifact:** `datapilot.skill`
+
+---
+
+### neuropilot
+
+驅動 VCL 閉迴路 EEG／MDD 生物標記流程的代理人：10 階段工作流，前處理 resting-state EEG（Zapline 去線噪、濾波、壞通道內插、ASR、ICA + ICLabel、切 epoch），抽取頻譜／EMD 特徵，訓練防洩漏 ML 模型，檢驗 EEG 能否預測抗憂鬱治療反應，並對照 permutation／bootstrap／FAA-only／HDRS-only baseline。透過 `TASK3_PROJECT_ROOT` 環境變數接上本機程式碼。**僅供探索研究，非臨床建議。**
+
+**Portable artifact:** `neuropilot.skill`
