@@ -4,6 +4,21 @@ A collection of custom Claude Code skills.
 
 ## Skills
 
+### Finding Unknowns series (map-vs-territory, blindspot-pass, reference-anchor, deviation-log, comprehension-quiz, verify-with-rubric)
+
+A six-skill series that operationalizes Thariq Shihipar's (Anthropic, Claude Code team) "map is not the territory" methodology for agentic work — the observation that once a model is capable enough, output quality is bottlenecked not by the model but by how many of your own unknowns you've cleared before and during delegation. Source: his July 2026 field guide and podcast interview on planning/looping with Claude Code.
+
+- **`map-vs-territory`** — the entry point / diagnostic. Frames any prompt-vs-reality gap as one of four quadrants (known knowns / known unknowns / unknown knowns / unknown unknowns) and routes to the right technique below, or to the existing `prototype` / `grilling` skills for the quadrants they already cover. Use when a task feels underspecified or a previous attempt came back plausible-but-wrong.
+- **`blindspot-pass`** — pre-work scan of your own prompt for undefined edges and tacit standards, calibrated to what you say you already know. Reports a list; never jumps to generating output.
+- **`reference-anchor`** — when a description would be lossy, point Claude at a concrete reference (source code, a live example, a doc) and have it reproduce the semantics, instead of writing prose that tries to capture them.
+- **`deviation-log`** — protocol for unattended multi-step execution: log the assumption before each step, default to conservative choices on edge cases instead of stalling, keep a reviewable trail (`implementation-notes.md`).
+- **`comprehension-quiz`** — before merge/accept, Claude writes a decision report front-loading judgment calls and quizzes the human on the least-obvious ones — a knowledge-digestion gate against silent rubber-stamping.
+- **`verify-with-rubric`** — for subjective/non-deterministic output (video, design, writing), grade against an explicit rubric in a context-isolated sub-agent rather than trusting the producing agent's self-assessment (self-referential bias).
+
+**Use together as:** `map-vs-territory` diagnoses which quadrant is failing → `blindspot-pass` / `reference-anchor` (or `prototype` / `grilling`) close it before work starts → `deviation-log` keeps execution unattended-but-traceable → `verify-with-rubric` and `comprehension-quiz` gate acceptance.
+
+---
+
 ### publish-lab-blog
 
 Turns a research analysis, paper, or topic into a house-styled, self-contained **interactive** blog post and publishes it live to the `kidney-cognition-lab` site (GitHub Pages / Vercel), then mirrors to Google Drive. Complements `personal-medical-website` (which builds the site) by shipping individual posts to it.
