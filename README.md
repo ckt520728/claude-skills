@@ -4,18 +4,19 @@ A collection of custom Claude Code skills.
 
 ## Skills
 
-### Finding Unknowns series (map-vs-territory, blindspot-pass, reference-anchor, deviation-log, comprehension-quiz, verify-with-rubric)
+### Finding Unknowns series (map-vs-territory, blindspot-pass, reference-anchor, decision-first-plan, deviation-log, comprehension-quiz, verify-with-rubric)
 
-A six-skill series that operationalizes Thariq Shihipar's (Anthropic, Claude Code team) "map is not the territory" methodology for agentic work — the observation that once a model is capable enough, output quality is bottlenecked not by the model but by how many of your own unknowns you've cleared before and during delegation. Source: his July 2026 field guide and podcast interview on planning/looping with Claude Code.
+A seven-skill series that operationalizes Thariq Shihipar's (Anthropic, Claude Code team) "map is not the territory" methodology for agentic work — the observation that once a model is capable enough, output quality is bottlenecked not by the model but by how many of your own unknowns you've cleared before and during delegation. Source: his July 2026 field guide, his podcast interview on planning/looping with Claude Code, and a cross-check against a second independent write-up of the same field guide ([bozhouDev/finding-unknowns-skills](https://github.com/bozhouDev/finding-unknowns-skills)) that surfaced a few refinements folded in below.
 
-- **`map-vs-territory`** — the entry point / diagnostic. Frames any prompt-vs-reality gap as one of four quadrants (known knowns / known unknowns / unknown knowns / unknown unknowns) and routes to the right technique below, or to the existing `prototype` / `grilling` skills for the quadrants they already cover. Use when a task feels underspecified or a previous attempt came back plausible-but-wrong.
-- **`blindspot-pass`** — pre-work scan of your own prompt for undefined edges and tacit standards, calibrated to what you say you already know. Reports a list; never jumps to generating output.
-- **`reference-anchor`** — when a description would be lossy, point Claude at a concrete reference (source code, a live example, a doc) and have it reproduce the semantics, instead of writing prose that tries to capture them.
+- **`map-vs-territory`** — the entry point / diagnostic. Frames any prompt-vs-reality gap as one of four quadrants (known knowns / known unknowns / unknown knowns / unknown unknowns) and routes to the right technique below, or to the existing `prototype` / `grilling` skills for the quadrants they already cover. Includes a "signs it's actually working" checklist and a mid-task tension heuristic (torn between following an instruction too literally vs. treating it as vague — that tension itself flags an unresolved unknown). Use when a task feels underspecified or a previous attempt came back plausible-but-wrong.
+- **`blindspot-pass`** — pre-work scan of your own prompt for undefined edges and tacit standards, calibrated to what you say you already know. Reports a list; never jumps to generating output. Goal is to teach the person to prompt better, not to decide on their behalf.
+- **`reference-anchor`** — when a description would be lossy, point Claude at a concrete reference (source code, a live example, a doc — even in a different language/stack) and have it reproduce the semantics, instead of writing prose that tries to capture them.
+- **`decision-first-plan`** — write the implementation plan ordered by decision volatility (data models, interfaces, user-facing behavior first; mechanical execution last), not by execution order, so a plan review doesn't turn into a skim.
 - **`deviation-log`** — protocol for unattended multi-step execution: log the assumption before each step, default to conservative choices on edge cases instead of stalling, keep a reviewable trail (`implementation-notes.md`).
 - **`comprehension-quiz`** — before merge/accept, Claude writes a decision report front-loading judgment calls and quizzes the human on the least-obvious ones — a knowledge-digestion gate against silent rubber-stamping.
 - **`verify-with-rubric`** — for subjective/non-deterministic output (video, design, writing), grade against an explicit rubric in a context-isolated sub-agent rather than trusting the producing agent's self-assessment (self-referential bias).
 
-**Use together as:** `map-vs-territory` diagnoses which quadrant is failing → `blindspot-pass` / `reference-anchor` (or `prototype` / `grilling`) close it before work starts → `deviation-log` keeps execution unattended-but-traceable → `verify-with-rubric` and `comprehension-quiz` gate acceptance.
+**Use together as:** `map-vs-territory` diagnoses which quadrant is failing → `blindspot-pass` / `reference-anchor` (or `prototype` / `grilling`) close it before work starts → `decision-first-plan` structures the review → `deviation-log` keeps execution unattended-but-traceable → `verify-with-rubric` and `comprehension-quiz` gate acceptance.
 
 ---
 

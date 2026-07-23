@@ -19,6 +19,8 @@ In roughly this order of information density:
 
 If you're about to write a paragraph describing an algorithm, a UI interaction, or a piece of writing's voice, stop and ask: is there something that already does this I could point at instead?
 
+The reference doesn't need to match the target's language or stack — source code in a different language is still the highest-density anchor available, more so than a same-language prose description. Read it for the semantics, then reimplement idiomatically in the target.
+
 ## Say what should transfer
 
 Be explicit about what to take from the reference and what not to: usually the **semantics** (algorithm, behavior, structure, voice) should transfer, while literal branding, copy, or license-encumbered content should not. "Read `vendor/rate-limiter`'s backoff logic and reimplement the same semantics in our TypeScript client" is precise; without the "same semantics, new implementation" framing, Claude may either copy too literally or drift too far.

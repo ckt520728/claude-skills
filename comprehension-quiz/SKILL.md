@@ -9,7 +9,7 @@ This is not a trust mechanism and not a gotcha — it's a knowledge-digestion st
 
 ## When to run it
 
-Right after implementation, before merge / accept / ship. Reserve it for changes complex enough that "did I actually understand this" is a real question — skip it for trivial or purely mechanical changes, where it's just friction.
+Right after implementation, before merge / accept / ship. Reserve it for changes complex enough that "did I actually understand this" is a real question — skip it for trivial or purely mechanical changes, where it's just friction. Two reliable triggers: the user explicitly asks for it, or the change turned out substantially bigger than they expected going in — that gap is itself a sign a diff-skim won't be enough. A diff only shows the lines that moved; it doesn't show how much of the actual behavior rides on code paths that didn't change at all, which is exactly what a skim misses and a quiz catches.
 
 ## Step 1 — Decision report ("the pitch")
 
