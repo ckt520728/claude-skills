@@ -1,0 +1,13 @@
+{
+  "name": "research-oak-loop",
+  "description": "Turn a literature corpus into an independently-verified research synthesis and a staged (blog then manuscript) output, run as a continually-improving Oak loop. Composes finding-unknown discovery, pkm-three-levels distillation, decoupled maker/checker verification, and publish-lab-blog, with the hardening rules learned from real runs baked in.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ta Chu",
+    "email": "kwotachu@gmail.com"
+  },
+  "keywords": [
+    "research", "literature-review", "oak-loop", "verification",
+    "pkm", "synthesis", "finding-unknown"
+  ]
+}
