@@ -18,6 +18,10 @@ Repeatable pipeline for shipping a Traditional-Chinese popular-science article t
 > **Related:** `personal-medical-website` *builds* the site from zero; this skill
 > *publishes an individual post* to that already-existing site and registers it on the homepage.
 
+Before a release or when resuming a partially completed run, read `PITFALLS.md`. It
+contains the concrete Windows, browser, deployment, citation, and Drive failure modes
+observed in production runs.
+
 ## Facts about the target site
 
 - **Repo:** `https://github.com/ckt520728/kidney-cognition-lab` (public), owner `ckt520728` = kwotachu@gmail.com.
@@ -113,6 +117,12 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://ckt520728.github.io/kidney-cog
 curl -s "https://ckt520728.github.io/kidney-cognition-lab/index.html" | grep -c "<slug>"                         # expect 1 (card present)
 ```
 
+Verify GitHub Pages and Vercel independently. A successful push is not proof that either
+public URL has updated. If Pages remains stale, query the Pages build API and confirm that
+the build is for the exact commit just pushed; also check GitHub Status before treating a
+long `building` state as a content failure. Vercel may already be healthy while legacy
+GitHub Pages is queued.
+
 ## Step 6 — Copy locally + mirror to Drive
 
 - Copy the post to `C:\Users\YangminRoom1\Documents\Dr Chu's file\Gamma Oscillations and EEG\`
@@ -122,6 +132,8 @@ curl -s "https://ckt520728.github.io/kidney-cognition-lab/index.html" | grep -c 
   Use `textContent` for the HTML; `base64Content` works too but the base64 file may exceed
   the Read cap — prefer textContent from a copy you already have in context.
 - Tell the user Drive is a **snapshot**; the repo is the source of truth. It won't auto-sync.
+- A readable Drive folder does not prove upload permission. If upload returns 403, keep the
+  verified local copy and report the missing write scope; do not silently upload to Drive root.
 
 ## Gotchas (from the field)
 
@@ -131,6 +143,16 @@ curl -s "https://ckt520728.github.io/kidney-cognition-lab/index.html" | grep -c 
 - `git add` prints a harmless `LF will be replaced by CRLF` warning — ignore it.
 - Branch name varies per repo: `kidney-cognition-lab` uses `main`, `claude-skills` uses
   `master`. Always confirm with `git branch --show-current` before `git push`.
+- On Windows PowerShell, read UTF-8 HTML with `Get-Content -Encoding UTF8`; default decoding
+  can display valid Traditional Chinese as mojibake. Never use `$HOME`/`$home` as a task
+  variable because it is a protected environment variable—use a task-specific name.
+- `node --check file.html` rejects the `.html` extension. Extract inline `<script>` blocks
+  and compile those instead. Also preserve the checker process exit code: a later successful
+  command can otherwise hide an earlier syntax-test failure.
+- `git diff --stat` omits untracked posts. Pair it with `git status --short` and explicitly
+  count required assets (`svg`, `canvas`, sliders) before committing.
+- If no approved browser instance is connected, do not claim a visual interaction pass.
+  Run static syntax/structure/HTTP checks, state the limitation, and verify the live URL.
 - Drive `create_file` can't overwrite (always a new file id); version filenames when re-uploading
   and let the user delete old snapshots in the web UI.
 - Optional companion deliverable: a screenshot-ready 16:9 comparison **slide** via the Artifact
