@@ -2,6 +2,14 @@
 
 A collection of custom Claude Code skills.
 
+### hhsa-closed-loop-prototyping
+
+Builds, audits, and validates research prototypes that combine Holo-Hilbert Spectral Analysis, EEG acquisition, AM-envelope phase detection, and two-rate closed-loop stimulation control. It preserves a strict safety boundary: synthetic, simulated, recording, and marker-only paths are the default; physical stimulation requires verified device documentation and independent safeguards.
+
+- Skill folder: `hhsa-closed-loop-prototyping/`
+- Portable artifact: `hhsa-closed-loop-prototyping.skill`
+- Session wrap-up and pitfalls: `docs/2026-08-06-hhsa-closed-loop-wrap-up.md`
+
 ## Skills
 
 ### Finding Unknowns series (`Thariq_finding_unknown/`)

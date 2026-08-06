@@ -1,0 +1,4 @@
+interface:
+  display_name: "HHSA Closed-Loop Prototyping"
+  short_description: "Build and validate HHSA-guided EEG control loops"
+  default_prompt: "Use $hhsa-closed-loop-prototyping to audit and validate this HHSA-guided closed-loop EEG research prototype."
