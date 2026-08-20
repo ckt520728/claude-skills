@@ -10,6 +10,26 @@ Builds, audits, and validates research prototypes that combine Holo-Hilbert Spec
 - Portable artifact: `hhsa-closed-loop-prototyping.skill`
 - Session wrap-up and pitfalls: `docs/2026-08-06-hhsa-closed-loop-wrap-up.md`
 
+### hhsa-clinical-timeseries
+
+The offline sibling of the skill above. Takes one patient's dense physiological
+recording — CGM, heart rate, HRV, activity, temperature — through a validated
+two-layer HHSA and out as a single-file HTML dashboard. Ingests a raw CSV, or
+recovers the series from a vendor report PDF when no CSV exists. Settles the
+*effective* resolution before decomposing, and tests every claim against
+white-noise, AAFT-surrogate and cycle-rotation nulls before it reaches the page.
+
+Built from a worked 13-day CGM case. The decomposition rules are not preferences:
+each was a wrong answer first, measured on synthetic ground truth (plain EMD in
+both layers — EEMD at 0.2·SD destroys ~75 % of layer-2 modulation energy; PCHIP
+rather than cubic spline for amplitude normalisation; ω < f admissibility).
+
+- Skill folder: `hhsa-clinical-timeseries/`
+- Pitfalls with measurements: `hhsa-clinical-timeseries/references/pitfalls.md`
+- Session wrap-up (繁中): `2026-08-20_CGMS_HHSA_Case_Lessons_and_Pitfalls.md`
+- Runnable with zero patient data: `scripts/make_demo_data.py` plants a known
+  answer that a correct pipeline run must recover.
+
 ## Skills
 
 ### Finding Unknowns series (`Thariq_finding_unknown/`)
