@@ -1,0 +1,5 @@
+# The clinical record and everything derived from it stays out of the public repo.
+data/
+output/
+figs/
+__pycache__/

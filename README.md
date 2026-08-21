@@ -30,6 +30,27 @@ rather than cubic spline for amplitude normalisation; ω < f admissibility).
 - Runnable with zero patient data: `scripts/make_demo_data.py` plants a known
   answer that a correct pipeline run must recover.
 
+### hhsa-python-vs-matlab
+
+A controlled comparison of the Python implementation above against a
+MATLAB-language HHSA written from the NCU / Nguyen et al. reference
+specification — same simulated brain waveforms, same clinical record, five
+configurations one step apart so every divergence is charged to the choice that
+caused it.
+
+Configured alike, the two codebases agree (98.4–100 % of layer-1 variance in
+modes matching at |r| ≥ 0.9), so the differences are method, not bugs. The
+largest single factor is one the published methods never specify — the
+interpolant inside the amplitude normalisation, worth a 4.25 × 10⁶-fold
+amplitude inflation. On clean synthetic signals the two decompositions agree; on
+a real mode-mixed record they share no mode at all.
+
+- Folder: `hhsa-python-vs-matlab/`
+- Session wrap-up (繁中): `2026-08-21_HHSA_Python_vs_MATLAB_Lessons_and_Pitfalls.md`
+- Runnable with zero patient data: the seven EEG simulations carry their own
+  published ground truth; the clinical record is excluded and its figures are
+  skipped with a notice.
+
 ## Skills
 
 ### Finding Unknowns series (`Thariq_finding_unknown/`)

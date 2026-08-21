@@ -1,0 +1,40 @@
+wrote output/comparison.json
+
+== IMF counts ==
+signal          mat_maskmat_mask_pchip   mat_emdmat_emd_pchipmat_emd_nak_pchip        py  py_noadm
+nguyen_s1              7         7         5         5         5         5         5
+juan_f4_b00            6         6         4         4         4         3         3
+juan_f4_b04            7         7         4         4         4         4         4
+juan_f4_b10            7         7         4         4         4         4         4
+juan_f5_tv             7         7         5         5         5         4         4
+juan_f6a               7         7         5         5         5         5         5
+juan_f6b               7         7         5         5         5         4         4
+cgm_5min               9         9         6         6         6         6         6
+
+== attribution ladder: cosine similarity across each single change ==
+signal              step1    step2    step3    step4    step5
+nguyen_s1           0.000    0.212    0.992    0.729    1.000
+juan_f4_b00         0.001    0.114    0.958    0.110    1.000
+juan_f4_b04         0.954    0.710    1.000    0.655    1.000
+juan_f4_b10         0.955    0.824    1.000    0.468    1.000
+juan_f5_tv          0.000    0.823    1.000    0.862    1.000
+juan_f6a            0.012    0.844    1.000    0.335    1.000
+juan_f6b            0.877    0.667    1.000    0.150    1.000
+cgm_5min            0.000    0.342    0.994    0.344    0.999
+
+steps (each changes exactly one thing):
+  step1  amplitude-normalisation spline: natural -> PCHIP
+  step2  decomposition: masking EMD -> plain EMD
+  step3  sifting spline: natural -> not-a-knot
+  step4  layer-2 envelope: |IMF|-maxima spline -> 4x PCHIP normalisation
+  step5  admissibility cut f_am < f_c: off -> on
+
+== reference (mat_mask) vs shipped Python (py) ==
+nguyen_s1        cosine 0.000   total holo energy: MATLAB 2675   Python 1.969
+juan_f4_b00      cosine 0.000   total holo energy: MATLAB 3.697   Python 3.127e-06
+juan_f4_b04      cosine 0.731   total holo energy: MATLAB 0.6711   Python 0.6493
+juan_f4_b10      cosine 0.548   total holo energy: MATLAB 3.378   Python 4.959
+juan_f5_tv       cosine 0.000   total holo energy: MATLAB 1425   Python 1.065
+juan_f6a         cosine 0.003   total holo energy: MATLAB 74.63   Python 6.039
+juan_f6b         cosine 0.109   total holo energy: MATLAB 5.236   Python 14.69
+cgm_5min         cosine 0.000   total holo energy: MATLAB 4.611e+11   Python 1749
