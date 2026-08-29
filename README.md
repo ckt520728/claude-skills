@@ -2,6 +2,22 @@
 
 A collection of custom Claude Code skills.
 
+### cognitive-test-to-samd
+
+Takes a lab cognitive or neuropsychological test from research instrument to a
+lawfully marketed Software as a Medical Device. Starts from the decision most
+teams skip — whether to cross the medical-device line at all, since a
+brain-training app is usually *already* lawfully outside the regulation and one
+sentence of output text is the crossing. Covers the two-track wellness/clinical
+split, age-stratified normative design, the five-item audit that separates
+"we collected the data" from "we have admissible evidence", the intended use
+statement and its load-bearing wording, and the Taiwan TFDA gate sequence
+(分類分級判定 → 醫療器材商許可執照 → QMS/製造許可 → 查驗登記). The reasoning
+structure transfers to FDA/MDR; swap the jurisdiction reference file.
+
+- Skill folder: `cognitive-test-to-samd/`
+- Session wrap-up and pitfalls: `2026-08-29_NeuroPlay_SaMD_Regulatory_Lessons_and_Pitfalls.md`
+
 ### hhsa-closed-loop-prototyping
 
 Builds, audits, and validates research prototypes that combine Holo-Hilbert Spectral Analysis, EEG acquisition, AM-envelope phase detection, and two-rate closed-loop stimulation control. It preserves a strict safety boundary: synthetic, simulated, recording, and marker-only paths are the default; physical stimulation requires verified device documentation and independent safeguards.
