@@ -411,3 +411,58 @@ CIPH 認知訓練研究的資料整理代理人：把各場地新收的受試者
 驅動 VCL 閉迴路 EEG／MDD 生物標記流程的代理人：10 階段工作流，前處理 resting-state EEG（Zapline 去線噪、濾波、壞通道內插、ASR、ICA + ICLabel、切 epoch），抽取頻譜／EMD 特徵，訓練防洩漏 ML 模型，檢驗 EEG 能否預測抗憂鬱治療反應，並對照 permutation／bootstrap／FAA-only／HDRS-only baseline。透過 `TASK3_PROJECT_ROOT` 環境變數接上本機程式碼。**僅供探索研究，非臨床建議。**
 
 **Portable artifact:** `neuropilot.skill`
+
+
+---
+
+## Harness OS（2026-09-02 新增）
+
+### harness-os
+
+把長時程交付當成作業系統來跑，而不是當成一段很長的對話。狀態落盤、子任務以真正的
+背景行程隔離、**動工前**寫好「完成」的契約、任何東西被宣告完成前都要通過實體驗證，
+沒通過時走一條由證據驅動、帶回歸閘門的修復迴圈。
+
+理論來源是 Lilian Weng 的
+[Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/)（2026-07-04）；
+該文的 14 篇參考文獻全部讀完，每個機制對應到哪篇論文的哪一節記在
+`harness-os/references/evidence-ledger.md`。文中「harness 即 OS，應封裝複雜邏輯並
+保持介面簡單」正是這裡 kernel／skill 分工的設計綱領。
+
+它要解決的是物理層的失敗，不是智力層的：忘記進度、對同一個失敗指令重試到爆預算、
+讀 PDF 讀到 context 崩掉、**宣告完成但檔案是空的或塞滿 TODO**、修好 A 弄壞 B、
+一直在修症狀而不是機制。
+
+核心機制（皆有論文出處）：
+
+- **失敗簽名** `(verifier_cause | causal_status | mechanism)` 三元組精確分群 — Self-Harness
+- **可證偽的變更聲明**：每次修改附帶預測，下一輪以實測歸因，預測沒落地就回滾 — AHE
+- **held-in / held-out 升級閘門**：held-in 要進步、held-out 不准退步，兩者皆須成立 — Self-Harness
+- **增量式 playbook**：只追加、不整體重寫（整體重寫會把細節磨掉） — ACE
+- **踏腳石存檔**與 rollback — DGM / Meta-Harness
+
+一個違反直覺但可行動的實證結論（AHE 消融）：增益來自 **tools / middleware /
+long-term memory，不是 system prompt**。東西壞掉時，先問「缺什麼工具、什麼該自動
+執行、什麼該被記住」，而不是去改指令措辭。
+
+內含六個領域 profile（醫院系統與打卡、國科會計畫、EEG/HRV 方法開發、本機 PDF
+文獻庫、學術寫作、門診認知測驗 App），以及八個現成的 `cmd:` 驗證器 — 預算與方法
+對齊、段落重複與縮寫、引用可解析、語料涵蓋完整、術語一致、可重現性與資料洩漏、
+試驗資料完整性、反應時間時鐘品質。
+
+**誠實的限制**（程式碼、skill、README 三處都寫明）：這個迴圈的上限等於驗證器的
+忠實度；`guard` 是絆線不是沙盒；主觀目標上絕不無監督執行。
+
+```bash
+python harness-os/scripts/harness_kernel.py selftest      # 31 checks
+python harness-os/scripts/verifiers/test_verifiers.py     # 64 checks
+cp -r harness-os/skills/* ~/.claude/skills/
+```
+
+純標準函式庫，Python 3.8+，Windows / macOS / Linux 皆可跑，無第三方相依。
+
+- Plugin 資料夾：`harness-os/`
+- 使用手冊（繁中）：`harness-os/USER_MANUAL.md`
+- 驗證器說明：`harness-os/scripts/verifiers/README.md`
+- 相對於原型改了什麼：`harness-os/references/prototype-delta.md`
+- Session wrap-up and pitfalls: `2026-09-02_HarnessOS_Lessons_and_Pitfalls.md`
