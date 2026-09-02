@@ -1,0 +1,16 @@
+{
+  "name": "harness-os",
+  "version": "2.0.0",
+  "description": "An OS-shaped harness for long-horizon deliverables: durable state, isolated parallel jobs, contracts written before the work, physical verification before anything is called done, and an evidence-driven repair loop with a regression gate. Domain profiles for web systems, grant proposals, EEG/HRV method work, PDF corpora, academic writing, and clinical cognitive apps.",
+  "keywords": [
+    "harness",
+    "orchestration",
+    "long-horizon",
+    "verification",
+    "self-improvement",
+    "agentic"
+  ],
+  "author": {
+    "name": "kwotachu"
+  }
+}
