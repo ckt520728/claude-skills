@@ -43,6 +43,11 @@ rather than cubic spline for amplitude normalisation; ω < f admissibility).
 - Skill folder: `hhsa-clinical-timeseries/`
 - Pitfalls with measurements: `hhsa-clinical-timeseries/references/pitfalls.md`
 - Session wrap-up (繁中): `2026-08-20_CGMS_HHSA_Case_Lessons_and_Pitfalls.md`
+- Band-constrained follow-up (繁中): `2026-09-04_Constrained_HHSA_and_Artifact_Publishing_Lessons_and_Pitfalls.md`
+  — what happens when the physiological bands are imposed as a *hard* constraint on both the
+  carrier and the modulation axis (only 20–29 % of layer-2 amplitude survives), how to compare
+  two independent implementations without mistaking method choice for a bug, and the
+  template-plus-build-script pattern for publishing figure-heavy pages.
 - Runnable with zero patient data: `scripts/make_demo_data.py` plants a known
   answer that a correct pipeline run must recover.
 
