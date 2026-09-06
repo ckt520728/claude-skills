@@ -146,6 +146,60 @@ $K ladder set --name draft --target draft/paper.md \
 $K ladder assert --name draft     # -> tier_reached / tiers_total，也會顯示在 status
 ```
 
+### `challenge:` 實戰範例——讓「寫死答案」過不了關
+
+情境：你有一支可重現的分析腳本 `analyze.py`，想確保修復迴圈**不能靠把上次的輸出寫死**來騙過契約。`challenge:` 每輪丟一個全新的 nonce（`$HARNESS_CHALLENGE`）當輸入，腳本必須**即時**算出對應的確定性結果、驗證器再把這個 nonce 回吐，才算過。沒見過的挑戰算不出來，背答案就失效。
+
+**1. 誠實版的交付物**——真的讀輸入、真的算：
+
+```python
+# analyze.py —— 對輸入做確定性轉換（實務上換成你的 seed → 指標 pipeline）
+import sys, hashlib
+seed = sys.argv[1]                        # kernel 會把 nonce 當最後一個參數傳進來
+print(hashlib.sha256(seed.encode()).hexdigest())
+```
+
+**2. 寫契約**。用 `--` 後面接**未加引號**的指令最穩（跨平台，Windows cmd 不會被巢狀引號咬到）：
+
+```bash
+V="<plugin>/scripts/verifiers"
+$K contract --name repro --target analyze.py \
+  --checks "exists,python_compiles,challenge:python $V/check_challenge_response.py -- python analyze.py"
+$K assert --contract repro
+```
+
+通過（每輪 nonce 都不同，驗證器即時算出正確結果並回吐該 nonce）：
+
+```
+passed = True
+challenge -> True :: exit=0 fresh=True
+  . live challenge 6ec90df7.. answered correctly (sha256)
+```
+
+**3. 試著作弊**——把答案寫死、無視輸入：
+
+```python
+# analyze.py（作弊版）
+print("cafebabe" * 8)                     # 固定輸出，不看 nonce
+```
+
+再跑一次 `$K assert --contract repro`——**只有 `challenge:` 這一項掛掉**，診斷直接點名原因：
+
+```
+passed = False
+challenge -> False :: exit=1 fresh=False
+  ...returned 'cafebabe...', expected '7032717177546afd...' -- a hardcoded or memorised answer
+```
+
+`exists`、`python_compiles` 照樣過；就是騙不過 `challenge:`。這正是修復迴圈最便宜的作弊路徑，被這一項堵死。
+
+**4. 接到你真正的交付物上**。sha256 只是內建的替身轉換；換成你交付物真正該具備的確定性性質：
+
+- 交付物自己能算出確定性結果 → 用 `--algo`（`sha256`/`sha1`/`md5`/`echo`），或讓腳本把 nonce 當 seed 讀進去。
+- 期望值要由另一支 oracle 算 → `--expect-cmd "python oracle.py"`，驗證器會比對「交付物」與「oracle」對**同一個 nonce** 的輸出。
+
+關鍵動作只有一個：**把 nonce 當輸入穿過交付物**（當 seed、當查詢、當測資）。只把 `$HARNESS_CHALLENGE` 原封回吐、根本沒進交付物的驗證器＝在對自己作弊，`challenge:` 擋不了那種——那是契約作者的責任，跟 `cmd:` 一樣。
+
 ### 內建的九個驗證器
 
 `scripts/verifiers/` 裡有九個現成的 `cmd:` / `challenge:` 驗證器，全部經過測試：
