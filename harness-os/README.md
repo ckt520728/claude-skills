@@ -146,3 +146,32 @@ when the task needs them.
 - Detached jobs do not return an exit code; `poll` reports completion and the
   stderr tail. Where the exit code matters, have the job write a result file and
   contract it with `cmd:`.
+
+## Changelog
+
+### v2.1.0 — 2026-09-06
+
+Merged to `master` via [PR #4](https://github.com/ckt520728/claude-skills/pull/4)
+(squash `e41f40c`). Three mechanisms extracted from the 2026 frontier-benchmark /
+Codex corpus, each also grounded in the verified `Reference/` corpus:
+
+- **`constraint`** — invariant rules that survive context compaction; surfaced
+  verbatim by `status`, never pruned. Distinct from the learned/prunable playbook.
+- **`challenge:`** — contract check with a fresh random nonce each run; passes
+  only if the verifier echoes it live, defeating hardcoded answers. New verifier
+  `check_challenge_response.py`.
+- **`ladder`** — graded capability ladder (highest contiguous tier passed); a
+  progress meter alongside, not replacing, the binary promotion gate.
+
+ScreenSeekeR pixel-grounding and recurrent-depth/latent-reasoning deliberately
+excluded, with reasons in `references/evidence-ledger.md`. Gates: kernel selftest
+31 → 42, verifier suite 64 → 72.
+
+### v2.0.0 — 2026-09-02
+
+Initial release, merged via PR #3 (`37ffa4f`). OS-shaped kernel: durable
+filesystem state, detached parallel jobs with enforced timeouts, contracts +
+`assert` + `publish` gate, failure-signature `mine`, falsifiable edit manifests,
+held-in/held-out promotion `gate`, snapshot/rollback archive, `guard` tripwire.
+Six domain profiles and eight profile verifiers. Built from the fourteen papers
+in Lilian Weng's "Harness Engineering for Self-Improvement".
