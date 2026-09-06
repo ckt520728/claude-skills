@@ -12,6 +12,7 @@ Exit: 0 all passed, 1 otherwise.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -319,6 +320,55 @@ def main():
         case("timing: clean", "check_timing_distribution.py",
              ["--csv", tmp / "timing_ok.csv",
               "--condition-col", "condition"], want_fail=False)
+
+        # ---------------- challenge-response (anti-gaming) ------------
+        def run_challenge(artifact, nonce="feedface00c0ffee1234567890abcdef",
+                          extra=None):
+            env = dict(os.environ)
+            env["HARNESS_CHALLENGE"] = nonce
+            cmd = [PY, str(HERE / "check_challenge_response.py"),
+                   "--artifact", artifact] + (extra or [])
+            proc = subprocess.run(cmd, capture_output=True, text=True,
+                                  timeout=120, env=env)
+            return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+
+        (tmp / "solver_good.py").write_text(
+            "import sys, hashlib\n"
+            "print(hashlib.sha256(sys.argv[1].encode()).hexdigest())\n",
+            encoding="utf-8")
+        (tmp / "solver_bad.py").write_text(
+            "print('cafebabe' * 8)  # hardcoded: ignores the challenge\n",
+            encoding="utf-8")
+
+        # must-fail: a hardcoded answer cannot match sha256 of a fresh nonce,
+        # and the verifier must NOT echo the nonce (so the kernel sees no pass).
+        code, out = run_challenge('"%s" "%s"' % (PY, tmp / "solver_bad.py"))
+        expect("challenge: hardcoded answer -> fails", code == 1,
+               "exit=%s out=%s" % (code, out[:200]))
+        expect("challenge: hardcoded answer -> diagnostic names the problem",
+               "hardcoded or memorised" in out.lower(), out[:300])
+        expect("challenge: failed run does not leak a fresh-looking pass",
+               "feedface00c0ffee" not in out.split("[FAIL]")[0], out[:200])
+
+        # must-pass: a real transform of the nonce matches, and the nonce is
+        # echoed on stdout so the kernel's challenge check confirms freshness.
+        code, out = run_challenge('"%s" "%s"' % (PY, tmp / "solver_good.py"))
+        expect("challenge: live transform -> passes", code == 0,
+               "exit=%s out=%s" % (code, out[:200]))
+        expect("challenge: passing run echoes the fresh nonce",
+               "feedface00c0ffee1234567890abcdef" in out, out[:200])
+
+        # missing challenge in env is a hard fail, never a silent pass
+        cmd = [PY, str(HERE / "check_challenge_response.py"),
+               "--artifact", '"%s" "%s"' % (PY, tmp / "solver_good.py")]
+        env = dict(os.environ)
+        env.pop("HARNESS_CHALLENGE", None)
+        proc = subprocess.run(cmd, capture_output=True, text=True,
+                              timeout=60, env=env)
+        expect("challenge: no nonce in env -> fails, not passes",
+               proc.returncode == 1
+               and "harness_challenge" in (proc.stdout + proc.stderr).lower(),
+               "exit=%s" % proc.returncode)
 
         # ---------------- cross-cutting -------------------------------
         code, out = run("check_coherence.py", "--doc", tmp / "nope.md")

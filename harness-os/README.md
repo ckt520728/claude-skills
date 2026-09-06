@@ -15,11 +15,25 @@ The post's own framing — *"Similar to an OS, a harness should encapsulate
 complicated logic while keeping the interface simple"* — is the design brief the
 kernel/skill split answers to.
 
+**v2.1.0** adds three mechanisms extracted from a second body of material — a
+synthesis of 2026 frontier agent benchmarks and the Codex system architecture —
+each also independently grounded in the verified corpus (see
+`references/evidence-ledger.md`, "v2.1.0 upgrade"):
+
+- **`constraint`** — invariant rules that survive context compaction (Codex
+  invariant prefix / ACE context collapse). Given and immutable, surfaced
+  verbatim by `status`; distinct from the learned, prunable playbook.
+- **`challenge:`** — dynamic challenge-response verification. A fresh nonce each
+  run defeats hardcoded/memorised "passes" (ExploitBench oracle / STOP
+  sandbox-bypass). Anti-gaming for the objectives that are actually checkable.
+- **`ladder`** — a graded capability ladder: highest contiguous tier passed, a
+  dense progress meter alongside the binary promotion gate.
+
 ## Install
 
 ```bash
-python scripts/harness_kernel.py selftest          # 31 checks, must PASS
-python scripts/verifiers/test_verifiers.py         # 64 checks, must PASS
+python scripts/harness_kernel.py selftest          # 42 checks, must PASS
+python scripts/verifiers/test_verifiers.py         # 72 checks, must PASS
 cp -r skills/* ~/.claude/skills/               # Windows: copy skills\* to %USERPROFILE%\.claude\skills\
 ```
 
@@ -59,19 +73,25 @@ $K publish --contract draft
 | `snapshot` / `rollback` | Stepping-stone archive |
 | `playbook` | Incremental delta memory (add / list / mark / prune) |
 | `guard` | Tripwire on contracts and verifier scripts |
-| `selftest` | 31 checks proving the kernel works |
+| `constraint` | Invariant rules that survive compaction (add / list) |
+| `ladder` | Graded progress meter — highest contiguous tier passed (set / assert) |
+| `selftest` | 42 checks proving the kernel works |
 
 ## Contract checks
 
 `exists`, `not_empty`, `min_bytes:N`, `min_words:N`, `valid_json`,
 `json_keys:a;b;c`, `sections:A|B|C`, `regex_present:PAT`, `regex_absent:PAT`,
-`no_placeholder`, `python_compiles`, `cmd:<shell command>`
+`no_placeholder`, `python_compiles`, `cmd:<shell command>`,
+`challenge:<shell command>`
 
 Use `;` inside a check argument where a comma is needed. `cmd:` is the strongest
 check available — prefer a real test suite over a structural proxy wherever one
-exists. `scripts/verifiers/` ships eight ready-made ones (budget alignment,
+exists. `challenge:` is `cmd:` with anti-gaming built in: the kernel injects a
+fresh random nonce (`$HARNESS_CHALLENGE`) each run and the check passes only if
+the verifier echoes it live, so a hardcoded answer cannot pass a challenge it has
+never seen. `scripts/verifiers/` ships nine ready-made ones (budget alignment,
 coherence, citation resolution, corpus coverage, glossary consistency,
-reproducibility, trial-data integrity, timing quality).
+reproducibility, trial-data integrity, timing quality, and challenge-response).
 
 ## Layout
 
@@ -80,7 +100,7 @@ harness-os/
 ├── skills/          harness-os (orchestrator) + boot / fork / assert / mine / evolve
 ├── scripts/
 │   ├── harness_kernel.py   — stdlib only, Python 3.8+, cross-platform
-│   └── verifiers/          — 8 profile verifiers for `cmd:` checks (see its README)
+│   └── verifiers/          — 9 verifiers for `cmd:`/`challenge:` checks (see its README)
 ├── profiles/        six domain starting points
 └── references/      evidence ledger, prototype delta
 ```
@@ -119,6 +139,10 @@ when the task needs them.
   unsupervised against a subjective objective.
 - `guard` is a tripwire, not a sandbox. It makes tampering visible; it does not
   prevent it. Real isolation needs OS permissions or a container.
+- `challenge:` proves the verifier ran live on an unrepeatable nonce; it does
+  not prove correctness in general, and a verifier that re-echoes
+  `$HARNESS_CHALLENGE` without routing it through the artifact games itself.
+  Route the nonce through the deliverable.
 - Detached jobs do not return an exit code; `poll` reports completion and the
   stderr tail. Where the exit code matters, have the job write a result file and
   contract it with `cmd:`.

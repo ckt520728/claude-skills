@@ -14,6 +14,17 @@ Design sources (see ../references/evidence-ledger.md):
                                           filesystem, not compressed to scalars
   * DGM (Zhang et al., 2025/26)        -- archive of stepping stones, rollback
 
+  Upgrade sources (v2.1.0 -- 2026 frontier-benchmark corpus; see
+  ../references/evidence-ledger.md "v2.1.0 upgrade"):
+  * Codex system architecture          -- invariant prefix layer that survives
+                                          context compaction  -> `constraint`
+  * AgencyBench (Li et al., 2026)       -- long tasks fail by losing constraints,
+                                          not by lacking skill               ->  `constraint`
+  * ExploitBench graded oracle          -- per-run challenge-response defeats
+                                          memorised/hardcoded answers        ->  `challenge:`
+                                          16-tier ladder gives dense partial
+                                          credit vs binary pass/fail          -> `ladder`
+
 This kernel is deliberately *not* an LLM. It is the deterministic substrate the
 agent drives through Bash: it owns state, processes, traces, contracts,
 verification, evidence and rollback. The agent supplies judgement; the kernel
@@ -29,6 +40,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shlex
 import signal
 import subprocess
@@ -36,7 +48,7 @@ import sys
 import time
 from pathlib import Path
 
-KERNEL_VERSION = "2.0.0"
+KERNEL_VERSION = "2.1.0"
 
 PLACEHOLDER_PATTERNS = [
     r"\bTODO\b", r"\bFIXME\b", r"\bXXX\b", r"\bTBD\b",
@@ -70,10 +82,12 @@ class Harness:
         self.evidence = self.h / "evidence"
         self.manifests = self.h / "manifests"
         self.archive = self.h / "archive"
+        self.ladders = self.state / "ladders"
         self.out = self.ws / "out"
 
         self.playbook_path = self.state / "playbook.json"
         self.registry_path = self.state / "registry.json"
+        self.constraints_path = self.state / "constraints.json"
         self.trace_path = self.logs / "trace.jsonl"
         self.guard_path = self.h / "guard.json"
         self.config_path = self.h / "config.json"
@@ -83,7 +97,7 @@ class Harness:
     def boot(self, profile=None):
         for d in (self.h, self.state, self.jobs, self.logs, self.evals,
                   self.contracts, self.evidence, self.manifests,
-                  self.archive, self.out):
+                  self.archive, self.ladders, self.out):
             d.mkdir(parents=True, exist_ok=True)
 
         if not self.registry_path.exists():
@@ -93,6 +107,9 @@ class Harness:
             self._write_json(self.playbook_path,
                              {"goal": None, "done_definition": None,
                               "milestones": [], "entries": [], "next_id": 1})
+        if not self.constraints_path.exists():
+            self._write_json(self.constraints_path,
+                             {"invariants": [], "next_id": 1})
         if not self.config_path.exists():
             self._write_json(self.config_path, {
                 "kernel_version": KERNEL_VERSION,
@@ -345,7 +362,7 @@ class Harness:
 
         if kind == "exists":
             return target.exists(), str(target)
-        if kind != "cmd" and not target.exists():
+        if kind not in ("cmd", "challenge") and not target.exists():
             return False, "target missing: %s" % target
 
         if kind == "not_empty":
@@ -413,6 +430,34 @@ class Harness:
                 return False, "verifier command timed out"
             except Exception as e:
                 return False, "verifier error: %s" % e
+        if kind == "challenge":
+            # Dynamic challenge-response (ExploitBench graded oracle): a fresh
+            # random nonce is injected each run as $HARNESS_CHALLENGE. The
+            # verifier must exit 0 *and* echo this exact nonce on stdout, which
+            # it can only do by running the artifact against THIS nonce. A
+            # memorised or hardcoded PASS carries a stale nonce and is rejected.
+            # Limit: this proves the verifier ran live; the contract author must
+            # route the nonce through the artifact so the artifact -- not a stub
+            # echoing $HARNESS_CHALLENGE -- is what has to produce it.
+            nonce = secrets.token_hex(16)
+            env = dict(os.environ)
+            env["HARNESS_CHALLENGE"] = nonce
+            try:
+                p = subprocess.run(arg, shell=True, cwd=str(self.ws),
+                                   capture_output=True, text=True,
+                                   timeout=600, env=env)
+            except subprocess.TimeoutExpired:
+                return False, "challenge verifier timed out"
+            except Exception as e:
+                return False, "challenge verifier error: %s" % e
+            fresh = nonce in (p.stdout or "")
+            tail = (p.stderr or p.stdout or "").strip()[-160:]
+            if p.returncode == 0 and not fresh:
+                return False, ("exit 0 but stale: verifier did not echo the "
+                               "fresh challenge %s.. -- hardcoded or replayed "
+                               "result; %s" % (nonce[:8], tail))
+            return (p.returncode == 0 and fresh,
+                    "exit=%d fresh=%s %s" % (p.returncode, fresh, tail))
         return False, "unknown check kind: %s" % kind
 
     def run_assert(self, name, round_no=None):
@@ -726,6 +771,99 @@ class Harness:
         self._write_json(self.playbook_path, pb)
         return {"goal": goal, "done_definition": pb.get("done_definition")}
 
+    # -- invariant constraints (Codex prefix layer / AgencyBench) ---------
+
+    def constraint_add(self, text):
+        """Record a hard invariant that must survive context compaction.
+
+        Distinct from the playbook: the playbook is *learned* and prunable;
+        constraints are *given* and immutable. Long-horizon agents fail by
+        losing track of constraints (AgencyBench, 2026), and iterative context
+        rewriting erodes exactly this kind of detail (ACE context collapse).
+        These are surfaced verbatim by `status` and are never compacted, never
+        summarised, never pruned -- the on-disk analogue of Codex's invariant
+        prefix layer.
+        """
+        self._require_boot()
+        text = (text or "").strip()
+        if not text:
+            raise SystemExit("constraint text is empty")
+        data = self._read_json(self.constraints_path,
+                               {"invariants": [], "next_id": 1})
+        norm = re.sub(r"\s+", " ", text).lower()
+        for c in data["invariants"]:
+            if re.sub(r"\s+", " ", c["text"]).lower() == norm:
+                return {"deduped": True, "id": c["id"], "text": c["text"]}
+        cid = data.get("next_id", 1)
+        entry = {"id": cid, "text": text, "added": _now(), "at": _ts()}
+        data["invariants"].append(entry)
+        data["next_id"] = cid + 1
+        self._write_json(self.constraints_path, data)
+        return {"deduped": False, "id": cid, "text": text,
+                "count": len(data["invariants"])}
+
+    def constraint_list(self):
+        self._require_boot()
+        data = self._read_json(self.constraints_path,
+                               {"invariants": [], "next_id": 1})
+        return {"invariants": data.get("invariants", []),
+                "count": len(data.get("invariants", []))}
+
+    # -- graded capability ladder (ExploitBench 16-tier oracle) -----------
+
+    def ladder_set(self, name, target, tiers):
+        """Define an ordered ladder of checks for one deliverable.
+
+        A contract answers a binary question -- is this done? A ladder answers a
+        graded one -- how far along is it? -- by scoring the highest *contiguous*
+        tier passed. This gives long-horizon work the dense partial-credit signal
+        that ExploitBench's graded oracle gives exploitation, instead of a single
+        all-or-nothing verdict that says nothing until the very end.
+        """
+        self._require_boot()
+        if not tiers:
+            raise SystemExit("a ladder needs at least one tier")
+        spec = {"name": name, "target": target, "tiers": list(tiers),
+                "created": _now()}
+        self._write_json(self.ladders / ("%s.json" % name), spec)
+        return spec
+
+    def ladder_assert(self, name):
+        """Score a ladder: highest contiguous passing tier + fraction passed."""
+        self._require_boot()
+        spec = self._read_json(self.ladders / ("%s.json" % name))
+        if not spec:
+            raise SystemExit("no ladder named '%s'" % name)
+        target = Path(spec["target"])
+        if not target.is_absolute():
+            target = self.ws / target
+        tiers = spec["tiers"]
+        results = []
+        reached = 0
+        broke = False
+        for i, spec_check in enumerate(tiers, start=1):
+            ok, msg = self._run_check(spec_check, target)
+            results.append({"tier": i, "check": spec_check,
+                            "pass": bool(ok), "msg": msg})
+            if ok and not broke:
+                reached = i
+            elif not ok:
+                broke = True
+        passed = sum(1 for r in results if r["pass"])
+        report = {"ladder": name, "target": str(target),
+                  "tiers_total": len(tiers),
+                  "tier_reached": reached,
+                  "tiers_passed": passed,
+                  "fraction": round(reached / float(len(tiers)), 4),
+                  "results": results, "t": _now()}
+        self._write_json(self.evals / ("ladder_%s.json" % name), report)
+        if reached < len(tiers):
+            nxt = results[reached] if reached < len(results) else None
+            self.trace(name, "LADDER", "tier %d/%d; next blocked: %s"
+                       % (reached, len(tiers),
+                          nxt["check"] if nxt else "?"), "INFO")
+        return report
+
     # -- guard (anti reward-hacking tripwire) -----------------------------
 
     def guard_init(self, extra=None):
@@ -816,13 +954,22 @@ class Harness:
                                  else ("FAIL" if rep else "unverified"))
         fails = len([r for r in self.read_trace(limit=100000)
                      if r.get("status") in ("FAIL", "ERROR")])
+        cons = self._read_json(self.constraints_path, {}) or {}
+        ladders = {}
+        for p in sorted(self.ladders.glob("*.json")):
+            rep = self._read_json(self.evals / ("ladder_%s.json" % p.stem))
+            ladders[p.stem] = ("%d/%d" % (rep["tier_reached"], rep["tiers_total"])
+                               if rep else "unscored")
         return {"workspace": str(self.ws),
                 "goal": pb.get("goal"),
                 "done_definition": pb.get("done_definition"),
+                # invariants are surfaced verbatim: they must never be compacted
+                "invariants": [c["text"] for c in cons.get("invariants", [])],
                 "playbook_entries": len(pb.get("entries", [])),
                 "jobs": dict((k, v.get("status")) for k, v in
                              reg.get("jobs", {}).items()),
                 "contracts": contracts,
+                "ladders": ladders,
                 "logged_failures": fails,
                 "guard": self.guard_check().get("status")}
 
@@ -930,6 +1077,19 @@ def main(argv=None):
     s.add_argument("--id", type=int)
     s.add_argument("--helpful", action="store_true")
 
+    s = sub.add_parser("constraint")
+    s.add_argument("op", choices=["add", "list"])
+    s.add_argument("--text")
+
+    s = sub.add_parser("ladder")
+    s.add_argument("op", choices=["set", "assert"])
+    s.add_argument("--name", required=True)
+    s.add_argument("--target")
+    s.add_argument("--tiers",
+                   help="ordered checks, same syntax as contract --checks: "
+                        "comma-separated, use ';' where a check argument itself "
+                        "needs a comma")
+
     s = sub.add_parser("guard")
     s.add_argument("op", choices=["init", "check"])
     s.add_argument("--extra", default="")
@@ -1004,6 +1164,19 @@ def main(argv=None):
             _emit(h.playbook_mark(a.id, harmful=not a.helpful))
         else:
             _emit(h.playbook_prune())
+    elif a.subcommand == "constraint":
+        if a.op == "add":
+            _emit(h.constraint_add(a.text))
+        else:
+            _emit(h.constraint_list())
+    elif a.subcommand == "ladder":
+        if a.op == "set":
+            tiers = [c.replace(";", ",") for c in csv(a.tiers)]
+            _emit(h.ladder_set(a.name, a.target, tiers))
+        else:
+            r = h.ladder_assert(a.name)
+            _emit(r)
+            sys.exit(0 if r["tier_reached"] == r["tiers_total"] else 1)
     elif a.subcommand == "guard":
         _emit(h.guard_init(csv(a.extra)) if a.op == "init" else h.guard_check())
     elif a.subcommand == "publish":
@@ -1146,6 +1319,44 @@ def selftest():
         st = h.status()
         ck("status reports contracts", "report" in st["contracts"])
 
+        # ---- v2.1.0: invariant constraints -----------------------------
+        h.constraint_add("nginx.conf is READ-ONLY -- never chmod it")
+        dupc = h.constraint_add("nginx.conf is READ-ONLY   -- never chmod it")
+        ck("constraint dedupes", dupc.get("deduped") is True, dupc)
+        cl = h.constraint_list()
+        ck("constraint persisted", cl["count"] == 1, cl)
+        stc = h.status()
+        ck("status surfaces invariants verbatim",
+           any("READ-ONLY" in x for x in stc["invariants"]), stc["invariants"])
+
+        # ---- v2.1.0: challenge-response (anti-gaming) ------------------
+        # A verifier that emits the live nonce passes; one that emits a
+        # hardcoded/stale answer is rejected even though it exits 0.
+        h.put_contract("chal_live", "report.md",
+                       ['challenge:"%s" -c "import os;'
+                        'print(os.environ[\'HARNESS_CHALLENGE\'])"' % py])
+        ck("challenge passes on a live fresh response",
+           h.run_assert("chal_live")["passed"] is True)
+        h.put_contract("chal_stale", "report.md",
+                       ['challenge:"%s" -c "print(\'deadbeefdeadbeef\')"' % py])
+        rst = h.run_assert("chal_stale")
+        ck("challenge rejects a hardcoded exit-0 answer",
+           rst["passed"] is False, rst["checks"])
+
+        # ---- v2.1.0: graded capability ladder --------------------------
+        # report.md has ~120 words: tier 1 (exists) and tier 2 (>=50 words)
+        # pass, tier 3 (>=100000 words) blocks -> highest contiguous tier = 2.
+        h.ladder_set("progress", "report.md",
+                     ["exists", "min_words:50", "min_words:100000"])
+        lad = h.ladder_assert("progress")
+        ck("ladder scores highest contiguous tier",
+           lad["tier_reached"] == 2 and lad["tiers_total"] == 3, lad)
+        ck("ladder reports a fraction",
+           abs(lad["fraction"] - 2 / 3.0) < 0.01, lad["fraction"])
+        std = h.status()
+        ck("status shows ladder progress",
+           std["ladders"].get("progress") == "2/3", std["ladders"])
+
         # ---- CLI layer -------------------------------------------------
         # The API can be correct while the CLI silently misroutes. It has
         # happened: `fork` defines --cmd, which collided with the subparser
@@ -1189,12 +1400,32 @@ def selftest():
 
         # every declared subcommand must reach a real branch
         unreachable = []
-        for name in ("status", "poll", "readtrace", "mine", "playbook"):
-            argv = [name] + (["list"] if name == "playbook" else [])
+        sweep = {
+            "status": ["status"],
+            "poll": ["poll"],
+            "readtrace": ["readtrace"],
+            "mine": ["mine"],
+            "playbook": ["playbook", "list"],
+            "constraint": ["constraint", "list"],
+            "ladder": ["ladder", "assert", "--name", "progress"],
+        }
+        for name, argv in sweep.items():
             c, o = cli(argv)
             if o == "" or o is None:
                 unreachable.append(name)
         ck("no subcommand silently no-ops", not unreachable, unreachable)
+
+        # CLI parses constraint add and ladder set end to end
+        _, cadd = cli(["constraint", "add", "--text", "held-out set is frozen"])
+        ck("CLI constraint add works",
+           isinstance(cadd, dict) and cadd.get("id"), cadd)
+        _, lset = cli(["ladder", "set", "--name", "cli_lad",
+                       "--target", "report.md", "--tiers", "exists,min_words:10"])
+        ck("CLI ladder set parses tiers",
+           isinstance(lset, dict) and lset.get("tiers") == ["exists",
+                                                            "min_words:10"], lset)
+        code, _ = cli(["ladder", "assert", "--name", "cli_lad"])
+        ck("CLI ladder assert exits 0 when all tiers pass", code == 0, code)
     except Exception as exc:  # noqa: BLE001 -- selftest must always report
         ck("selftest ran without exception", False, repr(exc))
     finally:

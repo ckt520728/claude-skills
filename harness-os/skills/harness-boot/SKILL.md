@@ -20,9 +20,10 @@ Below, `$K` is shorthand for `python "$KP"`.
 
 ## Step 1 — Resume before you restart
 
-If `.harness/` already exists, `status` tells you the goal, which contracts pass,
-which jobs are stale, and whether the guard is intact. Read
-`.harness/state/playbook.json` and the last 40 trace lines
+If `.harness/` already exists, `status` tells you the goal, the **invariant
+constraints** (verbatim, at the top — read these first), which contracts pass,
+how far each ladder has climbed, which jobs are stale, and whether the guard is
+intact. Read `.harness/state/playbook.json` and the last 40 trace lines
 (`$K readtrace --limit 40`) before doing anything else. Re-deriving state you
 already have on disk is the most common waste in a resumed session.
 
@@ -41,6 +42,26 @@ budget table totals match the equipment named in Methods, no placeholders,
 If you cannot write a checkable `--done`, that is the signal to run
 [[blindspot-pass]] or [[grilling]] first. Do not boot around an unresolved
 unknown — it will surface in round three as a rewrite.
+
+## Step 2.5 — Record the invariants that must not be lost
+
+```bash
+$K constraint add "budget.json is the single source of truth — never edit numbers in prose"
+$K constraint add "held-out contracts are frozen; the repair loop may not aim at them"
+$K constraint list
+```
+
+Long-horizon runs fail less from lack of skill than from **losing track of
+constraints** across hundreds of steps, and iterative context compaction erodes
+exactly this kind of detail first (ACE context collapse; Codex invariant prefix
+layer). Constraints are the fix: hard, given rules that `status` surfaces
+**verbatim** every time and that are **never compacted, summarised, or pruned.**
+
+They are not the playbook. The playbook is *learned* and grow-and-refine
+prunable; constraints are *given* and immutable. Write down the read-only paths,
+the caps, the pre-registered thresholds, the "never do X" rules — anything whose
+loss in round seven would silently corrupt the deliverable. `status` reads them
+back at the top of every resume.
 
 ## Step 3 — Load the domain profile
 
@@ -83,7 +104,8 @@ $K contract --name refs --target draft/proposal.md --split held_out \
 
 Available checks: `exists`, `not_empty`, `min_bytes:N`, `min_words:N`,
 `valid_json`, `json_keys:a;b;c`, `sections:A|B|C`, `regex_present:PAT`,
-`regex_absent:PAT`, `no_placeholder`, `python_compiles`, `cmd:<shell command>`.
+`regex_absent:PAT`, `no_placeholder`, `python_compiles`, `cmd:<shell command>`,
+`challenge:<shell command>`.
 
 Notes:
 - Inside `--checks`, use `;` where a check argument needs a comma — the kernel
@@ -91,7 +113,28 @@ Notes:
 - `cmd:` runs any external verifier (`pytest -q`, `tsc --noEmit`,
   `python -m json.tool`, a puppeteer script) and passes on exit code 0. This is
   the strongest check available; prefer it wherever a real one exists.
+- `challenge:` is `cmd:` with anti-gaming built in. The kernel injects a fresh
+  random nonce as `$HARNESS_CHALLENGE` every run; the check passes only if the
+  command exits 0 **and** echoes that live nonce. A memorised or hardcoded
+  "pass" carries a stale nonce and is rejected. Use it wherever the deliverable
+  has a deterministic property that can be recomputed for a fresh input — a
+  solver, a reproducible pipeline, a seeded analysis. See
+  `scripts/verifiers/check_challenge_response.py`; its limit is in
+  [[harness-os]] Anti-gaming.
 - `no_placeholder` belongs on every prose or code deliverable.
+
+Optional — a **progress ladder** for a long deliverable that a single binary
+contract cannot yet report progress on:
+
+```bash
+$K ladder set --name draft --target draft/proposal.md \
+  --tiers "exists,min_words:1000,sections:背景|方法|預算,no_placeholder,min_words:4000"
+$K ladder assert --name draft     # -> tier_reached / tiers_total, shown in status
+```
+
+The ladder scores the **highest contiguous tier passed** — a dense progress
+meter, not a gate. Promotion still runs through held-in/held-out `gate`; the
+ladder never touches it.
 
 **At least one contract must be `--split held_out`** — a check the repair loop is
 not allowed to aim at. Without it the promotion gate cannot detect overfitting
@@ -112,6 +155,7 @@ the guard is what makes it visible.
 
 - [ ] `selftest` reported PASS at least once on this machine
 - [ ] goal and a *checkable* definition of done are written
+- [ ] the hard invariants are recorded with `constraint add`
 - [ ] a profile is loaded, or its absence is stated
 - [ ] every deliverable has a contract, written before the work
 - [ ] at least one contract is `held_out`
