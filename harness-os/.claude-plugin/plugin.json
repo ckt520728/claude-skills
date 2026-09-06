@@ -1,14 +1,17 @@
 {
   "name": "harness-os",
-  "version": "2.0.0",
-  "description": "An OS-shaped harness for long-horizon deliverables: durable state, isolated parallel jobs, contracts written before the work, physical verification before anything is called done, and an evidence-driven repair loop with a regression gate. Domain profiles for web systems, grant proposals, EEG/HRV method work, PDF corpora, academic writing, and clinical cognitive apps.",
+  "version": "2.1.0",
+  "description": "An OS-shaped harness for long-horizon deliverables: durable state, isolated parallel jobs, contracts written before the work, physical verification before anything is called done, and an evidence-driven repair loop with a regression gate. Domain profiles for web systems, grant proposals, EEG/HRV method work, PDF corpora, academic writing, and clinical cognitive apps. v2.1.0 adds invariant constraints that survive context compaction, dynamic challenge-response verification against reward-hacking, and a graded capability ladder.",
   "keywords": [
     "harness",
     "orchestration",
     "long-horizon",
     "verification",
     "self-improvement",
-    "agentic"
+    "agentic",
+    "invariant-constraints",
+    "challenge-response",
+    "anti-gaming"
   ],
   "author": {
     "name": "kwotachu"

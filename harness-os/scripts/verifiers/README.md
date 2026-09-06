@@ -26,6 +26,7 @@ Standard library only, Python 3.8+, cross-platform. `--help` on any script.
 | `check_reproducible.py` | signal-analysis | missing seed/dataset/code version; dev∩holdout subject overlap; same seed → different numbers; threshold changed after pre-registration | no split recorded; metric exactly 0.0/1.0 |
 | `check_no_null_rt.py` | cognitive-app | null RT not marked as timeout; zero/negative/absurd RT; missing or duplicate trial index; mixed subjects | high timeout rate; missing practice/timeout columns |
 | `check_timing_distribution.py` | cognitive-app | RTs quantised to a low-resolution clock; zero variance; condition with too few trials | first-trial outlier; run of sub-200ms responses |
+| `check_challenge_response.py` | any (anti-gaming) | artifact's response to a fresh nonce does not match the expected transform; no `$HARNESS_CHALLENGE` in env; artifact errors on the challenge | — |
 
 ## Two design rules
 
@@ -51,10 +52,34 @@ Fabricated references are the failure with the worst consequences and the best
 surface plausibility. Use `--vault` when you can, and resolve against a real
 database before anything is published either way.
 
+## Anti-gaming: the challenge-response verifier
+
+`check_challenge_response.py` is different in kind from the others: it exists to
+defeat a *memorised* answer, not a malformed one. It is meant to be driven by the
+kernel's `challenge:` check, which injects a fresh random nonce as
+`$HARNESS_CHALLENGE` on every assertion. The verifier runs the deliverable
+against that nonce and passes only if the artifact returns the correct
+deterministic transform of it — which a hardcoded answer cannot do for a nonce it
+has never seen. On pass it echoes the nonce so the kernel can confirm the check
+ran live.
+
+```bash
+# preferred: artifact as trailing unquoted tokens (survives any shell's quoting)
+$K contract --name repro --target solver.py \
+  --checks "exists,python_compiles,challenge:python <plugin>/scripts/verifiers/check_challenge_response.py -- python solver.py"
+```
+
+`sha256` of the nonce is the default stand-in transform; swap `--algo` or
+`--expect-cmd` for the property your deliverable actually has (a solver's answer
+for input N, a seeded pipeline's metric for seed N). **Limit:** this proves the
+artifact ran on a live, unrepeatable challenge — not that it is correct in
+general — and a verifier that re-echoes `$HARNESS_CHALLENGE` without routing it
+through the artifact games itself. Route the nonce through the deliverable.
+
 ## Tests
 
 ```bash
-python test_verifiers.py     # 64 checks
+python test_verifiers.py     # 72 checks
 ```
 
 Every verifier is tested twice: once on data that must fail — with the specific

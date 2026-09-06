@@ -131,3 +131,11 @@ cheaper than doing the work.
 So: never run this loop unsupervised against a subjective objective, and never
 let the thing being graded write the grader. A human reads the result before
 anything ships.
+
+Where the objective *is* deterministic, harden the verifier so the loop cannot
+fake it: use a `challenge:` check instead of a static one. The kernel issues a
+fresh nonce each round, so the loop cannot converge on a hardcoded answer — it
+has to actually produce the response to a challenge it has not seen. This does
+not make an LLM-judge objective safe (nothing does); it removes the cheapest
+gaming route on the objectives that *are* checkable. See [[harness-os]]
+Anti-gaming for the mechanism and its limit.

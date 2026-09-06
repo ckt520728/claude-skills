@@ -130,3 +130,55 @@ than not having it.
   invisibly".** It does not and should not. It is a synchronous control plane the
   agent drives explicitly. Autonomy that is not observable is the thing this
   whole architecture exists to prevent.
+
+---
+
+## The second (ChatGPT/Codex) prototype — v2.1.0
+
+A later prototype pair arrived from a different source: `harness_agent_plugin.py`
+and `harness_agent_plugin-v2.py` (in `ChatGPT_Work_Code/`), a synthesis of 2026
+frontier benchmarks and the Codex system architecture. It contributed three ideas
+worth adopting and two worth declining. Full sourcing is in
+`evidence-ledger.md` ("v2.1.0 upgrade"); the delta from *those* prototypes:
+
+### Adopted, but rebuilt for this kernel
+
+- **`EnvironmentStateTracker.notebook_scratchpad` → `constraint`.** The prototype
+  kept an in-memory scratchpad of failures that "survives compaction." In a
+  control plane that is deliberately not an LLM, that belongs on disk and split
+  by kind: *learned* notes are the existing playbook (prunable), *given* rules
+  are the new immutable `constraint` ledger. The prototype conflated the two.
+
+- **`CapabilityLadderOracle` (7-tier, hardcoded exploit flags) → `ladder`.** The
+  prototype's tiers were security-specific string constants
+  (`arbitrary_read_write_achieved`, …) and its "verification" was a callback the
+  caller supplied with no persistence. Generalised to an ordered list of the same
+  checks a contract uses, scored as highest-contiguous-tier and persisted to
+  `eval/`. It is a progress meter, not the exploit-grading oracle it started as.
+
+- **`ExploitBenchDynamicOracle` (simulated V8 heap + ASLR) → `challenge:`.** The
+  prototype simulated a virtual heap and asked a mock exploit to leak a token —
+  impressive, and useless outside memory-safety work. The *transferable* core is
+  freshness: a per-run random secret the artifact must respond to live. Rebuilt
+  as a general contract check (`challenge:`) plus a reusable verifier
+  (`check_challenge_response.py`) that works for any deterministic deliverable,
+  not just exploits.
+
+### Declined (recorded in the evidence ledger)
+
+- **`ScreenSeekeRVisualGrounder`** (cascaded crop + inverse geometric projection
+  to a 4K canvas). Correct maths, wrong layer: the general kernel owns files, not
+  pixels. Kept as reference for a future GUI-automation profile only.
+
+- **Recurrent-depth / latent-reasoning** integration. Model-architecture, not
+  harness. Its one harness consequence — latent reasoning hides the CoT, so the
+  on-disk trace becomes the audit surface — argues for the design already here,
+  so it is documented, not built.
+
+### A note the prototype got right
+
+Both ChatGPT prototypes ran a real `if __name__ == "__main__"` demonstration with
+assertions (the v2 one even asserts the coordinate maths to the exact pixel).
+That instinct — ship a runnable self-check with the code — is the same one behind
+this kernel's `selftest` and the verifier suite, and it is why the three new
+mechanisms each landed with must-fail/must-pass coverage in the same change.

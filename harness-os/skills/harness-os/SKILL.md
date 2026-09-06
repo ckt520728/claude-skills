@@ -20,6 +20,8 @@ The failures it exists to remove are physical, not intellectual:
 | "It said done but the file was empty" | Verbal completion, no verification | Contracts + `assert` + `publish` gate |
 | "The fix broke something else" | No regression gate | held-in / held-out `gate` |
 | "It kept 'fixing' the wrong thing" | Patching symptoms, not mechanisms | Failure signatures + `mine` |
+| "It forgot a hard rule mid-run" | Constraint compacted out of context | Invariant `constraint` ledger |
+| "It hardcoded the answer to pass" | Verifier was static, so it got gamed | `challenge:` fresh-nonce check |
 
 **The kernel is at `scripts/harness_kernel.py`** (relative to this plugin). It is
 plain Python 3.8+, standard library only, cross-platform. Run
@@ -59,7 +61,15 @@ Each stage has its own skill; read the one you are in, not all six:
 ```bash
 $K boot --profile <profile>
 $K goal --text "<one sentence>" --done "<what a stranger could check>"
+$K constraint add "<a hard rule that must survive to the last step>"
 ```
+
+Record the hard invariants now with `constraint add` — read-only paths, budget
+caps, pre-registered thresholds, "never do X". Long runs fail by *losing track
+of constraints*, and context compaction erodes them first; the constraint ledger
+is surfaced verbatim by `status` on every resume and is never compacted or
+pruned. It is not the playbook — the playbook is learned and prunable, these are
+given and immutable.
 
 Pick a profile from `profiles/` (`web-system`, `research-proposal`,
 `signal-analysis`, `literature-corpus`, `academic-writing`, `cognitive-app`).
@@ -217,6 +227,19 @@ The loop will exploit whatever it is graded on. Rules:
    completion.
 4. `guard` is a tripwire, not a security boundary — it makes tampering visible
    in the record. Real isolation needs OS permissions or a container.
+5. For any deliverable with a recomputable deterministic property, prefer a
+   `challenge:` check over a static one. The kernel issues a **fresh random
+   nonce** each run (`$HARNESS_CHALLENGE`); the check passes only if the verifier
+   echoes that live nonce, so an artifact that hardcodes a memorised answer
+   fails against a challenge it has never seen. This is the anti-gaming
+   descendant of STOP's sandbox-bypass measurement, made routine.
+
+   Its limit, stated plainly: `challenge:` proves the verifier ran **live on an
+   unrepeatable input** — it does not prove correctness in general, and a
+   verifier that merely re-echoes `$HARNESS_CHALLENGE` without routing it through
+   the artifact games *itself*. Route the nonce through the deliverable (feed it
+   as input, seed, or query) so the artifact is what must produce the response.
+   `scripts/verifiers/check_challenge_response.py` shows the pattern.
 
 ## Cost discipline
 

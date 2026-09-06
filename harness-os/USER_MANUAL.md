@@ -16,6 +16,8 @@
 | 「它說做完了，檔案是空的」 | 口頭宣稱完成，沒有驗證 | contract + `assert` + `publish` 閘門 |
 | 「修好 A 卻弄壞 B」 | 沒有回歸測試 | held-in / held-out `gate` |
 | 「一直在修錯的東西」 | 修症狀不修機制 | 失敗簽名 + `mine` |
+| 「跑到一半忘了某條硬規則」 | 約束被上下文壓縮掉了 | 不變約束 `constraint` |
+| 「為了過關把答案寫死」 | 驗證器是靜態的，被鑽了 | `challenge:` 動態挑戰 |
 
 **核心規則一句話**：交付物必須通過事先寫好的契約，才准進 `out/`。
 
@@ -28,8 +30,8 @@ git clone https://github.com/ckt520728/claude-skills.git
 cd claude-skills/harness-os
 
 # 兩個 gate，都必須 PASS
-python scripts/harness_kernel.py selftest          # 31 checks
-python scripts/verifiers/test_verifiers.py         # 64 checks
+python scripts/harness_kernel.py selftest          # 42 checks
+python scripts/verifiers/test_verifiers.py         # 72 checks
 ```
 
 安裝 skills（擇一）：
@@ -117,6 +119,7 @@ $K publish --contract draft
 | `no_placeholder` | TODO / FIXME / lorem / 截斷 | `no_placeholder` |
 | `python_compiles` | Python 語法 | `python_compiles` |
 | `cmd:<指令>` | **任何外部驗證器**，exit 0 才算過 | `cmd:pytest -q` |
+| `challenge:<指令>` | **抗作弊驗證**：每次跑注入一個新的隨機 nonce（`$HARNESS_CHALLENGE`），驗證器要 exit 0 **且** 回吐這個 nonce 才算過 | `challenge:python $V/check_challenge_response.py -- python solver.py` |
 
 小語法：`--checks` 用逗號分隔；**某個檢查的參數裡需要逗號時改用 `;`**，kernel 會轉回來。
 
@@ -124,11 +127,28 @@ $K publish --contract draft
 
 1. **`no_placeholder` 每個文字或程式交付物都要加。** 假完成最常見的型態就是佔位符和截斷。
 2. **至少一個 `--split held_out`。** 那是修復迴圈看不到的檢查。沒有它，`gate` 無法偵測過擬合，而且每輪都會警告你。
-3. **有真實測試就用 `cmd:`。** 結構檢查只能確認形狀；`cmd:pytest`、`cmd:tsc --noEmit`、`cmd:npx playwright test` 確認的是行為。強度差一個量級。
+3. **有真實測試就用 `cmd:`；能重算的確定性性質就用 `challenge:`。** 結構檢查只能確認形狀；`cmd:pytest`、`cmd:tsc --noEmit` 確認的是行為。`challenge:` 再多一層：每輪換一個新 nonce，寫死或背下來的答案會因為對不上沒見過的挑戰而失敗——這是修復迴圈最便宜的作弊路徑，用它堵住。它的限制：只證明驗證器對一個不可重複的輸入即時跑過，不證明整體正確；而且只會回吐 `$HARNESS_CHALLENGE`、沒把 nonce 餵進交付物的驗證器等於在對自己作弊——要把 nonce 穿過交付物本身。
 
-### 內建的八個驗證器
+### 兩個 v2.1.0 新工具
 
-`scripts/verifiers/` 裡有八個現成的 `cmd:` 驗證器，全部經過測試：
+**不變約束 `constraint`**——長任務失敗多半不是能力不夠，而是**跑到一半忘了約束**，而上下文壓縮最先侵蝕的就是這種細節（ACE context collapse / Codex 不變前綴層）。開工前把硬規則寫下來：唯讀路徑、經費上限、預先登錄的閾值、「絕對不要做 X」。它會被 `status` **原樣**顯示在最上方，永不壓縮、永不修剪。它不是 playbook——playbook 是學來的、可修剪的；constraint 是給定的、不可變的。
+
+```bash
+$K constraint add "budget.json 是經費的唯一真相來源，不要在內文改數字"
+$K constraint list
+```
+
+**能力階梯 `ladder`**——當單一二元契約還無法回報進度時，用階梯給一個密集的進度訊號（ExploitBench 16 階梯度）。它回報**連續通過的最高階**，是進度計，**不是**閘門；升級照樣走 held-in/held-out 的 `gate`。
+
+```bash
+$K ladder set --name draft --target draft/paper.md \
+  --tiers "exists,min_words:1000,sections:Abstract|Methods,no_placeholder,min_words:4000"
+$K ladder assert --name draft     # -> tier_reached / tiers_total，也會顯示在 status
+```
+
+### 內建的九個驗證器
+
+`scripts/verifiers/` 裡有九個現成的 `cmd:` / `challenge:` 驗證器，全部經過測試：
 
 ```bash
 V="<plugin>/scripts/verifiers"
@@ -140,6 +160,7 @@ python $V/check_glossary.py --doc draft/paper.md --glossary draft/glossary.json
 python $V/check_reproducible.py --results results/dev_metrics.json
 python $V/check_no_null_rt.py --csv results/sim_run.csv --expected-trials 96
 python $V/check_timing_distribution.py --csv results/sim_run.csv --condition-col condition
+python $V/check_challenge_response.py -- python solver.py   # 由 challenge: 帶起，需 $HARNESS_CHALLENGE
 ```
 
 每個都有 `--help`。細節見 `scripts/verifiers/README.md`。
