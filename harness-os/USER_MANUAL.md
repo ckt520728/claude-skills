@@ -366,7 +366,18 @@ Harness OS 有真實的 overhead。它在下列情況划算：任務長（超過
 
 - `README.md` — 指令與版面速查
 - `profiles/<name>.md` — 各領域的交付清單、契約、已知失敗機制
-- `scripts/verifiers/README.md` — 八個驗證器的能力與限制
+- `scripts/verifiers/README.md` — 九個驗證器的能力與限制
 - `references/evidence-ledger.md` — 每個設計決策對應到哪篇論文的哪個發現
 - `references/prototype-delta.md` — 相對於原型改了什麼、為什麼
 - 理論來源：Lilian Weng, [Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/)（2026-07-04）
+
+---
+
+## 版本
+
+**v2.1.0（2026-09-06）** — 新增 `constraint`（撐過壓縮的不變約束）、`challenge:`
+（每輪換 nonce 的抗作弊驗證）、`ladder`（分級進度計）。閘門 42 / 72。詳見
+`README.md` 的 Changelog 與 `references/evidence-ledger.md` 的「v2.1.0 upgrade」。
+
+**v2.0.0（2026-09-02）** — 初版：kernel、contract/assert/publish、fork、mine、
+held-in/held-out gate、guard、六個 profile、八個驗證器。
