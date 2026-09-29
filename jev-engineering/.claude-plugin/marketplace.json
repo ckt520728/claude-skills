@@ -1,0 +1,22 @@
+{
+  "name": "jev-engineering-local",
+  "owner": {
+    "name": "2026 JEV Engineering"
+  },
+  "plugins": [
+    {
+      "name": "jev-engineering",
+      "source": "./",
+      "description": "A decision layer for agent loops: route, gate, score, judge, and escalate on confidence instead of paying frontier prices for a label."
+    }
+  ],
+  "$notes": [
+    "Local marketplace, for installing from this directory:",
+    "  claude plugin marketplace add <path to this jev-engineering folder>",
+    "  claude plugin install jev-engineering@jev-engineering-local",
+    "Cloned from ckt520728/claude-skills? The path is <clone>/jev-engineering.",
+    "To serve it from GitHub instead, replace owner.name with the repo owner and",
+    "point source at the repo -- see UNKNOWNS.md quadrant 2, which tracks that",
+    "decision as still open."
+  ]
+}

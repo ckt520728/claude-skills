@@ -1,0 +1,12 @@
+{
+  "$comment": [
+    "Hooks are deliberately NOT enabled here. The wiring lives in settings.json.example.",
+    "Two reasons it ships inert:",
+    "  1. Without TYPESAFE_API_KEY the gate correctly fails to 'ask', which means a",
+    "     permission prompt on every single Bash call -- a broken install, not a safe one.",
+    "  2. Hook commands resolve relative to the session's working directory, not to the",
+    "     project root, so the paths in settings.json.example use absolute-from-root form.",
+    "To enable, once a key is set: copy the \"hooks\" block from settings.json.example",
+    "into this file, then run `bash .claude/checks.sh` from the project root to confirm."
+  ]
+}

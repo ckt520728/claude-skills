@@ -1,0 +1,8 @@
+# Shell scripts must stay LF. Checked out with CRLF, bash fails on the \r --
+# and checks.sh is the one file every user runs first.
+*.sh text eol=lf
+
+# Keep the Python and JSON payloads LF too, so hook stdin/stdout and the
+# registry parse identically on every platform.
+*.py text eol=lf
+*.json text eol=lf
