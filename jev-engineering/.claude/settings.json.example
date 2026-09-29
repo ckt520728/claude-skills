@@ -1,0 +1,45 @@
+{
+  "$comment": [
+    "JEV Engineering decision layer wired into the two highest-frequency forks.",
+    "",
+    "PreToolUse gates every Bash command in ~100ms; hard rules run in code first.",
+    "Stop judges completion against the evidence checks.sh prints; the turn cap is in code.",
+    "Both hooks fail to 'ask' / 'stop' rather than to 'allow' -- see the module docstrings.",
+    "",
+    "Before copying the hooks block into settings.json:",
+    "  1. Set TYPESAFE_API_KEY. Without it the gate asks on EVERY Bash call, which is a",
+    "     broken install rather than a safe one. (Or set JEV_PROVIDER=llm plus a chat key.)",
+    "  2. Keep $CLAUDE_PROJECT_DIR in the commands. Hook commands run with the session's",
+    "     working directory, not the project root, so a bare relative path breaks as soon",
+    "     as the agent cd's into a subdirectory.",
+    "  3. Run `bash .claude/checks.sh` from the project root and confirm it exits 0.",
+    "",
+    "Enable one hook at a time and measure it (references/14-audit-protocol.md).",
+    "Start with PreToolUse: it is the higher-frequency fork and the cheaper mistake."
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/jev_gate.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/jev_done.py\"",
+            "timeout": 620
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+# py_compile and imports leave these behind whenever checks.sh runs
+__pycache__/
+*.py[cod]
+
+# Local task queues written by examples/router.py
+queue/
+
+# Written by the Stop hook: a turn counter and an unsure-verdict report
+.claude/.pushes
+REVIEW.md
+
+# Local goal file the Stop hook judges against, if you use one
+GOAL.md

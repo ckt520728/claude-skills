@@ -471,3 +471,87 @@ cp -r harness-os/skills/* ~/.claude/skills/
 - 驗證器說明：`harness-os/scripts/verifiers/README.md`
 - 相對於原型改了什麼：`harness-os/references/prototype-delta.md`
 - Session wrap-up and pitfalls: `2026-09-02_HarnessOS_Lessons_and_Pitfalls.md`
+
+---
+
+## JEV Engineering（2026-09-29 新增）
+
+### jev-engineering
+
+把 agent loop 裡**不需要生成文字的決策**從前沿模型搬到便宜的校準決策層（System One
+決策模型 / TypeSafe Jev），並用信心值控制升級。生成留在 LLM，硬規則留在程式碼：
+
+```
+[G] 生成    -> 前沿 LLM，完全不動
+[D] 決策    -> System One 決策層，typed answer + 校準機率
+[C] 硬規則  -> 程式碼：迴圈上限、花費上限、檔案存在、黑名單、算術、日期
+```
+
+這是**減法，不是遷移**——沒有任何 LLM 本來就擅長的工作被搬走，搬走的是它從來不該
+接的那一類呼叫。之所以成立，不是因為決策層便宜，而是因為它**從不進入對話**：不載入
+歷史、不產生 token、不留下需要重建的 KV cache。這是「決策層」和「換一個便宜模型」
+的架構性差別，也是分層路由過去兩年失敗的原因。
+
+理論來源是 Li et al. (2026)
+*JEV-as-a-Judge: Accept When Confident, Escalate When Unsure*（CMU，語料中未附 arXiv 編號），
+加四篇實作長文（@N01ennn 的 agent loop 指南、@0xCodila 的十步路線圖、@polydao 的
+Claude Code hook 實作、@0xwhrrari）。所有 API 細節都對照官方文件重新驗證過——
+其中兩篇長文使用的 `result.choices[...]` / `result.nouls[...]` **在文件裡並不存在**
+（正確的是 `answers[...]`，所有 primitive 共用），照抄會在 runtime 拿到 `AttributeError`。
+這類不一致全部記在 `jev-engineering/UNKNOWNS.md`。
+
+涵蓋十二個 fork，每個一份 playbook：
+
+| Fork | Playbook |
+|---|---|
+| 跨層跨平台 model routing | `01` + `15` |
+| 任務中自我切換（含該不該切的算術） | `16` |
+| 輸入護欄：注入、濫用、越界 | `02` |
+| tool-call gating（8 個 capability class） | `03` |
+| 收件匣 / 工單 / issue 分流 | `04` |
+| reranking 與查詢感知壓縮 | `05` |
+| LLM-as-judge 評估與 cascade | `06` |
+| 批次標註（可續跑的 map-reduce） | `07` |
+| 即時控制：遊戲、bot、機器人、交易 | `08` |
+| 信心閘本身（四個出口） | `09` |
+| 複合決策：DAG、投機、漏斗、集成 | `17` |
+| 路由堆疊的經濟學 | `11` |
+
+三個**被實測推翻的直覺**（都寫進程式而不是留在註解）：
+
+- **「借一個便宜模型跑一步」不一定省錢。** 來回切換划算的條件是
+  `Y×(A_out − B_out − A_in) > B_in×(X + Z)`；相鄰兩層 output 價差只有 1.7 倍時，
+  KV cache 重讀費用主導，**任何 context 大小都不划算**。第一版文件寫成絕對規則，
+  被自己的 demo 反駁，現在不等式寫在文件裡且以五組價格對照實作驗證。
+- **router 要打敗的不是「全部用最強的」，是「先用便宜的、失敗才往上爬」。**
+  後者不需要 router、不需要 registry、連一次決策呼叫都不用；能力梯度平緩時它在
+  **任何** router 準確率下都勝出。`router_breakeven_accuracy()` 在動工前就給答案。
+- **完成率必須和成本擺在同一張表。** 把重試當獨立事件時「全部用最弱的層」是成本
+  最低的政策——而它只完成 62 % 的任務。`retry_recovery` 讓重試衰減，完成率成為欄位。
+
+政策優先於分類器：`secrets` 這個 data class 不是路由結果而是**停止**（`PolicyStop`）；
+tool gate 的 8 個 capability 裡有 4 個（對外傳輸、憑證存取、花錢、`other`）門檻設成
+`1.01`——一個永遠達不到的數字，讓「一律問人」和可調門檻寫在同一張表裡。
+
+**誠實的限制**（程式碼、SKILL.md、UNKNOWNS.md 三處都寫明）：本專案**從未呼叫過真實
+API**，108 項測試全部跑在 stub provider 上；沒有任何門檻或成功率是量測來的；
+`models.json` 裡 9 個模型有 7 個沒有價格、6 個沒有 `api_id`，這是刻意的——沒有價格
+的模型永遠不被當成免費，`Model.callable_id` 沒填 id 就直接 raise 而不是把顯示名稱
+當識別碼送出去。`UNKNOWNS.md` 用四象限記錄全部未知，並按「關掉一個要花多久」排序。
+
+```bash
+cd jev-engineering && bash .claude/checks.sh   # 結構 + registry + 108 項行為測試
+python skills/jev-engineering/assets/examples/route_models.py   # registry、切換算術、政策比較
+claude plugin marketplace add ./jev-engineering
+```
+
+全部離線可驗證，不需要 API key、不連網。純標準函式庫，Python 3.9+，
+Windows / macOS / Linux 皆可跑，無第三方相依。
+
+- Plugin 資料夾：`jev-engineering/`
+- Skill 入口（可攜、host-agnostic）：`jev-engineering/skills/jev-engineering/SKILL.md`
+- 18 份 playbook：`jev-engineering/skills/jev-engineering/references/00-17`
+- 模型 registry（tier × platform，**當成資料**）：`jev-engineering/skills/jev-engineering/assets/jev/models.json`
+- 行為測試（108 項，stub provider）：`jev-engineering/skills/jev-engineering/eval/test_smoke.py`
+- 未知清單（四象限）：`jev-engineering/UNKNOWNS.md`
+- Session wrap-up and pitfalls: `2026-09-29_JEV_Decision_Layer_Lessons_and_Pitfalls.md`
