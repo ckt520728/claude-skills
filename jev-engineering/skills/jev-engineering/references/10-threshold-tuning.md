@@ -38,6 +38,62 @@ A sweep with no baseline always looks good. Compute two:
 
 Then compute **AUROC of `q` against correctness** on your labelled set. Around 0.85 the gate works. Near 0.5 confidence carries no information *for this task* and no threshold will help — stop tuning and fix the state or the criteria.
 
+## Calibration as code, not as a phase
+
+`jev/calibration.py` implements the protocol above as something that actually runs, for any
+provider whose confidence you do not already trust — `local` and `llm` both qualify.
+
+```python
+from jev import calibration
+
+cal = calibration.Calibrator.load("~/.jev/calibration.json")
+
+conf = cal.calibrate("bucket", raw_confidence)      # observed accuracy for that band
+cal.observe("bucket", raw_confidence, was_correct)  # one resolved escalation = one label
+cal.save()
+```
+
+Histogram binning: group observations by the raw score, and report each bin's *observed*
+accuracy as the confidence for that band. The reliability table is the audit artefact —
+
+```
+band      n     observed accuracy   state
+0.2-0.3   34    0.41                warm
+0.7-0.8   61    0.92                warm
+0.9-1.0   7     1.00                cold   <- too few to claim anything
+```
+
+Three properties are load-bearing:
+
+1. **Cold bins return `COLD_CONFIDENCE` (0.30)**, which sits below any sane gate. An untuned
+   layer therefore escalates everything and automates nothing. It earns the right to act.
+2. **Each question id calibrates separately.** A global mapping lets an easy question lend its
+   accuracy to a hard one, and you cannot see it happening. Same reasoning as per-decision
+   thresholds above, one level down.
+3. **A band that is usually wrong never passes the gate**, however many observations it has.
+   Warmth is permission to *report* an accuracy, not permission to act on it.
+
+### The two numbers that say whether confidence means anything
+
+```python
+calibration.brier_score(pairs)                  # 0 is perfect, 0.25 is a coin flip
+calibration.expected_calibration_error(pairs)   # gap between stated confidence and accuracy
+```
+
+ECE is the one to watch. Near 0 means a stated 0.8 really is right about 80% of the time. At
+0.3 the number is decorative, and the gate built on it is not a gate.
+
+Read it beside the reliability table rather than alone: ECE also penalises *under*-confidence,
+and a layer reporting 0.30 while being right 100% of the time scores badly here and is
+nonetheless perfectly safe, because it escalates.
+
+### Shadow mode comes free with a calibrated local layer
+
+When every escalation a human resolves is fed back through `cal.observe(...)`, the shadow
+period stops being a phase you run and finish and becomes how the layer works: it starts cold,
+escalates everything, and unlocks bands one at a time as they earn it. Rule 7 becomes
+structural rather than a discipline somebody has to remember.
+
 ## Shadow mode, before anything switches
 
 Rule 7, spelled out. Run a period — a week is the usual figure — where the cheap layer labels every item and the old path still decides. Log both. Then:

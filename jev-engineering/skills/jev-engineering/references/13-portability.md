@@ -43,7 +43,55 @@ Three ship:
 |---|---|---|
 | `jev` (default) | `POST api.typesafe.ai/v1/systemone` | production |
 | `llm` | any OpenAI-compatible or Anthropic chat endpoint, strict JSON out | no key, air-gapped, or comparing against a frontier baseline |
-| `local` | a callable you register | your own classifier, a cached lookup, or a deterministic stub in tests |
+| `local` | `providers/local.py` — a calibrated scorer, no key, no network | no key, air-gapped, zero-cost, or the shadow period of rule 7 |
+
+## Running with no key at all
+
+`local` ships working. It is not a stub and not a placeholder.
+
+```bash
+export JEV_PROVIDER=local
+export JEV_CALIBRATION=~/.jev/calibration.json   # optional, but see below
+```
+
+Why this is a real option and not a consolation prize: the argument in `SKILL.md` for a
+separate decision layer is about the **KV-cache tax**. What deletes that term is that the
+decision happens *beside* the loop and returns a typed value your code branches on. That
+property is architectural — it does not name a vendor. A function call satisfies it as
+completely as an HTTP call does, and costs less:
+
+| | `jev` | `llm` | `local` |
+|---|---|---|---|
+| latency | ~100ms | seconds | ~0.1ms |
+| cost per decision | fractions of a cent | frontier prices | zero |
+| offline | no | no | yes |
+| calibrated | by the vendor | **no — self-reported, and known overconfident** | by you, against your labels |
+
+Note the `llm` row. Reaching for a frontier model because you have no decision-layer key
+reintroduces exactly the cost the layer exists to remove. Use it as a baseline to measure
+against, not as a substitute.
+
+### How `local` scores
+
+Rule 1 says *meaning lives in the instructions* — the question id never reaches the model, and
+every option must carry criteria text that genuinely describes it. `local` takes that
+literally and scores the state against **each option's own criteria**. A term appearing in one
+option's criteria is discriminative and weighs 1.0; a term appearing in every option's criteria
+is noise and weighs 1/n. No lexicon is baked in: the vocabulary is the spec you already wrote.
+
+Which means a badly specified `Choice` — bare option names, vague criteria — scores badly here
+in a way it would not against `jev`. That is a feature. It fails in the direction of the rule.
+
+### What it is honestly not
+
+It has no world knowledge, no synonymy, and no negation handling. On wording that does not
+overlap your criteria it will be wrong.
+
+That is survivable **only because of calibration**. `jev/calibration.py` measures how often
+each confidence band is actually right and reports accordingly, so an untuned band escalates
+instead of acting. Read `10-threshold-tuning.md` before trusting any number it produces.
+
+A mediocre calibrated layer is safe. A strong uncalibrated one is not.
 
 Register your own:
 
