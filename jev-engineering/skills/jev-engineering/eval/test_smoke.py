@@ -515,6 +515,126 @@ def test_bulk(tmp: Path) -> None:
     check_true("summarise prices the run", stats["usd"] > 0)
 
 
+# ---- the local provider and calibration ------------------------------------
+
+def test_local_provider() -> None:
+    """The no-key decision layer. Pins the cold-start guarantee above all else."""
+    from jev import calibration
+    from jev.providers import local
+
+    bucket = Choice(
+        instructions="Classify the captured item into the bucket it belongs in.",
+        criteria={
+            "next_action": "a single concrete physical action such as call, email, book or buy",
+            "project": "needs more than one action; a plan, a system, a refactor, a study",
+            "reference": "no action needed; a paper, an article, documentation, notes to keep",
+            "someday": "no action now; maybe eventually, one day, when there is time",
+            "other": "does not fit any of the above",
+        },
+        exit_option="other",
+    )
+    urgency = Score(
+        instructions="How time critical is this item?",
+        criteria=["no deadline at all", "sometime this month", "this week",
+                  "tomorrow", "overdue or today"],
+    )
+    questions = {"bucket": bucket, "urgency": urgency}
+
+    # -- it classifies from criteria text alone, with no lexicon baked in ----
+    cases = [
+        ("refactor the dashboard system and then write the tests", "project"),
+        ("call the clinic to book an appointment", "next_action"),
+        ("interesting paper on diabetes to keep for reference", "reference"),
+        ("maybe learn to sail one day when there is time", "someday"),
+    ]
+    for state, want in cases:
+        got = decide(state, questions, provider="local")["bucket"].choice
+        check(f"local classifies {want}", got, want)
+
+    # -- rule 4: nothing matched means the exit option, not an arbitrary winner
+    res = decide("zzzz qqqq vvvv", questions, provider="local")
+    check("local unmatched -> exit option", res["bucket"].choice, "other")
+
+    # -- it is free and local ------------------------------------------------
+    check("local spends no input tokens", res.usage.get("input_tokens"), 0)
+    check("local costs nothing", res.cost_usd, 0.0)
+    check_true("local is fast", res.latency_ms < 50, f"{res.latency_ms}ms")
+
+    # -- the cold-start guarantee -------------------------------------------
+    check("cold layer reports COLD_CONFIDENCE",
+          res["bucket"].confidence, calibration.COLD_CONFIDENCE)
+    check_true("COLD_CONFIDENCE escalates under a normal gate",
+               calibration.COLD_CONFIDENCE < 0.75)
+
+    # -- a Noul carries no confidence, and says 0.5 when it cannot separate --
+    nres = decide("anything at all", {"ok": Noul(instructions="Is this safe to run?")},
+                  provider="local")
+    check("local noul is the midpoint without criteria", nres["ok"].noul, 0.5)
+
+    # -- scoring internals ---------------------------------------------------
+    check_true("discriminative terms outweigh shared ones",
+               local.score_options("refactor", bucket.criteria)["project"] > 0)
+    flat = local.entropy_confidence({"a": 0.5, "b": 0.5})
+    peaked = local.entropy_confidence({"a": 0.98, "b": 0.02})
+    check_true("entropy confidence: flat is 0", abs(flat) < 1e-9)
+    check_true("entropy confidence: peaked is high", peaked > 0.8, f"{peaked}")
+
+
+def test_calibration(tmp: Path) -> None:
+    """Calibration is what lets a mediocre scorer be safe. These pin that."""
+    from jev import calibration
+
+    cal = calibration.Calibrator()
+
+    # Cold: no claim can be made.
+    check("cold bin returns COLD_CONFIDENCE",
+          cal.calibrate("bucket", 0.9), calibration.COLD_CONFIDENCE)
+    check_true("cold bin is not warm", not cal.is_warm("bucket", 0.9))
+
+    # A band that is consistently right earns the right to act.
+    for _ in range(calibration.MIN_OBSERVATIONS):
+        cal.observe("bucket", 0.9, True)
+    check_true("consistently-correct band warms", cal.is_warm("bucket", 0.9))
+    check_true("warm correct band exceeds a 0.75 gate", cal.calibrate("bucket", 0.9) > 0.75)
+    check_true("smoothing stops a perfect bin claiming 1.0", cal.calibrate("bucket", 0.9) < 1.0)
+
+    # A band that is usually wrong never does, however many observations it has.
+    for i in range(40):
+        cal.observe("folder", 0.9, i % 4 == 0)
+    check_true("badly-performing band is warm", cal.is_warm("folder", 0.9))
+    check_true("but never passes the gate", cal.calibrate("folder", 0.9) < 0.75,
+               f"{cal.calibrate('folder', 0.9)}")
+
+    # Questions calibrate independently -- an easy one must not lend accuracy to a hard one.
+    check_true("questions calibrate separately", not cal.is_warm("urgency", 0.9))
+
+    # Persistence, including the corrupt-file path.
+    path = str(tmp / "sub" / "calibration.json")
+    cal.path = path
+    cal.save()
+    again = calibration.Calibrator.load(path)
+    check("calibration round-trips", again.observations("bucket"),
+          calibration.MIN_OBSERVATIONS)
+
+    bad = tmp / "bad.json"
+    bad.write_text("{ not json", encoding="utf-8")
+    broken = calibration.Calibrator.load(str(bad))
+    check("corrupt calibration starts cold rather than raising", broken.observations(), 0)
+
+    # Metrics.
+    check("brier of perfect predictions", calibration.brier_score([(1.0, True), (0.0, False)]), 0.0)
+    check("brier of a coin flip", calibration.brier_score([(0.5, True), (0.5, False)]), 0.25)
+    well = [(0.85, True)] * 8 + [(0.85, False)] * 2
+    over = [(0.95, True)] * 5 + [(0.95, False)] * 5
+    check_true("ECE near zero when calibrated",
+               calibration.expected_calibration_error(well) < 0.06)
+    check_true("ECE catches overconfidence",
+               calibration.expected_calibration_error(over) > 0.4)
+
+    rows = cal.reliability("bucket")
+    check_true("reliability table is readable", len(rows) >= 1 and rows[0][3] is True)
+
+
 # ---- runner ----------------------------------------------------------------
 
 def main() -> int:
@@ -525,15 +645,17 @@ def main() -> int:
         ("primitives", test_primitives), ("gate", test_gate), ("toolgate", test_toolgate),
         ("routing", test_routing), ("switching", test_switching), ("economics", test_economics),
         ("compose", test_compose), ("control", test_control),
+        ("local_provider", test_local_provider),
     ]:
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
             FAIL.append(f"{name} raised {type(exc).__name__}: {exc}")
-    try:
-        test_bulk(tmp)
-    except Exception as exc:  # noqa: BLE001
-        FAIL.append(f"bulk raised {type(exc).__name__}: {exc}")
+    for name, fn in [("bulk", test_bulk), ("calibration", test_calibration)]:
+        try:
+            fn(tmp)
+        except Exception as exc:  # noqa: BLE001
+            FAIL.append(f"{name} raised {type(exc).__name__}: {exc}")
 
     print(f"  {len(PASS)} behavioural checks passed")
     if FAIL:

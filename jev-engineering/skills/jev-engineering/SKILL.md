@@ -148,7 +148,17 @@ r = decide(
 a = r.answers["risk"]          # .choice   .confidence   .probabilities
 ```
 
-Setup, the provider contract, and the `llm` fallback: `references/13-portability.md`.
+Setup, the provider contract, and the `llm` baseline: `references/13-portability.md`.
+
+**No key? The layer still works.** `JEV_PROVIDER=local` runs a calibrated scorer in-process —
+no network, no vendor, ~0.1ms, zero cost. It scores the state against each option's own
+criteria text, which is why rule 1 is load-bearing rather than decorative: a `Choice` whose
+options carry no real criteria scores badly there. It is weaker than `jev` and says so, because
+`jev/calibration.py` maps its raw scores onto accuracy measured against *your* resolved
+escalations, and a band with too few observations reports `COLD_CONFIDENCE` and escalates.
+
+Reaching for `llm` instead because you lack a key reintroduces exactly the cost the decision
+layer exists to remove. Use `llm` as the baseline you measure against, not as the layer.
 
 Test decision logic against a stub provider rather than the live API — `@register_provider("stub")` plus `JEV_PROVIDER=stub` exercises every gate, route and cascade path with no key and no network.
 

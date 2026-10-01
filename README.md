@@ -476,6 +476,47 @@ cp -r harness-os/skills/* ~/.claude/skills/
 
 ## JEV Engineering（2026-09-29 新增）
 
+### life-os
+
+照 **Compass**（Mike Schmitz 的系統、Daniel Agrici 的
+[Obsidian 模板](https://github.com/AgriciDaniel/compass)）結構，蓋在既有 Obsidian 第二大腦上的
+Life OS；GTD 五個階段裡「不需要生成文字的判斷」交給上面的 `jev-engineering`。
+
+```
+[G] 生成    -> Claude：夜間教練、週回顧、退修引導（12 則 prompt，各有 risk 屬性）
+[D] 決策    -> jev-engineering（local provider）：可行動嗎／哪一類／哪個領域／多急／多耗神／歸到哪
+               一則收件一次 jev.decide()，jev.gate() 依標籤設閘；信心由使用者的裁決校準
+[C] 硬規則  -> 程式碼：7 日平均（附分母）、連續天數、Build Order 解鎖、80% 一致性、只追加保護
+```
+
+- **Compass 結構**放在 vault 的 `Life OS/` 底下（`00 Dashboards` … `08 Tasks`、`Meta/views/*.js`、
+  `Prompts`、`Guide`），每日筆記沿用 vault 原有資料夾。不需要 Templater / Periodic Notes / Tasks：
+  view 自己用模板建週記、季記、退修；Dataview 讀 Tasks 的 emoji 格式。
+- **一層一層打開**：照上游 `Guide/11 Build Order`（第 1／31／61／91／121 天），且上一層一致性
+  ≥ 80% 才開下一層——Python `unlock.py` 與 Obsidian `gate.js` 兩邊實作，`checks.sh` 比對常數。
+- **技能是真的被用、不是被模仿**：`lifeos/jev/` 是 `jev-engineering` 的原封複本，雜湊鎖在
+  `JEV_VENDOR.json`；手改複本或把舊的私人決策層加回來，建置就失敗。
+- **部署不會吃掉使用者的字**：程式檔每次覆寫；設定檔、人生主題、任務總表等「種子檔」只建立一次，
+  之後只在雜湊證明未被修改時才升級；退役檔同理。拋棄式 vault 測試釘住這個保證。
+- **臨床邊界**：程式只在本機數「🏥 臨床」區塊有幾筆，只把兩個數字寫進 frontmatter；
+  承載它們的物件結構上裝不下字串。
+- 繁體中文使用手冊（14 章）：`life-os/vault-src/Guide/使用手冊.md`
+
+```bash
+cd life-os
+bash scripts/checks.sh           # 70 項客觀證據（部署相關檢查需要本機 vault）
+python eval/test_smoke.py        # 124 項行為測試，不需要 key、不連網
+python scripts/triage.py --demo  # 用範例收件試玩 JEV 釐清，不碰任何檔案
+```
+
+**誠實的限制：** Obsidian 端（12 個 view、`nightly.js`、`capture.js`）只通過 `node --check`，尚未在
+真實 app 裡驗證；決策層的 criteria 字詞是在沒有任何真實收件下寫的，靠校準保證安全、不保證準確。
+路徑（`G:\我的雲端硬碟\Second Brain`）寫死在 `deploy.sh` 等處，可用 `LIFEOS_VAULT` 覆寫。
+
+- 工作區：`life-os/`（`CLAUDE.md`、`UNKNOWNS.md`、`HANDOFFS.md` 記錄五個階段的決策與更正）
+- 上游 Compass 對照：`life-os/references/compass-upstream.md`
+- Session wrap-up and pitfalls: `2026-10-01_Life_OS_Compass_JEV_Lessons_and_Pitfalls.md`
+
 ### jev-engineering
 
 把 agent loop 裡**不需要生成文字的決策**從前沿模型搬到便宜的校準決策層（System One
@@ -534,13 +575,13 @@ tool gate 的 8 個 capability 裡有 4 個（對外傳輸、憑證存取、花�
 `1.01`——一個永遠達不到的數字，讓「一律問人」和可調門檻寫在同一張表裡。
 
 **誠實的限制**（程式碼、SKILL.md、UNKNOWNS.md 三處都寫明）：本專案**從未呼叫過真實
-API**，108 項測試全部跑在 stub provider 上；沒有任何門檻或成功率是量測來的；
+API**，137 項測試全部跑在 stub 與 local provider 上；沒有任何門檻或成功率是量測來的；
 `models.json` 裡 9 個模型有 7 個沒有價格、6 個沒有 `api_id`，這是刻意的——沒有價格
 的模型永遠不被當成免費，`Model.callable_id` 沒填 id 就直接 raise 而不是把顯示名稱
 當識別碼送出去。`UNKNOWNS.md` 用四象限記錄全部未知，並按「關掉一個要花多久」排序。
 
 ```bash
-cd jev-engineering && bash .claude/checks.sh   # 結構 + registry + 108 項行為測試
+cd jev-engineering && bash .claude/checks.sh   # 結構 + registry + 137 項行為測試
 python skills/jev-engineering/assets/examples/route_models.py   # registry、切換算術、政策比較
 claude plugin marketplace add ./jev-engineering
 ```
@@ -548,10 +589,15 @@ claude plugin marketplace add ./jev-engineering
 全部離線可驗證，不需要 API key、不連網。純標準函式庫，Python 3.9+，
 Windows / macOS / Linux 皆可跑，無第三方相依。
 
+**沒有 key 也能用（2026-09-29 新增）：** `JEV_PROVIDER=local` 是一個真的決策層，不是 stub——
+在本機用每個選項自己的 criteria 文字評分（~0.1ms、零成本、離線），再由
+`assets/jev/calibration.py` 對照「你自己裁決過的結果」校準信心；樣本不足的信心帶一律回報
+0.30 並升級給人。`life-os/` 就是跑在這個 provider 上的完整實例。
+
 - Plugin 資料夾：`jev-engineering/`
 - Skill 入口（可攜、host-agnostic）：`jev-engineering/skills/jev-engineering/SKILL.md`
 - 18 份 playbook：`jev-engineering/skills/jev-engineering/references/00-17`
 - 模型 registry（tier × platform，**當成資料**）：`jev-engineering/skills/jev-engineering/assets/jev/models.json`
-- 行為測試（108 項，stub provider）：`jev-engineering/skills/jev-engineering/eval/test_smoke.py`
+- 行為測試（137 項，stub / local provider）：`jev-engineering/skills/jev-engineering/eval/test_smoke.py`
 - 未知清單（四象限）：`jev-engineering/UNKNOWNS.md`
 - Session wrap-up and pitfalls: `2026-09-29_JEV_Decision_Layer_Lessons_and_Pitfalls.md`
