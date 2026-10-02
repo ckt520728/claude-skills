@@ -1,5 +1,16 @@
 # UNKNOWNS
 
+## 2026-10-02 — v1.2 兩階段政策與證據
+
+- **已實作並離線驗證：** high 規劃／medium-low 執行、八類工具能力 gate、task 依賴與精簡交接、named confidence 與預算上限、模型可用性與資料政策、實際檔案產出及獨立驗收。測試都是 stub，沒有呼叫付費模型。
+- **本地政策：** `ROUTE_CONFIDENCE=0.85` 與 `Limits` 數值未經真實流量校準。使用者要求 high 不生成成品；這是新預設，不是 TypeSafe 的官方要求。
+- **未量測：** 實際 token 節省、費用、延遲、完成率及語意品質。模型 registry 的舊價格／ID 未因本次升級而重新認證。沒有可用且已驗證的 medium/low 模型時應 ask。
+- **宿主責任：** callback 與角色檔不等於安全 sandbox。宿主必須實際套用模型、effort、token cap、唯讀 planner、工具 middleware 與獨立驗收。原生 Claude agent 定義使用已記載的 opus/sonnet/haiku alias，但仍可能被宿主配置覆寫；未進行真實付費 agent 執行測試。
+- **用量完整性：** 舊 ToolGate 不回傳 usage；工作流使用它後將 `usage_complete=false`。驗收器如使用模型，其用量由宿主補計，不能拿不完整帳目宣稱節省。
+- **來源查核：** [TypeSafe 官方介紹](https://docs.typesafe.ai/introduction) 確认 Jev 回傳 typed decisions，而非文字生成。[Claude Code subagents](https://code.claude.com/docs/en/sub-agents) 與 [plugin manifest](https://code.claude.com/docs/en/plugins-reference) 支援本次角色格式。參考 GitHub 原始 SKILL blob SHA：`237f7fbeb54effa9ba0f8d86ed676b07a57dea18`。此紀錄僅覆蓋這次查核，不能更新下方所有歷史聲明。
+
+---
+
 What is verified, what is taken on someone's word, and what would change the design if it
 turned out otherwise. Sorted by the four quadrants: the map is what the sources say, the
 territory is the working API and a real workload.

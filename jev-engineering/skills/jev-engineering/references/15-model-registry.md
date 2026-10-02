@@ -1,5 +1,7 @@
 # 15 — The model registry: tiers across platforms
 
+> v1.2 預設採 [兩階段工作流](18-two-phase-workflow.md)。本頁保留底層 API；其中 high 路由／升級在新流程中代表重新規劃，不授權 high 生成。
+
 `assets/jev/models.json` is the registry. It is **data, not code**, because prices and model ids change weekly and a constant buried in a module is a constant nobody re-checks.
 
 ## A tier is not a model

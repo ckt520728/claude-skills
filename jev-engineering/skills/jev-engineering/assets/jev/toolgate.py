@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 from dataclasses import dataclass, field
@@ -75,6 +76,8 @@ SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"(?i)\bsk-[A-Za-z0-9]{20,}"),
 )
+
+MIN_INTENT_PROBABILITY = 0.30
 
 
 @dataclass(frozen=True)
@@ -213,11 +216,17 @@ class ToolGate:
     # ---- layer 3: policy in code -----------------------------------------
 
     def _apply_policy(self, result: Any) -> GateVerdict:
-        answer = result.answers["capability"]
-        capability = str(answer.choice or "other")
-        confidence = float(answer.confidence or 0.0)
-        reversible = float(result.answers["reversible"].noul or 0.0)
-        expected = float(result.answers["matches_stated_intent"].noul or 1.0)
+        try:
+            answer = result.answers["capability"]
+            capability = str(answer.choice or "other")
+            confidence = float(answer.confidence or 0.0)
+            reversible = float(result.answers["reversible"].noul or 0.0)
+            expected = float(result.answers["matches_stated_intent"].noul or 0.0)
+            if (capability not in CAPABILITIES or
+                    not all(math.isfinite(p) and 0 <= p <= 1 for p in (confidence, reversible, expected))):
+                raise ValueError("無效能力或機率")
+        except (KeyError, TypeError, ValueError, AttributeError):
+            return GateVerdict("ask", "other", 0.0, "gate 回傳格式無效，交由人工處理")
         tau = self.thresholds.get(capability, 1.01)
 
         base = f"{capability} {confidence:.2f} (reversible {reversible:.2f}, {result.latency_ms:.0f}ms)"
@@ -225,7 +234,7 @@ class ToolGate:
         # An off-pattern call is a signal in its own right: a legitimate-looking
         # action that does not follow from what just happened is what an injected
         # instruction produces.
-        if expected < 0.30:
+        if expected < MIN_INTENT_PROBABILITY:
             return GateVerdict("ask", capability, confidence,
                                f"{base} -- does not follow from recent actions ({expected:.2f})",
                                reversible, probabilities=answer.probabilities)

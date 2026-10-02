@@ -6,3 +6,9 @@
 # registry parse identically on every platform.
 *.py text eol=lf
 *.json text eol=lf
+
+# 公開文件採 LF；封裝檔保留二進位 bytes。
+* text=auto eol=lf
+*.md text eol=lf
+*.zip -text
+*.skill -text

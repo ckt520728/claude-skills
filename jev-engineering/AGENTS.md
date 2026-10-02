@@ -11,12 +11,14 @@ decisions off the frontier model onto a cheap calibrated decision layer, and gat
 on confidence.
 
 ```
-[G] generation   -> the frontier LLM, unchanged
+[G] generation   -> Phase 2：medium/low executor
 [D] decision     -> a System One decision model (Jev), typed answer + calibrated probability
 [C] exact rule   -> code: loop caps, spend caps, file existence, blocklists, math, dates
 ```
 
-**Subtraction, not migration.** Nothing moves off the LLM that the LLM was built for.
+**v1.2 兩階段政策。** Phase 1 由 high agent 分析、決策與配置，僅回傳結構化任務規格；不得生成文章、程式碼、patch 或其他成品。Phase 2 由 medium/low agent 執行並驗收。Jev 保留為結構化決策層，八類工具能力全部保留。high／不確定的執行需求退回重新規劃，不啟動 high executor。
+
+細節見 `skills/jev-engineering/references/18-two-phase-workflow.md`；`workflow.py` 提供可執行介面，根目錄 `agents/` 提供 Claude Code 的 planner 與兩種 executor。宿主須實際選擇模型並接上工具 gate；提示詞角色不等於強制隔離。模型、價格或省費成效不得虛構。
 
 ## Read this first
 
@@ -68,7 +70,7 @@ for a non-Claude host, and the error table.
 ## Before calling anything done
 
 ```bash
-bash .claude/checks.sh        # structure, registry, 108 behavioural checks, compilation
+bash .claude/checks.sh        # structure, registry, 既有與兩階段行為檢查, compilation
 ```
 
 Test decision logic against a stub provider rather than the live API — register one with

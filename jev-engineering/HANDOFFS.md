@@ -1,5 +1,24 @@
 # HANDOFFS
 
+## 2026-10-02 — v1.2 兩階段升級與交付
+
+**完成：** Phase 1 由 high planner 分析、決策與配置，只回傳任務規格；Phase 2 使用 medium/low executor 生成與執行。保留八類工具能力、信心 gate、hard rules 及人工核准邊界。
+
+新增 `workflow.py`、三種 Claude agent 角色、交接型別、任務依賴與預算限制、實際工具 gate 及獨立驗收；補齊本機既有的 local provider／calibration。high、other 或信心不足的執行需求回到重新規劃，不啟動 high executor。
+
+修正 ToolGate 中 0 意圖機率被預設值覆蓋及非有限／越界 confidence 的處理，並加入重現測試。修正 Windows Bash 工具路徑與文件 UTF-8 問題。
+
+**驗證：** 144 項 smoke checks、23 個兩階段 unittest、實際成品寫入／獨立讀回與 `.claude/checks.sh` 全部通過；乾淨 plugin 套件通過 strict validation，skill 通過 quick_validate。
+
+**交付：** `dist/jev-engineering-1.2.0.plugin.zip`、`dist/jev-engineering-1.2.0.skill`、`dist/SHA256.json`。用法與 adapter 契約見 `skills/jev-engineering/references/18-two-phase-workflow.md`。
+
+**限制：** 以上測試使用 stub，未量測付費模型的品質、token／費用節省或延遲。真實宿主仍須提供模型與工具 adapter、sandbox、middleware 及獨立驗收。hooks 保持停用，未設定／未驗證的模型 ID 不派發。
+
+**後續：** 在宿主接入已確認的模型與計價資料，以實際任務量測全部 planner、Jev、executor、工具 gate、驗收與重試成本，連同完成率報告。
+
+---
+
+
 One entry per working session, newest first. Keep entries short and point at artifacts
 rather than restating them — `CLAUDE.md` holds the standing brief, `UNKNOWNS.md` holds the
 open questions, the playbooks hold the substance.

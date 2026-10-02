@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-02",
+  "scope": "v1.2 離線 stub 測試；未宣稱真實節省率",
+  "checks": {
+    "plugin_strict": {
+      "exit_code": 0
+    },
+    "marketplace_strict": {
+      "exit_code": 0
+    },
+    "packaged_smoke": {
+      "exit_code": 0
+    },
+    "packaged_workflow": {
+      "exit_code": 0
+    },
+    "skill_archive": {
+      "exit_code": 0
+    }
+  },
+  "smoke_checks": 144,
+  "workflow_tests": 23,
+  "artifacts": {
+    "jev-engineering-1.2.0.plugin.zip": "4b5ac2a08350fd962d691b68b2a142a932b3709d42311936d18acfe2477db822",
+    "jev-engineering-1.2.0.skill": "24bfac06a6f247c0c99a87924286ed866566ae58f0e95c2463bd70a1712ec518"
+  },
+  "publication_copy_verified": true
+}

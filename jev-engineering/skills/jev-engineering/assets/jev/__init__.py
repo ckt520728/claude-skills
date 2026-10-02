@@ -1,6 +1,6 @@
 """A portable decision layer for agent loops.
 
-    [G] generation  -> the frontier LLM, unchanged
+    [G] generation  -> 第二階段 medium/low executor
     [D] decision    -> this package
     [C] exact rule  -> your code
 
@@ -90,8 +90,17 @@ from .types import (
     Result,
     Score,
 )
+from .workflow import (
+    Allocation, ExecutionContext, ExecutionPlan, ExecutionReport, Limits,
+    PlannerRequest, PlannerResult, TaskSpec, WorkerRequest, WorkerResult,
+    WorkflowStop, plan_phase, execute_phase,
+)
 
 __all__ = [
+    # 兩階段規劃與執行
+    "Allocation", "ExecutionContext", "ExecutionPlan", "ExecutionReport", "Limits",
+    "PlannerRequest", "PlannerResult", "TaskSpec", "WorkerRequest", "WorkerResult",
+    "WorkflowStop", "plan_phase", "execute_phase",
     # primitives
     "Choice",
     "Score",
@@ -166,4 +175,4 @@ __all__ = [
     "debiased_pairwise",
 ]
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

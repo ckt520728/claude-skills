@@ -1,17 +1,28 @@
-# JEV Engineering
+# JEV Engineering v1.2
 
-A portable agent skill that moves an agent's **non-generative decisions** off the frontier
-model onto a cheap calibrated decision layer, and gates them on confidence.
+**兩階段處理：high agent 規劃與決策，medium/low agent 負責實際寫作與執行。** Jev 原有決策 primitive、八類工具能力與信心 gate 全部保留。
 
+```text
+Phase 1：high planner → 任務規格 → Jev 分配 low/medium → 交接
+Phase 2：指定 executor → 工具 gate → 產出 → 獨立驗收
+失敗／high 需求／不確定 → 重新規劃，不啟動 high executor
 ```
-[G] generation   -> the frontier LLM, unchanged
-[D] decision     -> a System One decision model (Jev), typed answer + calibrated probability
-[C] exact rule   -> code: loop caps, spend caps, file existence, blocklists, math, dates
+
+第一階段只輸出任務目的、來源、成品參照、驗收條件、依賴與預算；不得生成文章、程式碼或 patch。第二階段使用精簡的任務 context，避免把所有 worker 全文送回高階模型。
+
+入口：[SKILL.md](skills/jev-engineering/SKILL.md)。完整用法：[兩階段工作流](skills/jev-engineering/references/18-two-phase-workflow.md)。
+
+```powershell
+python -X utf8 skills/jev-engineering/assets/examples/two_phase.py
 ```
 
-Subtraction, not migration. Your planning model stays. Your writing model stays. What leaves
-is the class of call that returns a label — *which worker next, is this safe, is this done,
-how relevant is this* — that was never worth a frontier token or a second of latency.
+這個離線示範會驗證 Phase 1 沒有成品、Phase 2 實際寫入後獨立讀回；模型為 stub，不代表真實節省率。
+
+Claude Code plugin 附帶 `jev-planner`（opus、唯讀）、`jev-executor-medium`（sonnet）、`jev-executor-low`（haiku）。載入 plugin 後，可要求「先用 jev-planner 規劃，再依分配交給 medium/low executor」。Python host 使用 `plan_phase()` 與 `execute_phase()` 接入模型及工具 adapter。
+
+角色檔不會自動呼叫 Python。原有 hooks 保持停用；強制 Jev gate 需宿主 middleware。未設定／未驗證的 API ID 回 ask，未定價不宣稱最便宜。實際用量／成本節省尚未量測。
+
+既有底層 API 與以下參考資料保留；其中 high fallback 在新流程中解讀為重新規劃。單獨呼叫決策 primitive 不需要啟動整套兩階段流程。
 
 ## What it covers
 
@@ -59,6 +70,16 @@ skills/jev-engineering/references/     nine playbooks, loaded on demand
 claude plugin marketplace add "D:/2026 JEV Engineering"
 claude plugin install jev-engineering@jev-engineering-local
 ```
+
+也可直接載入本工作資料夾，啟動新的 session：
+
+```powershell
+claude --plugin-dir "D:/2026 JEV Engineering"
+```
+
+可攜交付檔位於 `dist/jev-engineering-1.2.0.plugin.zip` 與 `dist/jev-engineering-1.2.0.skill`，由 `python -X utf8 scripts/package.py` 產生；`dist/SHA256.json` 記錄雜湊。plugin ZIP 解壓後可交給 `claude --plugin-dir`；skill ZIP 解壓得到 `jev-engineering/`，放入宿主支援的 skills 目錄。
+
+交付套件只包含可攜 skill、角色及必要說明，工作區專用的 `CLAUDE.md`／hooks 不會自動安裝。完整 `.claude/checks.sh` 在原工作資料夾執行；套件內可直接跑 `skills/jev-engineering/eval/test_smoke.py` 與 `test_workflow.py`。載入新模型角色不會自動接上宿主的 Jev middleware，接線方式見兩階段工作流。
 
 **The runnable layer** — standard library only, Python 3.9+, no `pip install`:
 

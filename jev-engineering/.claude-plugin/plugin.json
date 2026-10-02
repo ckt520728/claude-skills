@@ -1,7 +1,7 @@
 {
   "name": "jev-engineering",
-  "version": "1.0.0",
-  "description": "Move an agent's non-generative decisions off the frontier model onto a cheap calibrated decision layer, and gate them on confidence. Model routing, input guardrails, tool-call gating, inbox triage, reranking, LLM evals, bulk labelling, real-time control, and the confidence gate itself.",
+  "version": "1.2.0",
+  "description": "兩階段 Jev 工作流：high 規劃決策與算力分配，medium/low 執行生成；保留八類能力與信心 gate。",
   "author": {
     "name": "2026 JEV Engineering"
   },
@@ -18,15 +18,17 @@
     "llm-eval",
     "bulk-labelling",
     "agent-loop",
-    "typesafe"
+    "typesafe",
+    "two-phase",
+    "planning",
+    "execution"
   ],
   "skills": [
     "./skills/jev-engineering"
   ],
-  "$notes": [
-    "Hooks are NOT declared here on purpose. The wiring lives in .claude/settings.json.example",
-    "and is enabled by hand once TYPESAFE_API_KEY is set -- without a key the gate correctly",
-    "falls back to 'ask', which means a permission prompt on every Bash call.",
-    "See CLAUDE.md, 'Hooks ship inert, on purpose'."
+  "agents": [
+    "./agents/jev-planner.md",
+    "./agents/jev-executor-medium.md",
+    "./agents/jev-executor-low.md"
   ]
 }

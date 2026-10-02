@@ -7,16 +7,10 @@
     {
       "name": "jev-engineering",
       "source": "./",
-      "description": "A decision layer for agent loops: route, gate, score, judge, and escalate on confidence instead of paying frontier prices for a label."
+      "description": "high 規劃、medium/low 執行的兩階段 Jev skill 與三種 agent 角色。"
     }
   ],
-  "$notes": [
-    "Local marketplace, for installing from this directory:",
-    "  claude plugin marketplace add <path to this jev-engineering folder>",
-    "  claude plugin install jev-engineering@jev-engineering-local",
-    "Cloned from ckt520728/claude-skills? The path is <clone>/jev-engineering.",
-    "To serve it from GitHub instead, replace owner.name with the repo owner and",
-    "point source at the repo -- see UNKNOWNS.md quadrant 2, which tracks that",
-    "decision as still open."
-  ]
+  "metadata": {
+    "description": "兩階段 Jev skill 與 planner、medium/low executor 角色。"
+  }
 }

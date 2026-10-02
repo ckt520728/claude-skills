@@ -11,26 +11,26 @@ The skill is the product. This repo is its workshop.
 ## The one idea
 
 ```
-[G] generation   -> the frontier LLM, unchanged
+[G] generation   -> Phase 2：medium/low executor
 [D] decision     -> a System One decision model (Jev), typed answer + calibrated probability
 [C] exact rule   -> code: loop caps, spend caps, file existence, blocklists, math, dates
 ```
 
-**Subtraction, not migration.** Nothing moves off the LLM that the LLM was built for.
-If a change to this repo reads as "replace the planner with a classifier", it has
-misread the idea.
+**v1.2 兩階段政策。** Phase 1 由 high agent 分析、決策與配置，僅回傳結構化任務規格；不得生成文章、程式碼、patch 或其他成品。Phase 2 由 medium/low agent 執行並驗收。Jev 保留為結構化決策層，八類工具能力全部保留。high／不確定的執行需求退回重新規劃，不啟動 high executor。
+
+細節見 `skills/jev-engineering/references/18-two-phase-workflow.md`；`workflow.py` 提供可執行介面，根目錄 `agents/` 提供 Claude Code 的 planner 與兩種 executor。宿主須實際選擇模型並接上工具 gate；提示詞角色不等於強制隔離。模型、價格或省費成效不得虛構。
 
 ## Layout
 
 ```
 skills/jev-engineering/
   SKILL.md              the portable skill. Host-agnostic markdown, frontmatter is name + description only
-  references/00-17      progressive disclosure: primitives, 12 use-case playbooks, tuning, economics,
+  references/00-18      progressive disclosure: primitives, 12 use-case playbooks, tuning, economics,
                         failure modes, portability, audit protocol
   assets/jev/           stdlib-only Python (see the module table below)
   assets/jev/models.json  THE MODEL REGISTRY -- data, edited often, prices mostly unset
   assets/examples/      runnable: router, triage, rerank, threshold sweep, cross-platform routing
-  eval/test_smoke.py    108 behavioural checks against a stub backend -- no key, no network
+  eval/test_smoke.py    既有與兩階段行為檢查 against a stub backend -- no key, no network
 .claude/
   hooks/jev_gate.py     PreToolUse gate -- hard rules in code, then a ~100ms classification
   hooks/jev_done.py     Stop hook -- turn cap, then checks.sh, then a verdict on printed evidence
@@ -94,7 +94,7 @@ articles, and the articles contain at least one API error the docs contradict (s
 claim is unverified rather than repeating the article.
 
 **Run `bash .claude/checks.sh`** before calling any change done. It checks structure, imports,
-registry integrity, the 108 behavioural tests, and that every hook and example compiles.
+registry integrity, the 既有與兩階段行為檢查, and that every hook and example compiles.
 
 **Add a behavioural test for anything with a threshold in it.** `eval/test_smoke.py` runs
 entirely against a stub provider, so every gate, route, cascade and control path is testable

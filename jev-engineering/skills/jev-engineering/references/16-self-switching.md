@@ -1,5 +1,7 @@
 # 16 — Self-routing and mid-task switching
 
+> v1.2 預設採 [兩階段工作流](18-two-phase-workflow.md)。本頁保留底層 API；其中 high 路由／升級在新流程中代表重新規劃，不授權 high 生成。
+
 Routing at the start of a task is `15-model-registry.md`. This is the harder question: **should a task change model while it is running?**
 
 The answer is "less often than you think", and the reason is arithmetic you can run.

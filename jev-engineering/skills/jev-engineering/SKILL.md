@@ -1,21 +1,41 @@
 ---
 name: jev-engineering
-description: Move an agent's non-generative decisions off the frontier model onto a cheap calibrated decision layer, and gate them on confidence. Use when routing a prompt to a model tier or across platforms (Claude Opus/Sonnet/Haiku, GPT Astra/Sol/Terra/Luna, Gemini Flash), deciding whether to switch model mid-task, screening input for injection/abuse/off-policy content, gating or approving a tool call, triaging an inbox or issue queue, reranking retrieved passages, judging an answer as an eval, labelling a large table row-by-row, driving a real-time control loop (game, bot, robot, trading), deciding whether the agent is confident enough to answer at all, composing a decision that one call cannot express, pricing cost per completed task, or auditing an agent loop for token waste. Also use when the user says "jev", "System One", "decision layer", "confidence gate", "cascade", "escalate when unsure", "model routing", "KV cache tax", or asks why an agent loop costs so much.
+description: 將 agent 工作分為 high 規劃決策與 medium/low 實際執行兩階段，以 Jev 信心 gate 分配算力。適用於模型路由、八類工具能力 gate、guardrails、triage、reranking、eval、bulk labelling、control loop 與成本稽核。
 ---
 
 # JEV Engineering
 
-An agent loop asks two kinds of question. **Generation** questions need words back: write the code, draft the reply, make the plan. **Decision** questions need a label back: which worker next, is this safe, is this done, how relevant is this. Only the first kind needs a frontier model.
-
-The work is **subtraction**, not migration. Nothing moves *off* the LLM that the LLM was built for. You are removing from it a class of call it was never built for.
+預設採用兩階段：**Phase 1 用 high agent 思考、決策及分配算力；Phase 2 用 medium/low agent 撰寫與執行。** Jev 保留為兩階段共用的結構化決策層。
 
 ```
-[G] generation   -> the frontier LLM, unchanged
+[G] generation   -> Phase 2：medium/low executor
 [D] decision     -> a System One decision model (Jev), typed answer + calibrated probability
 [C] exact rule   -> code: loop caps, spend caps, file existence, blocklists, math, dates
 ```
 
-Get the split wrong in the [C] direction and you pay a model to do arithmetic. Get it wrong in the [D] direction and you pay frontier prices for a boolean.
+完整交接欄位、Python adapter、plugin 操作與失敗處理見
+[18-two-phase-workflow.md](references/18-two-phase-workflow.md)。只使用既有決策 primitive 時，不必為每次 `decide()` 再啟動兩個 agent。
+
+## Phase 1：規劃與配置
+
+1. high agent 只讀取規劃必要的資料，分析需求並定義驗收方式。
+2. 每項任務交接 `task_id`、`objective`、`inputs`、`outputs`、`acceptance`、`capabilities`、`depends_on`、`max_output_tokens`。任務規格是控制資料，不是生成成品。
+3. 用原有 Jev 設計規則批次判斷並分配 low 或 medium。程式先檢查任務數、依賴、預算及已知資料政策，再詢問模型。Jev 判為 high、other 或信心不足時，回到 planner 拆分／釐清；不得直接把 high 改標成 medium。
+4. **不得撰寫文章、草稿、程式碼、patch、答案內容或寫入成品。** high planner 不持有 Write、Edit、Bash 或派工工具。只回傳結構化交接資料。
+
+## Phase 2：執行與驗收
+
+1. 主控依依賴順序啟動指定的 medium/low agent；只交付自己的規格與必要上游成品參照，不轉送完整對話或其他 worker 全文。
+2. executor 負責所有生成與修改，遵守 model、effort、scope 及 token 額度。宿主須確認實際模型，不能只在提示詞中宣稱角色或靜默繼承 high。
+3. 工具執行前保留八類能力 gate。規劃資料不代表核准尚未出現的工具參數；沿用使用者既有且涵蓋該動作的授權，需要時由宿主取得人工決定。
+4. 用獨立測試、讀回或事先定義的驗收確認結果，不能只相信 executor 自稱完成。
+5. 失敗只回傳 task ID、成品參照與精簡錯誤，退回 Phase 1；不自動重試或啟動 high 生成。記錄已完成的副作用，重新規劃時不能盲目重做。
+
+Claude Code plugin 提供 `jev-planner`（opus、唯讀）、`jev-executor-medium`（sonnet）與 `jev-executor-low`（haiku），由主控依配置派工。其他宿主使用相同角色與 API 契約。宿主若無法選擇／派發不同模型，輸出待交接規格並回報未執行，不得以 high 代做後宣稱節省。
+
+八類能力是 `toolgate.CAPABILITIES` 的 `read`、`local_write`、`destructive`、`network_egress`、`process_spawn`、`credential_access`、`spend`、`other`，與下方九種應用 playbook 不同。它們全部保留；Phase 1 只能盤點未來所需能力，不會執行那些動作。hard rules 優先，gate 故障 fail to ask，`other` 不自動核准，外部行為仍需人工決定。
+
+本流程的角色限制優先於舊路由 playbook 的 high fallback；舊 `route_task()` 可回傳 high，但在兩階段流程中代表重新規劃。`two_stage_choice()` 是候選縮減，並非規劃／執行。
 
 ## Why the decision layer must stay outside the context
 
@@ -99,6 +119,7 @@ Two generation calls. Eleven decisions. Two hard rules. In a default stack all t
 
 | Ask | Playbook |
 |---|---|
+| 兩階段規劃、分配、實際執行 | `references/18-two-phase-workflow.md` |
 | Route the prompt to a proper model | `references/01-model-routing.md` |
 | Screen for injection, abuse, off-policy input | `references/02-guardrails.md` |
 | Classify and gate tool calls cheaply | `references/03-tool-gating.md` |
@@ -120,6 +141,7 @@ Cross-cutting: `10-threshold-tuning.md` (calibration protocol) · `11-economics.
 
 | Module | What it gives you |
 |---|---|
+| `workflow` | `plan_phase()`、`execute_phase()`：high 規劃、medium/low 執行、精簡交接、預算與獨立驗收 |
 | `client`, `types` | `decide(state, questions)` over a pluggable provider; `Choice` / `Score` / `Noul` with the seven rules enforced as validation |
 | `gate` | `gate()` with four exits, `cascade()`, per-action thresholds |
 | `routing` | `models.json` registry, `route_task()`, `worth_switching()`, `self_route()` |
@@ -148,11 +170,24 @@ r = decide(
 a = r.answers["risk"]          # .choice   .confidence   .probabilities
 ```
 
-Setup, the provider contract, and the `llm` fallback: `references/13-portability.md`.
+Setup, the provider contract, and the `llm` baseline: `references/13-portability.md`.
+
+**No key? The layer still works.** `JEV_PROVIDER=local` runs a calibrated scorer in-process —
+no network, no vendor, ~0.1ms, zero cost. It scores the state against each option's own
+criteria text, which is why rule 1 is load-bearing rather than decorative: a `Choice` whose
+options carry no real criteria scores badly there. It is weaker than `jev` and says so, because
+`jev/calibration.py` maps its raw scores onto accuracy measured against *your* resolved
+escalations, and a band with too few observations reports `COLD_CONFIDENCE` and escalates.
+
+Reaching for `llm` instead because you lack a key reintroduces exactly the cost the decision
+layer exists to remove. Use `llm` as the baseline you measure against, not as the layer.
 
 Test decision logic against a stub provider rather than the live API — `@register_provider("stub")` plus `JEV_PROVIDER=stub` exercises every gate, route and cascade path with no key and no network.
 
 ## Before you ship
+
+兩階段離線演練：`python -X utf8 skills/jev-engineering/assets/examples/two_phase.py`。
+測試使用 stub，不能用測試通過宣稱真實節省。量測須納入 planner、Jev、executor、工具 gate、重試與重新規劃；未定價不宣稱最便宜，未驗證的 API ID 不派發。完整檢查：`bash .claude/checks.sh`。
 
 Three numbers, measured for a week, decide whether the fork was worth moving.
 

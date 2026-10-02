@@ -34,6 +34,9 @@ missing=0
 for required in \
   "skills/jev-engineering/SKILL.md" \
   "skills/jev-engineering/assets/jev/__init__.py" \
+  "skills/jev-engineering/assets/jev/workflow.py" \
+  "skills/jev-engineering/references/18-two-phase-workflow.md" \
+  "agents/jev-planner.md" "agents/jev-executor-medium.md" "agents/jev-executor-low.md" \
   "CLAUDE.md" "AGENTS.md" "UNKNOWNS.md" "HANDOFFS.md"
 do
   if [ -f "$required" ]; then
@@ -46,9 +49,9 @@ done
 [ "$missing" -eq 0 ] || status=1
 
 say "reference playbooks"
-count=$(find skills/jev-engineering/references -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
-printf '  %s playbooks present (expected 18)\n' "$count"
-[ "$count" -ge 18 ] || status=1
+count=$("$PY" -c 'from pathlib import Path; print(len(list(Path("skills/jev-engineering/references").glob("*.md"))))')
+printf '  %s playbooks present (expected 19)\n' "$count"
+[ "$count" -ge 19 ] || status=1
 
 say "python package imports and is self-consistent"
 if "$PY" - <<'PY'
@@ -59,7 +62,8 @@ from jev import (decide, Choice, Score, Noul, gate, cascade, available_providers
                  Registry, route_task, worth_switching, self_route,
                  ToolGate, CAPABILITIES, ControlLoop, RiskLimits,
                  run_plan, speculative, two_stage_choice, ensemble,
-                 compare_policies, router_breakeven_accuracy)
+                 compare_policies, router_breakeven_accuracy,
+                 plan_phase, execute_phase, TaskSpec, PlannerResult, WorkerResult)
 print("  version:   ", jev.__version__)
 print("  providers: ", ", ".join(available_providers()))
 print("  primitives: Choice, Score, Noul")
@@ -115,6 +119,55 @@ if "$PY" skills/jev-engineering/eval/test_smoke.py; then
   printf '  ok      test_smoke.py\n'
 else
   printf '  FAILED  test_smoke.py\n'
+  status=1
+fi
+
+say "two-phase behaviour and actual artifact verification (offline)"
+if "$PY" skills/jev-engineering/eval/test_workflow.py && \
+   "$PY" skills/jev-engineering/assets/examples/two_phase.py; then
+  printf '  ok      workflow\n'
+else
+  printf '  FAILED  workflow\n'
+  status=1
+fi
+
+say "plugin roles, version and skill references"
+if "$PY" - <<'PY'
+import json, re, sys
+from pathlib import Path
+sys.path.insert(0, "skills/jev-engineering/assets")
+import jev
+manifest = json.loads(Path(".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+assert manifest["version"] == jev.__version__
+assert len(manifest["agents"]) == 3
+roles = {"jev-planner": "opus", "jev-executor-medium": "sonnet", "jev-executor-low": "haiku"}
+for entry in manifest["agents"]:
+    content = Path(entry).read_text(encoding="utf-8")
+    frontmatter = content.split("---", 2)[1]
+    name = re.search(r"(?m)^name: (.+)$", frontmatter)[1]
+    model = re.search(r"(?m)^model: (.+)$", frontmatter)[1]
+    assert roles.pop(name) == model
+    if name == "jev-planner":
+        tools = re.search(r"(?m)^tools: (.+)$", frontmatter)[1]
+        assert set(tools.split(", ")) == {"Read", "Glob", "Grep"}
+assert not roles
+skill = Path("skills/jev-engineering/SKILL.md")
+for ref in re.findall(r"references/[\w-]+\.md", skill.read_text(encoding="utf-8")):
+    assert (skill.parent / ref).is_file(), ref
+assert "hooks" not in json.loads(Path(".claude/settings.json").read_text(encoding="utf-8"))
+documents = [Path(p) for p in ("README.md", "AGENTS.md", "CLAUDE.md", "HANDOFFS.md", "UNKNOWNS.md")]
+documents += list(Path(".claude-plugin").glob("*.json"))
+documents += list(Path("skills/jev-engineering").rglob("*.md"))
+documents += list(Path("agents").glob("*.md"))
+for document in documents:
+    text = document.read_text(encoding="utf-8")
+    assert "\ufffd" not in text and "???" not in text, "文字編碼損壞：" + str(document)
+print("  套件與 plugin 版本一致、三個角色有效、planner 唯讀、參考檔存在、hooks 保持停用")
+PY
+then
+  printf '  ok      package\n'
+else
+  printf '  FAILED  package\n'
   status=1
 fi
 
