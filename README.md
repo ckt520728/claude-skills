@@ -48,6 +48,12 @@ rather than cubic spline for amplitude normalisation; ω < f admissibility).
   carrier and the modulation axis (only 20–29 % of layer-2 amplitude survives), how to compare
   two independent implementations without mistaking method choice for a bug, and the
   template-plus-build-script pattern for publishing figure-heavy pages.
+- Cross-disciplinary SOIL deck follow-up (繁中): `2026-10-06_HHSA_JEV_SOIL_Deck_Lessons_and_Pitfalls.md`
+  — a `python-pptx` 1.0.2 defect (hardcoded negative chart axis IDs) that let a deck fail to open
+  under strict validation while every geometry check and non-validating reader stayed silent; a
+  unit-mislabeled helper function that inflated HRV mode periods 3600×; and why only rendering
+  through the real target program (PowerPoint via COM automation, not a conversion tool) caught
+  either one.
 - Runnable with zero patient data: `scripts/make_demo_data.py` plants a known
   answer that a correct pipeline run must recover.
 
