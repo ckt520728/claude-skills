@@ -235,9 +235,14 @@ def test_toolgate() -> None:
 
 def test_routing() -> None:
     reg = Registry.load()
-    check("registry loads every model", len(reg.models), 9)
-    for tier in ("high", "medium", "low"):
-        check(f"tier {tier} has candidates", len(reg.candidates(tier)), 3)
+    check("registry loads every model", len(reg.models), 10)
+    for tier, n in (("high", 3), ("medium", 4), ("low", 3)):   # medium 含 v1.3 的 kimi-k3
+        check(f"tier {tier} has candidates", len(reg.candidates(tier)), n)
+    # kimi-k3 未驗證 api_id：可列為候選，但永遠不可被派發。
+    check("unverified kimi-k3 is never callable",
+          any(m.key == "kimi-k3" for m in reg.candidates("medium", require_callable=True)), False)
+    check("moonshot excluded from internal data",
+          any(m.key == "kimi-k3" for m in reg.candidates("medium", data_class="internal")), False)
     check("customer_data narrows to one platform",
           [m.platform for m in reg.candidates("high", data_class="customer_data")], ["anthropic"])
     check("no platform may see secrets", reg.candidates("high", data_class="secrets"), [])

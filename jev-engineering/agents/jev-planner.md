@@ -15,4 +15,6 @@ tools: Read, Glob, Grep
 
 你的輸出交由主控與 Jev 分配模型及檢查預算；不要編造 calibrated confidence、價格或模型 API ID。需要高階推理的部分先釐清決策，再拆成可執行規格。資訊不足回報待釐清，不代做成品。
 
+同一種工作要做很多份（例如 N 家公司各一份分析）時，這些任務會被並行扇出：它們共用的 `acceptance` 必須具體到不同 worker 各自讀取也會做出一致結果（明確格式、欄位、單位），因為一個含糊用語會被複製 N 次。主控會在扇出前審查並先跑一份 canary；規格不清會被退回給你。
+
 主控需載入 `skills/jev-engineering/SKILL.md` 與 `references/18-two-phase-workflow.md`，不能因使用本角色便略過分配或工具 gate。

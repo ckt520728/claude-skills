@@ -18,6 +18,8 @@ The skill is the product. This repo is its workshop.
 
 **v1.2 兩階段政策。** Phase 1 由 high agent 分析、決策與配置，僅回傳結構化任務規格；不得生成文章、程式碼、patch 或其他成品。Phase 2 由 medium/low agent 執行並驗收。Jev 保留為結構化決策層，八類工具能力全部保留。high／不確定的執行需求退回重新規劃，不啟動 high executor。
 
+**v1.3 寬度：雙大腦 swarm 扇出。** 任務多半獨立且數量大時，`execute_swarm()` 取代依序的 `execute_phase()`：Phase 1 寫出帶 sha256 的 `task_manifest.json`（Handoff Wire），執行端 `load_manifest()` 重新驗證；扇出前 `preflight()` 以 Jev `Noul` 審查每個共用模板的任務組，不清楚就退回規劃；大組先跑 canary；有界並行、共用速率限制、失敗只阻擋依賴者、失敗比例過高時斷路。每份任務仍走同一個 `run_task()`。`kimi-k3` 已登錄但 `api_id` 未驗證，永不派發。細節見 `references/18-two-phase-workflow.md` 的 v1.3 一節。
+
 細節見 `skills/jev-engineering/references/18-two-phase-workflow.md`；`workflow.py` 提供可執行介面，根目錄 `agents/` 提供 Claude Code 的 planner 與兩種 executor。宿主須實際選擇模型並接上工具 gate；提示詞角色不等於強制隔離。模型、價格或省費成效不得虛構。
 
 ## Layout
@@ -27,10 +29,11 @@ skills/jev-engineering/
   SKILL.md              the portable skill. Host-agnostic markdown, frontmatter is name + description only
   references/00-18      progressive disclosure: primitives, 12 use-case playbooks, tuning, economics,
                         failure modes, portability, audit protocol
-  assets/jev/           stdlib-only Python (see the module table below)
+  assets/jev/           stdlib-only Python (see the module table below; swarm.py = v1.3 fan-out)
   assets/jev/models.json  THE MODEL REGISTRY -- data, edited often, prices mostly unset
   assets/examples/      runnable: router, triage, rerank, threshold sweep, cross-platform routing
   eval/test_smoke.py    既有與兩階段行為檢查 against a stub backend -- no key, no network
+  eval/test_swarm.py    v1.3 swarm：清單、審查、canary、並行、隔離、斷路（stub）
 .claude/
   hooks/jev_gate.py     PreToolUse gate -- hard rules in code, then a ~100ms classification
   hooks/jev_done.py     Stop hook -- turn cap, then checks.sh, then a verdict on printed evidence

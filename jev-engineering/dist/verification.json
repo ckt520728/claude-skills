@@ -1,9 +1,10 @@
 {
-  "date": "2026-10-02",
-  "scope": "v1.2 離線 stub 測試；未宣稱真實節省率",
+  "date": "2026-10-15",
+  "scope": "v1.3 離線 stub 測試；未宣稱真實節省率、延遲或任何供應商的並行配額",
   "checks": {
     "plugin_strict": {
-      "exit_code": 0
+      "exit_code": 0,
+      "target": "extracted plugin.zip"
     },
     "marketplace_strict": {
       "exit_code": 0
@@ -14,15 +15,27 @@
     "packaged_workflow": {
       "exit_code": 0
     },
+    "packaged_swarm": {
+      "exit_code": 0
+    },
+    "packaged_swarm_example": {
+      "exit_code": 0
+    },
     "skill_archive": {
       "exit_code": 0
     }
   },
-  "smoke_checks": 144,
+  "smoke_checks": 146,
   "workflow_tests": 23,
+  "swarm_tests": 19,
+  "mutation_testing": {
+    "mutants": 10,
+    "killed": 9,
+    "equivalent": 1
+  },
   "artifacts": {
-    "jev-engineering-1.2.0.plugin.zip": "4b5ac2a08350fd962d691b68b2a142a932b3709d42311936d18acfe2477db822",
-    "jev-engineering-1.2.0.skill": "24bfac06a6f247c0c99a87924286ed866566ae58f0e95c2463bd70a1712ec518"
+    "jev-engineering-1.3.0.plugin.zip": "bb48510f5e5d329e16a6092ad572aa921bb6f69a7d059de0a2551c2b7fa1a074",
+    "jev-engineering-1.3.0.skill": "09ec10ea280f7155b9ff62ad9e28b9c6c06e0747ee1105e762b60dbd9054365b"
   },
   "publication_copy_verified": true
 }

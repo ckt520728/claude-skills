@@ -93,14 +93,22 @@ from .types import (
 from .workflow import (
     Allocation, ExecutionContext, ExecutionPlan, ExecutionReport, Limits,
     PlannerRequest, PlannerResult, TaskSpec, WorkerRequest, WorkerResult,
-    WorkflowStop, plan_phase, execute_phase,
+    WorkflowStop, plan_phase, execute_phase, TaskOutcome, run_task,
+)
+from .swarm import (
+    MANIFEST_SCHEMA, SPEC_CLEAR_THRESHOLD, Preflight, SwarmPolicy, SwarmReport, TemplateGroup,
+    execute_swarm, load_manifest, preflight, template_groups, to_manifest, waves, write_manifest,
 )
 
 __all__ = [
     # 兩階段規劃與執行
     "Allocation", "ExecutionContext", "ExecutionPlan", "ExecutionReport", "Limits",
     "PlannerRequest", "PlannerResult", "TaskSpec", "WorkerRequest", "WorkerResult",
-    "WorkflowStop", "plan_phase", "execute_phase",
+    "WorkflowStop", "plan_phase", "execute_phase", "TaskOutcome", "run_task",
+    # v1.3 寬度執行：Handoff Wire 清單、扇出前審查、canary、有界並行
+    "MANIFEST_SCHEMA", "SPEC_CLEAR_THRESHOLD", "Preflight", "SwarmPolicy", "SwarmReport",
+    "TemplateGroup", "execute_swarm", "load_manifest", "preflight", "template_groups",
+    "to_manifest", "waves", "write_manifest",
     # primitives
     "Choice",
     "Score",
@@ -175,4 +183,4 @@ __all__ = [
     "debiased_pairwise",
 ]
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"

@@ -306,51 +306,92 @@ def execute_phase(
     if plan.status != "ready":
         return report(plan.status if plan.status in ("ask", "replan") else "ask", plan.reason)
     try:
-        reg = registry or Registry.load()
-        _require(callable(executor) and callable(verifier) and callable(tool_runner), "缺少必要宿主 adapter")
-        _require(approve is None or callable(approve), "人工核准 adapter 無效")
-        _limits(plan.limits)
-        _tasks(tuple(a.task for a in plan.allocations), plan.limits)
-        _usage(input_tokens, output_tokens, plan.limits.max_total_output_tokens)
-        _require(plan.planner_model is not None and plan.planner_model.tier == "high", "缺少 high 規劃來源")
-        # 全部配置先檢查，避免先寫了半份才發現後面的模型已停用。
-        for allocation in plan.allocations:
-            model = allocation.model
-            _require(model.tier in EXECUTION_TIERS, "第二階段只能使用 medium/low")
-            _require(ROUTE_CONFIDENCE <= allocation.confidence <= 1, "配置的信心不足")
-            _require(allocation.data_class in ("public", "internal", "customer_data"), "無效資料類型")
-            candidates = reg.candidates(model.tier, data_class=allocation.data_class, require_callable=True)
-            _require(model in candidates and model.api_id_verified, "模型配置已變動或 ID 未驗證；請重新規劃")
-        _require(output_tokens + sum(a.task.max_output_tokens for a in plan.allocations)
-                 <= plan.limits.max_total_output_tokens, "剩餘輸出預算不足")
+        _check_ready(plan, registry or Registry.load(), executor, verifier, tool_runner, approve,
+                     extra_output_tokens=0)
     except Exception as exc:
         return report("ask", str(exc))
 
     for allocation in plan.allocations:
         task = allocation.task
-        request = WorkerRequest(task, allocation.model,
-                                {dep: completed[dep].artifacts for dep in task.depends_on})
-        context = ExecutionContext(allocation, plan.limits, tool_runner, approve, provider, cwd)
-        try:
-            usage_complete_before_worker = usage_complete
-            usage_complete = False
-            result = executor(request, context)
-            _require(type(result) is WorkerResult and result.model_key == allocation.model.key,
-                     "executor 未使用指定模型")
-            _usage(result.input_tokens, result.output_tokens, task.max_output_tokens)
-            input_tokens += result.input_tokens
-            output_tokens += result.output_tokens
-            # ToolGate 舊介面不提供 usage，不能把漏計費用宣稱為完整用量。
-            usage_complete = usage_complete_before_worker and context._calls == 0
-            _require(not context.stopped, "工具 gate 已停止此任務")
-        except Exception as exc:
-            return report("ask" if context.stopped or isinstance(exc, WorkflowStop) else "replan",
-                          f"{task.task_id}：{exc}")
-        try:
-            _require(type(result.artifacts) is tuple and set(result.artifacts) == set(task.outputs),
-                     "成品參照不符合交接規格")
-            _require(verifier(request, result) is True, "獨立驗收未通過")
-        except Exception as exc:
-            return report("replan", f"{task.task_id}：{exc}")
-        completed[task.task_id] = result
+        outcome = run_task(allocation, {dep: completed[dep].artifacts for dep in task.depends_on},
+                           executor, verifier=verifier, tool_runner=tool_runner, limits=plan.limits,
+                           approve=approve, provider=provider, cwd=cwd)
+        input_tokens += outcome.input_tokens
+        output_tokens += outcome.output_tokens
+        usage_complete = usage_complete and outcome.usage_complete
+        if outcome.status != "completed":
+            return report(outcome.status, f"{task.task_id}：{outcome.reason}")
+        completed[task.task_id] = outcome.result
     return report("completed", "所有任務由 medium/low 執行並通過獨立驗收")
+
+
+def _check_ready(plan: ExecutionPlan, reg: Registry, executor: Callable, verifier: Callable,
+                 tool_runner: Callable, approve: Optional[Callable], *,
+                 extra_output_tokens: int) -> None:
+    """派工前檢查整份配置；任何一項不符就 raise WorkflowStop。"""
+    _require(callable(executor) and callable(verifier) and callable(tool_runner), "缺少必要宿主 adapter")
+    _require(approve is None or callable(approve), "人工核准 adapter 無效")
+    _limits(plan.limits)
+    _tasks(tuple(a.task for a in plan.allocations), plan.limits)
+    _usage(plan.input_tokens, plan.output_tokens, plan.limits.max_total_output_tokens)
+    _require(plan.planner_model is not None and plan.planner_model.tier == "high", "缺少 high 規劃來源")
+    # 全部配置先檢查，避免先寫了半份才發現後面的模型已停用。
+    for allocation in plan.allocations:
+        model = allocation.model
+        _require(model.tier in EXECUTION_TIERS, "第二階段只能使用 medium/low")
+        _require(ROUTE_CONFIDENCE <= allocation.confidence <= 1, "配置的信心不足")
+        _require(allocation.data_class in ("public", "internal", "customer_data"), "無效資料類型")
+        candidates = reg.candidates(model.tier, data_class=allocation.data_class, require_callable=True)
+        _require(model in candidates and model.api_id_verified, "模型配置已變動或 ID 未驗證；請重新規劃")
+    _require(plan.output_tokens + extra_output_tokens
+             + sum(a.task.max_output_tokens for a in plan.allocations)
+             <= plan.limits.max_total_output_tokens, "剩餘輸出預算不足")
+
+
+@dataclass(frozen=True)
+class TaskOutcome:
+    """單一任務的結果。status：completed / replan / ask。"""
+    task_id: str
+    status: str
+    reason: str
+    result: Optional[WorkerResult]
+    input_tokens: int
+    output_tokens: int
+    usage_complete: bool
+
+
+def run_task(
+    allocation: Allocation, dependency_artifacts: Mapping[str, tuple[str, ...]],
+    executor: Callable[[WorkerRequest, ExecutionContext], WorkerResult], *,
+    verifier: Callable[[WorkerRequest, WorkerResult], bool], tool_runner: Callable,
+    limits: Limits, approve: Optional[Callable] = None,
+    provider: Optional[str] = None, cwd: str = "",
+) -> TaskOutcome:
+    """執行一個已配置的任務：一次嘗試、工具逐次 gate、獨立驗收。不會 raise。
+
+    依序執行與 swarm 扇出共用此函式，因此兩條路徑的模型檢查、用量與驗收規則相同。
+    """
+    task = allocation.task
+    request = WorkerRequest(task, allocation.model, dict(dependency_artifacts))
+    context = ExecutionContext(allocation, limits, tool_runner, approve, provider, cwd)
+    counted_in = counted_out = 0
+    usage_ok = False
+    try:
+        result = executor(request, context)
+        _require(type(result) is WorkerResult and result.model_key == allocation.model.key,
+                 "executor 未使用指定模型")
+        _usage(result.input_tokens, result.output_tokens, task.max_output_tokens)
+        counted_in, counted_out = result.input_tokens, result.output_tokens
+        # ToolGate 舊介面不提供 usage，不能把漏計費用宣稱為完整用量。
+        usage_ok = context._calls == 0
+        _require(not context.stopped, "工具 gate 已停止此任務")
+    except Exception as exc:
+        status = "ask" if context.stopped or isinstance(exc, WorkflowStop) else "replan"
+        return TaskOutcome(task.task_id, status, str(exc), None, counted_in, counted_out, False)
+    try:
+        _require(type(result.artifacts) is tuple and set(result.artifacts) == set(task.outputs),
+                 "成品參照不符合交接規格")
+        _require(verifier(request, result) is True, "獨立驗收未通過")
+    except Exception as exc:
+        return TaskOutcome(task.task_id, "replan", str(exc), None, counted_in, counted_out, usage_ok)
+    return TaskOutcome(task.task_id, "completed", "", result, counted_in, counted_out, usage_ok)

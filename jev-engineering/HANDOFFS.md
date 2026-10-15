@@ -1,5 +1,21 @@
 # HANDOFFS
 
+## 2026-10-15 — v1.3 雙大腦 swarm 扇出
+
+**依據：** `JEV_Claude_Kimi-K3_雙大腦代理架構.md`（NotebookLM 整理的 X 貼文：推理層決定建什麼、Kimi K3 集群決定如何大規模建造、Handoff Wire 是關鍵連線）。工作區：`G:\我的雲端硬碟\2026 Agent Harness engineering\jev-engineering`。
+
+**完成：** 新增 `assets/jev/swarm.py`：`write_manifest()`／`load_manifest()`（sha256 竄改偵測、型別重建、執行端 registry 重驗）、`template_groups()`、`waves()`、`preflight()`（每個共用模板組一題 Jev Noul，一次 decide）、`execute_swarm()`（canary 先行、有界並行、共用速率限制、失敗只阻擋依賴者、斷路器、工具 gate ask 即停止派發）。`workflow.py` 抽出 `run_task()`／`_check_ready()`，依序與並行共用同一套模型檢查、gate、用量與驗收；v1.2 行為不變（23 項 workflow 測試原樣通過）。`models.json` 登錄 `kimi-k3`（moonshot，medium，api_id 未驗證，永不派發；平台只允許 public）。新增 `eval/test_swarm.py`、`assets/examples/swarm_fanout.py`；playbook 18 加 v1.3 一節；SKILL、角色檔、README、AGENTS、CLAUDE、UNKNOWNS、checks.sh、plugin 版本更新為 1.3.0。
+
+**驗證：** smoke 146、workflow 23、swarm 19 全數通過；`.claude/checks.sh` 全綠；swarm 測試連跑 5 次穩定。Mutation testing：10 個 mutant，第一輪抓到 8 個；補上「扇出前審查用量異常需 fail closed」測試後抓到 9 個，剩下 1 個是等價 mutant（canary 失敗後的 `held.update` 為死碼，已刪除）。
+
+**踩坑：** 從套件目錄直接執行 Python 時，`jev/types.py` 遮蔽標準庫 `types`，連 `json` 都載入失敗，改用 `python -I`。示範 stub 未處理 ToolGate 的 `reversible` 問題，gate 正確地 fail to ask（這證明 fail-closed 有效，問題在 stub）。`summary` 依賴失敗的 canary，屬於 blocked 而非 held，測試期望一開始寫錯。
+
+**限制：** 全部是 stub；沒有量測真實並行的成本、延遲或供應商配額。並行縮短 wall-clock，但不減少 token；canary 與審查還會多出少量用量。
+
+**後續：** 從 Moonshot 官方文件確認 Kimi K3 的 model ID 與 base URL 後再填 `api_id`；以真實同模板工作量並列比較 swarm 與依序執行的完成率、每完成任務成本與 wall-clock；依解決的 escalation 校準 `SPEC_CLEAR_THRESHOLD`。
+
+---
+
 ## 2026-10-02 — v1.2 兩階段升級與交付
 
 **完成：** Phase 1 由 high planner 分析、決策與配置，只回傳任務規格；Phase 2 使用 medium/low executor 生成與執行。保留八類工具能力、信心 gate、hard rules 及人工核准邊界。
