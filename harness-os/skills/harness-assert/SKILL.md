@@ -91,6 +91,8 @@ check on you.
 - [ ] no contract was edited this round
 - [ ] `no_placeholder` is on every prose and code deliverable
 - [ ] the held-out contract was never used to steer a fix
+- [ ] no `sealed` contract was read or run before `final`; if `status` shows
+      Q_eval spent, any later improvement is reported as non-blind
 - [ ] `cmd:` verifier scripts live outside any directory a sub-agent can write
 
 Passing: [[harness-os]] step 7 is not needed — publish and report.

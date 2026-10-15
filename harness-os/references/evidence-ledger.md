@@ -362,3 +362,102 @@ general kernel, with reasons:
    kernel already has, so it is recorded here rather than acted on. The notes'
    own caveat — gains from extra passes flatten after two — is consistent with
    the corpus's non-monotonic model-tier finding and needs no separate change.
+
+## v2.2.0 upgrade — Test-Time Harness Learning
+
+**Source:** Zhang et al. (Carnegie Mellon, 2026), *Harness Learning Enables
+Generalizable Test-Time Adaptation*.
+
+**Provenance — read this before quoting a number.** This upgrade was built from
+a zh-TW deep-analysis note of the paper
+(`r13_Zhang_2026_Test_Time_Harness Learning.md`, kept in the author's project
+workspace, not in this repo), **not** from the PDF, which was not available. Numbers below are as the note reports them and
+are **unverified** against the paper; no arXiv ID is recorded because the note
+gives none. The note's own "Part 2" skill blueprint also contains link-removal
+artefacts (`[已移除可疑連結]`) where file names stood. What was adopted is the
+design pattern, each piece of which is independently motivated by the corpus
+above (Self-Harness held-in/held-out, AHE manifests, Meta-Harness filesystem
+history, DGM archive).
+
+### What the paper claims (per the note)
+
+- A harness is the executable program around a frozen model; revising it is
+  **meta-learning over programs**. Outer loop: GRPO trains a Proposer. Inner
+  loop: the Proposer reads (task spec, current harness h_{t−1}, execution
+  report on Q_fb) and emits SEARCH/REPLACE edits; a fixed Solver runs them.
+- Questions are partitioned into **Q_fb** (≈6, generates the report),
+  **Q_score** (≈64, ranks G=8 candidates) and **Q_eval** (≈300, blind).
+- Reward r_i = J(h′_i; Q_score) + v_i, with v_i = 0.05·parses + 0.10·runnable
+  + 0.15·ρ_run.
+- Reasoning Gym, 21 unseen families: Base 0.32 → SFT 0.49 → single-step RL
+  0.62, above the 35B teacher's 0.56. Proposal failure rate 38% → 8%.
+- MuSiQue (proposer trained on HotpotQA only): 10-round iteration 0.14 → 0.27;
+  the 10-round mean exceeded the best of 80 independent proposals.
+- Emergent edit types: interpreter loops, evidence rewiring, verification
+  branches.
+- Stated limits: fixed Solver and revision prompt; single teacher for SFT;
+  multistep RL did not clearly beat single-step (cross-round credit
+  assignment); gains depend on how structured the seed harness is; requires a
+  verifiable reward.
+
+### Mechanism 1 — three-way split (`sealed`, `final`)
+
+Harness OS had two splits, and `held_in` was doing the jobs of both Q_fb and
+part of Q_score, while `held_out` failures were mined as feedback. The paper's
+partition makes each set do one job. → `sealed` split (alias `eval`); `assert`
+refuses it, `assertall` skips it, `mine` never reads it; `final` runs it once,
+reports aggregates, marks it spent, and flags any later adaptation or second
+final as non-blind. `--sealed-dir` lets the user hold Q_eval outside the
+workspace, which is the only arrangement where the proposer genuinely never saw
+it. `mine` now also skips `held_out` by default (behaviour change, `--all-splits`
+to restore).
+
+### Mechanism 2 — structured edit interface (`patch`)
+
+The paper's validity bonus exists because untrained proposers emit edits that
+do not parse or apply (38% failure at base). → `patch` validates every
+SEARCH/REPLACE block before writing anything: exact-once match, workspace-only,
+not `.harness/`, not a guarded contract/verifier, `.py` must compile; line
+endings preserved. Rejections are traced with signature
+`edit_rejected|direct|<reason>` and counted in `patch_validity`. Refusing
+guarded files closes the obvious route by which a repair edit could reach the
+grader — an anti-gaming gain the paper did not need (its grader was external)
+but this kernel does.
+
+### Mechanism 3 — candidate tournament (`report`, `score`, `select`)
+
+→ `report` assembles the proposer input (spec, invariants, Q_fb failures with
+messages, mined clusters, Q_score **aggregates only**, prior candidates and
+outcomes, patch validity, adaptation curve). `score` computes J as the mean
+per-contract check-pass fraction on Q_score, plus v with the paper's weights,
+and writes no trace. `select` restores the incumbent and re-applies the winner
+only if J_best > J_incumbent strictly.
+
+**Adaptation, not transcription:** in the paper r = J + v is an *RL reward*,
+where shaping toward runnable programs helps training. Used as a *selection*
+rule, J + v would let a runnable-but-wrong candidate (J 0.5, v 0.3) beat a
+correct-but-flaky one (J 0.7, v 0.05). So `select` ranks candidates by (J, v)
+lexicographically and promotes only on strict J improvement; v breaks ties
+between candidates and nothing else. Selftest includes a tie case, added after
+mutation testing showed the `>` vs `>=` rule was otherwise unchecked.
+
+### Mechanism 4 — iterate rather than widen
+
+The MuSiQue result (10 rounds > best of 80) argues for small G and more rounds.
+→ `select` appends to `logs/adaptation_curve.json`; `status` shows the latest
+round; the evolve skill stops after two consecutive RETAINs.
+
+### Not adopted
+
+- **The RL-trained proposer (outer loop).** Training a proposer with GRPO is a
+  weights change; this kernel does not touch weights. The running model acts
+  as an untrained proposer. Cross-run carry-over is the playbook and the
+  prior-candidate record. Consequence stated in the skill: expect lower patch
+  validity than the paper's trained proposer.
+- **Multistep RL credit assignment.** The paper reports it unsolved; the kernel
+  judges each round on its own `select` + `gate` instead of crediting a
+  trajectory.
+- **The note's "Part 2" THL-Skill blueprint as written.** Its retention rule
+  uses r = J + v directly (see above), its guardrail code calls nonexistent
+  APIs, and it predicts "+30%" from an untested hypothesis. The mechanisms were
+  rebuilt against this kernel instead of copied.

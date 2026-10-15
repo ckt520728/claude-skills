@@ -1,6 +1,6 @@
 ---
 name: harness-os
-description: Run a long-horizon deliverable as an operating system rather than one long conversation — persistent state on disk, isolated parallel jobs, a written contract for what "done" means, physical verification before anything is called finished, and an evidence-driven repair loop when it isn't. Use for multi-hour or multi-session work with a real artifact at the end: building a web system, writing a grant proposal, analysing a signal-processing method, digesting a PDF library, drafting a paper, or shipping a portable clinical app. Also use when a previous run collapsed — lost the thread, looped on the same failing command, ran out of context, or reported "done" for something that was empty, truncated, or full of placeholders. Triggers: "harness os", "run this as a harness", "long-horizon task", "this keeps losing track", "it said done but it isn't", "跑 harness", "長任務編排".
+description: Run a long-horizon deliverable as an operating system rather than one long conversation — persistent state on disk, isolated parallel jobs, a written contract for what "done" means, physical verification before anything is called finished, and an evidence-driven repair loop when it isn't. Use for multi-hour or multi-session work with a real artifact at the end: building a web system, writing a grant proposal, analysing a signal-processing method, digesting a PDF library, drafting a paper, or shipping a portable clinical app. Also use when a previous run collapsed — lost the thread, looped on the same failing command, ran out of context, or reported "done" for something that was empty, truncated, or full of placeholders. Also use to adapt a harness at test time — try several candidate edits to an agent's tools/middleware, keep the best on a separate score set, and report a blind final number. Triggers: "harness os", "run this as a harness", "long-horizon task", "this keeps losing track", "it said done but it isn't", "harness learning", "test-time adaptation", "跑 harness", "長任務編排".
 ---
 
 # Harness OS
@@ -22,6 +22,9 @@ The failures it exists to remove are physical, not intellectual:
 | "It kept 'fixing' the wrong thing" | Patching symptoms, not mechanisms | Failure signatures + `mine` |
 | "It forgot a hard rule mid-run" | Constraint compacted out of context | Invariant `constraint` ledger |
 | "It hardcoded the answer to pass" | Verifier was static, so it got gamed | `challenge:` fresh-nonce check |
+| "The reported gain didn't hold up" | Same set used to pick the fix and to report it | `sealed` split + one `final` run |
+| "Its edit half-applied and broke the file" | Free-form rewrites, no validation | Atomic SEARCH/REPLACE `patch` |
+| "We kept the shiny new version, which was worse" | No incumbent to compare against | `score` + `select` (retain unless strictly beaten) |
 
 **The kernel is at `scripts/harness_kernel.py`** (relative to this plugin). It is
 plain Python 3.8+, standard library only, cross-platform. Run
@@ -102,6 +105,19 @@ Split at least one contract as `--split held_out`. Held-in tells you the fix
 worked; held-out tells you it did not break something else. With no held-out
 contract the promotion gate cannot see overfitting, and it will say so.
 
+The three splits are the Harness Learning partition, and each has one job:
+
+| Split | Alias | Role | Who sees detail |
+|---|---|---|---|
+| `held_in` | `feedback` | Q_fb — failures are mined and shown to the proposer | you |
+| `held_out` | `score` | Q_score — gates and ranks candidate edits | aggregates only; not mined |
+| `sealed` | `eval` | Q_eval — one blind run via `final`, at the end | nobody, until `final` |
+
+Add `sealed` contracts whenever the number at the end will be reported to
+someone — a held-out test set, an external benchmark, the reviewer's checklist.
+Better still, have the user keep them outside the workspace (`final
+--sealed-dir`).
+
 Then freeze them: `$K guard init`. This is a tripwire, not a sandbox (see
 Anti-gaming below).
 
@@ -172,6 +188,21 @@ Every edit ships a falsifiable prediction. An edit whose prediction does not
 land is rolled back, not rationalised. That single rule is what separates a
 repair loop from thrashing.
 
+When there are several plausible fixes, run the **tournament** instead
+([[harness-evolve]] §T): read `report`, write 2–4 SEARCH/REPLACE candidates,
+`score` each on Q_score against the incumbent, `select` keeps the incumbent
+unless strictly beaten. Iterate rounds rather than widening G. Close with one
+`final` on the sealed split.
+
+```bash
+$K report --round 2
+$K snapshot --round 2 --paths tools && $K score --round 2 --label incumbent
+$K patch --file edits/c1.patch --round 2 --label c1 && $K score --round 2 --label c1
+$K patch --file edits/c2.patch --round 2 --label c2 && $K score --round 2 --label c2
+$K select --round 2
+$K final                   # once, at the very end
+```
+
 ## Where the leverage actually is
 
 Measured ablation (AHE, Lin et al. 2026): the gains localised to **tools,
@@ -190,6 +221,9 @@ fail to invoke the harness artifacts at all or invoke them and then drift.
 Practical consequences:
 
 - Cheaper models are fine for mining, summarising, and drafting edits.
+  Harness Learning (2026) points the same way from the other side: a trained
+  4B proposer out-edited its 35B teacher on unseen task families. Editing
+  skill comes from feedback, not size.
 - The agent **executing** long-horizon work must actually follow the harness.
   If it stops running `assert` or stops writing traces, that is the failure —
   the harness is being ignored, not disproven.
@@ -240,6 +274,12 @@ The loop will exploit whatever it is graded on. Rules:
    the artifact games *itself*. Route the nonce through the deliverable (feed it
    as input, seed, or query) so the artifact is what must produce the response.
    `scripts/verifiers/check_challenge_response.py` shows the pattern.
+6. `patch` refuses to edit guarded files and anything under `.harness/`, so a
+   repair candidate cannot reach the grader through the edit interface. Hand
+   edits can still; that is what `guard check` is for.
+7. Don't let the selection set leak into feedback. `mine` skips `held_out`
+   failures by default, `score` writes no trace, and `report` shows Q_score only
+   as aggregates. Read `report`, not the raw trace, when proposing.
 
 ## Cost discipline
 

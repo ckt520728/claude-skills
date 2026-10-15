@@ -29,10 +29,27 @@ each also independently grounded in the verified corpus (see
 - **`ladder`** — a graded capability ladder: highest contiguous tier passed, a
   dense progress meter alongside the binary promotion gate.
 
+**v2.2.0** adds test-time harness learning, from Zhang et al. (CMU, 2026),
+*Harness Learning Enables Generalizable Test-Time Adaptation* — a frozen model
+adapting by revising its harness program from execution feedback (see
+`references/evidence-ledger.md`, "v2.2.0 upgrade"):
+
+- **Three-way split** — `held_in` / `held_out` / new `sealed` (aliases
+  `feedback` / `score` / `eval`) = the paper's Q_fb / Q_score / Q_eval. `mine`
+  no longer reads the score split; sealed contracts run only via `final`.
+- **`patch`** — structured SEARCH/REPLACE edits, validated and applied
+  all-or-nothing; refuses guarded verifiers, `.harness/`, and `.py` that does
+  not parse. Proposal validity rate is tracked.
+- **`report` → `score` → `select`** — a candidate tournament: the proposer
+  reads an execution report on Q_fb, G candidates are scored on Q_score, and
+  the incumbent is kept unless strictly beaten. Rounds form an adaptation curve.
+- **`final`** — one blind run on Q_eval, optionally from contracts held
+  outside the workspace; afterwards the set is marked spent.
+
 ## Install
 
 ```bash
-python scripts/harness_kernel.py selftest          # 42 checks, must PASS
+python scripts/harness_kernel.py selftest          # 77 checks, must PASS
 python scripts/verifiers/test_verifiers.py         # 72 checks, must PASS
 cp -r skills/* ~/.claude/skills/               # Windows: copy skills\* to %USERPROFILE%\.claude\skills\
 ```
@@ -75,7 +92,11 @@ $K publish --contract draft
 | `guard` | Tripwire on contracts and verifier scripts |
 | `constraint` | Invariant rules that survive compaction (add / list) |
 | `ladder` | Graded progress meter — highest contiguous tier passed (set / assert) |
-| `selftest` | 42 checks proving the kernel works |
+| `report` | Proposer input: task spec + execution report on Q_fb + prior candidates |
+| `patch` | Atomic SEARCH/REPLACE edit; `--round --label` registers a candidate |
+| `score` / `select` | J on Q_score per candidate; keep incumbent unless strictly beaten |
+| `final` | One blind run on the sealed split (Q_eval); marks it spent |
+| `selftest` | 77 checks proving the kernel works |
 
 ## Contract checks
 
@@ -148,6 +169,27 @@ when the task needs them.
   contract it with `cmd:`.
 
 ## Changelog
+
+### v2.2.0 — 2026-10-15
+
+Test-time harness learning, from Zhang et al. (CMU, 2026), *Harness Learning
+Enables Generalizable Test-Time Adaptation*:
+
+- **`sealed` split** (+ aliases `feedback`/`score`/`eval`) — Q_fb / Q_score /
+  Q_eval partition. `assert`/`assertall` refuse or skip sealed contracts.
+- **`mine` excludes `held_out` failures by default** (`--all-splits` restores
+  the old behaviour). Behaviour change: the selection set is no longer mined.
+- **`patch`** — atomic SEARCH/REPLACE edits with guard/kernel-state/parse
+  refusals, CRLF preservation, validity-rate stats.
+- **`report`**, **`score`**, **`select`** — candidate tournament with incumbent
+  retention and an adaptation curve.
+- **`final`** — single blind run on Q_eval, `--sealed-dir` for user-held sets.
+- Selftest now reports a kernel `SystemExit` as a failed check instead of
+  ending silently (found by mutation testing).
+
+The RL-trained proposer (the paper's outer loop) is deliberately not
+reproduced; see the ledger. Gates: kernel selftest 42 → 77, verifier suite 72
+(unchanged).
 
 ### v2.1.0 — 2026-09-06
 
