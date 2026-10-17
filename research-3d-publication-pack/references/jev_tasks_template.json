@@ -1,0 +1,263 @@
+{
+  "_comment": "Jev-engineering Phase 1 work queue template. The planner (jev-planner) runs on the high tier and writes only control data. Every Phase 2 task runs on a jev-executor-medium subagent; jev-executor-low is not used anywhere in this skill. All audit work (acceptance after each wave, T15 integration QA, pre-publish audit) runs on an independent high-tier auditor (opus, effort high) that re-runs the checks itself and never accepts worker self-report. A failed task goes back to the planner (replan); there is no high executor.",
+  "routing": {
+    "planner": {
+      "agent": "jev-planner",
+      "tier": "high",
+      "model": "opus",
+      "effort": "high",
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ]
+    },
+    "executor": {
+      "agent": "jev-executor-medium",
+      "tier": "medium",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Write",
+        "Edit",
+        "Bash"
+      ]
+    },
+    "fallback_if_plugin_agents_missing": "Agent tool with model 'opus' + effort 'high' (planner, read-only) and model 'sonnet' (executors)",
+    "forbidden_tiers": [
+      "low"
+    ],
+    "on_failure": "replan via jev-planner; do not escalate generation to high",
+    "confirm_actual_model_before_trusting_output": true,
+    "auditor": {
+      "agent": "Agent tool (fresh subagent per audit)",
+      "tier": "high",
+      "model": "opus",
+      "effort": "high",
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "edits_deliverables": false,
+      "independent_of_producer": true,
+      "inputs": "TaskSpecs + references/ specs + artifact paths only; no worker reasoning or self-reports",
+      "when": [
+        "after every wave",
+        "T15-integration-qa",
+        "pre-publish audit of the staged repo clone"
+      ],
+      "writes": "qa/audit_wave<N>.md (command, output, verdict per gate)",
+      "on_fail": "report to the planner for replan; next wave waits"
+    }
+  },
+  "parallel_waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "T01-lit-method",
+        "T02-lit-system-A",
+        "T03-lit-system-B",
+        "T04-lit-system-C",
+        "T05-lit-coupling",
+        "T07-analysis-cubes"
+      ]
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "T06-evidence-merge",
+        "T08-blender-scene"
+      ]
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "T09-site-explorer",
+        "T11-review-paper"
+      ]
+    },
+    {
+      "wave": 4,
+      "tasks": [
+        "T10-site-content",
+        "T12-html-deck",
+        "T14-blog-zhTW"
+      ]
+    },
+    {
+      "wave": 5,
+      "tasks": [
+        "T13-pptx-deck"
+      ]
+    },
+    {
+      "wave": 6,
+      "tasks": [
+        "T15-integration-qa"
+      ]
+    },
+    {
+      "wave": 7,
+      "tasks": [
+        "T16-repo-staging"
+      ],
+      "note": "stops before push/merge; the user approves each"
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "T01-lit-method",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "capabilities": [
+        "read",
+        "network_egress",
+        "local_write"
+      ],
+      "objective": "PubMed/Crossref search for the method shard; record exact queries, dates and counts; every entry has a resolvable DOI or PMID.",
+      "acceptance": [
+        "queries + date + counts saved",
+        "every DOI resolves (HTTP checked)",
+        "claim_type per row: observed/derived/literature/hypothesis"
+      ]
+    },
+    {
+      "task_id": "T06-evidence-merge",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "capabilities": [
+        "read",
+        "local_write",
+        "network_egress"
+      ],
+      "objective": "Merge shard outputs into evidence_matrix.json, prisma_flow.json and references.bib; check external links.",
+      "acceptance": [
+        "every bib key cited by a shard exists",
+        "year in each bib entry matches the source record",
+        "guideline citations (e.g. PRISMA-ScR) point to the guideline paper itself"
+      ]
+    },
+    {
+      "task_id": "T07-analysis-cubes",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "capabilities": [
+        "read",
+        "local_write",
+        "process_spawn"
+      ],
+      "objective": "Run the real pipeline on synthetic + real data; write cube JSONs per references/deliverable_specs.md section 1 and demo_facts.json.",
+      "acceptance": [
+        "orchestrator re-runs the run script and gets identical facts",
+        "targets that are missed are recorded as FAIL with details, not hidden",
+        "no hard-coded absolute paths",
+        "float16 max < 65504"
+      ]
+    },
+    {
+      "task_id": "T08-blender-scene",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "capabilities": [
+        "read",
+        "local_write",
+        "process_spawn"
+      ],
+      "acceptance": [
+        "built from the real cube JSONs",
+        "GLB alignment checked in the browser (ground-truth ridge on the energy cloud)"
+      ]
+    },
+    {
+      "task_id": "T09-site-explorer",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "scripts/smoke_test.cjs PASS on every page and dataset",
+        "audit_deliverables.py: no missing CSS classes, no missing local links",
+        "screenshots inspected by the orchestrator",
+        "import map present"
+      ]
+    },
+    {
+      "task_id": "T10-site-content",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "demo numbers equal demo_facts.json",
+        "links work in both the Output layout and the repo layout",
+        "paper shown as a summary only unless the user approved publication"
+      ]
+    },
+    {
+      "task_id": "T11-review-paper",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "md_to_docx.py exits 0 (no missing citations / unknown LaTeX)",
+        "PDF rendering inspected",
+        "markup scan clean",
+        "author/affiliation/funding/AI disclosure match the user's homepage or are placeholders",
+        "section-5 numbers equal demo_facts.json",
+        "methods text matches the pipeline parameters"
+      ]
+    },
+    {
+      "task_id": "T12-html-deck",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "live widget loads the real cube",
+        "smoke test PASS",
+        "numbers equal demo_facts.json"
+      ]
+    },
+    {
+      "task_id": "T13-pptx-deck",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "PowerPoint COM render to PNG, every slide inspected for overflow",
+        "text scan: no stale numbers"
+      ]
+    },
+    {
+      "task_id": "T14-blog-zhTW",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "homepage style tokens + skeleton reused",
+        "demo numbers equal demo_facts.json",
+        "smoke test PASS"
+      ]
+    },
+    {
+      "task_id": "T15-integration-qa",
+      "proposed_tier": "high",
+      "agent": "auditor (opus, effort high)",
+      "acceptance": [
+        "audit_deliverables.py clean on all artifacts",
+        "smoke test clean on all pages; screenshots inspected",
+        "demo_facts.json re-generated and diffed",
+        "DOCX->PDF and PPTX->PNG inspected",
+        "methods vs code params, author metadata vs homepage, citation support and BibTeX key-year checked",
+        "evidence saved to qa/; the orchestrator re-runs at least one gate itself"
+      ]
+    },
+    {
+      "task_id": "T16-repo-staging",
+      "proposed_tier": "medium",
+      "agent": "jev-executor-medium",
+      "acceptance": [
+        "scripts/stage_to_repo.py run; paper/ not copied",
+        "repo tests pass",
+        "audit + smoke test on the clone",
+        "commit only; push and merge wait for the user"
+      ]
+    }
+  ]
+}

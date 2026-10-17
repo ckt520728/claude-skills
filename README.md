@@ -2,6 +2,26 @@
 
 A collection of custom Claude Code skills.
 
+### research-3d-publication-pack
+
+Turns one research topic into a full publication pack:
+- a 3-D interactive website: Blender-built models plus a three.js explorer of a 3-D spectrum such as HHSA H(t, f_c, f_AM), with linked 2-D projections;
+- an English review paper with BibTeX and a properly rendered DOCX (math, author-year citations, embedded figures);
+- SOIL-structured English HTML and PPTX slide decks;
+- a Traditional Chinese homepage blog post in the author's site style;
+- staging into a GitHub Pages repo.
+
+It runs as a Jev-engineering two-phase workflow:
+- **jev-planner** (high tier) plans.
+- **jev-executor-medium** does every production task: PubMed review, analysis, site, paper, decks, blog and staging.
+- An independent **high-tier auditor** runs every check. No task goes to the low tier.
+
+It was built from the 2026-10 HHSA 3-D run, where low-tier workers fabricated demo data, broke the explorer and invented author metadata. Every number must come from a file the code wrote, missed targets are reported rather than hidden, and author details come only from the user. Bundled scripts: a real-browser smoke test, a deliverables audit (privacy, stale numbers, leftover markup, missing links and CSS), a Markdown-to-DOCX converter, and a repo staging script that never copies the paper.
+
+- Skill folder: `research-3d-publication-pack/`
+- Portable artifact: `research-3d-publication-pack.skill`
+- Pitfalls: `research-3d-publication-pack/references/pitfalls.md` (18 entries, each with the check that catches it)
+
 ### cognitive-test-to-samd
 
 Takes a lab cognitive or neuropsychological test from research instrument to a
