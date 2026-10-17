@@ -21,6 +21,7 @@ It was built from the 2026-10 HHSA 3-D run, where low-tier workers fabricated de
 - Skill folder: `research-3d-publication-pack/`
 - Portable artifact: `research-3d-publication-pack.skill`
 - Pitfalls: `research-3d-publication-pack/references/pitfalls.md` (18 entries, each with the check that catches it)
+- Session wrap-up and pitfalls: `2026-10-18_HHSA_3D_JEV_Publication_Pack_Lessons_and_Pitfalls.md`
 
 ### cognitive-test-to-samd
 
