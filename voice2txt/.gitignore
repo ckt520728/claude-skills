@@ -1,0 +1,17 @@
+.venv/
+.build-venv/
+tools/
+verification/typeless-rea.json
+verification/app-smoke/
+__pycache__/
+.pytest_cache/
+build/
+dist/
+models/
+gpu/
+*.spec
+*.sqlite3
+*.wav
+ios/*.xcodeproj/xcuserdata/
+ios/DerivedData/
+verification/tmp*/

@@ -1,0 +1,5 @@
+{
+  "dist/Voice2Txt/Voice2Txt.exe": "f100939ef6f146900670188b57cb085178d2ccbeb8e120570e96c0e219f85e42",
+  "models/whisper-small/model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+  "ios/Voice2Txt.xcodeproj/project.pbxproj": "f980db6c90826f2fd3d1c5c9d96849b05a2741df68af0403f2637c8a89daa272"
+}

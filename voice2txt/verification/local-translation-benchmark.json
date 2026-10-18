@@ -1,0 +1,29 @@
+{
+  "model": "gemma4:latest",
+  "num_ctx": 2048,
+  "cases": [
+    {
+      "id": "meeting",
+      "input": "今天下午四點開會，請記得帶研究報告。",
+      "text": "The meeting is at 4 PM this afternoon, please remember to bring the research report.",
+      "seconds": 0.46900000000005093,
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "negation",
+      "input": "請不要在星期五開會。報告有三份，不是四份。",
+      "text": "Please do not have a meeting on Friday. There are three reports, not four.",
+      "seconds": 0.2969999999995707,
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "hospital",
+      "input": "我明天上午九點到醫院，下午兩點回家。",
+      "text": "I will go to the hospital at nine o'clock tomorrow morning and return home at two o'clock in the afternoon.",
+      "seconds": 0.4210000000002765,
+      "keyword_checks_passed": true
+    }
+  ],
+  "scope": "固定文字，不是音訊端到端測試；不代表一般翻譯品質",
+  "preload_seconds": 6.828000000000429
+}

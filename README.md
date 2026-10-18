@@ -2,6 +2,18 @@
 
 A collection of custom Claude Code skills.
 
+### voice2txt (app)
+
+A Typeless-like voice input app with no subscription: Traditional Chinese, English, and Chinese speech → English. It is designed in two stages:
+- **Whisper** turns speech into a raw transcript on the user's computer.
+- **An LLM** organizes and denoises that transcript: it removes fillers and repeats, applies explicit self-corrections, fixes misheard words and adds punctuation. In zh→en mode it also translates. Contrasts and negations ("Monday, not Tuesday") are always kept.
+
+LLM chain: local Ollama → OpenAI `gpt-6-luna` (high) → Gemini `gemini-3.8-flash` (low) → Whisper only. A failed provider is paused for 60 s. Cloud models are opt-in, use the user's own key and receive text only, never audio. The Windows desktop app (Tkinter + faster-whisper, PyInstaller) is built and verified on fixed audio. The iPhone app (SwiftUI + WhisperKit) is written but not yet compiled.
+
+- App folder: `voice2txt/`. Start with `voice2txt/README.md`; the user manual (Traditional Chinese) is `voice2txt/USER_MANUAL.md`.
+- Evidence ledger: `voice2txt/STATUS.md` and `voice2txt/verification/`.
+- Session wrap-up and pitfalls: `2026-10-18_Voice2Txt_Whisper_LLM_Lessons_and_Pitfalls.md`
+
 ### research-3d-publication-pack
 
 Turns one research topic into a full publication pack:

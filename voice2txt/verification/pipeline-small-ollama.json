@@ -1,0 +1,36 @@
+{
+  "whisper_model": "small",
+  "device": "cpu",
+  "llm_model": "gemma4:latest",
+  "prepare_seconds": 6.844000000000051,
+  "scope": "固定合成音訊的端到端測試；不代表真人或一般準確度",
+  "cases": [
+    {
+      "id": "meeting",
+      "input": "今天下午四點開會，請記得帶研究報告。",
+      "source": "今天下午四點開會,請記得帶研究報告。",
+      "text": "The meeting is at 4 PM this afternoon, please remember to bring the research report.",
+      "error": "",
+      "seconds": 3.1099999999996726,
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "negation",
+      "input": "請不要在星期五開會。報告有三份，不是四份。",
+      "source": "請不要在星期五開會。報告有三分,不是四分。",
+      "text": "Please do not have a meeting on Friday. The report has three sections, not four.",
+      "error": "",
+      "seconds": 2.389999999999418,
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "hospital",
+      "input": "我明天上午九點到醫院，下午兩點回家。",
+      "source": "我明天上午九點到醫院,下午兩點回家。",
+      "text": "I will go to the hospital at nine o'clock tomorrow morning and go home at two o'clock in the afternoon.",
+      "error": "",
+      "seconds": 2.436999999999898,
+      "keyword_checks_passed": true
+    }
+  ]
+}

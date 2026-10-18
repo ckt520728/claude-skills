@@ -1,0 +1,183 @@
+{
+  "_scope": "2026-10-18 packaged exe, Ollama forced to fail (missing model) so the cloud backup translates; small CPU Whisper; inference_seconds includes Whisper transcription; 3 synthetic sentences; user-supplied keys (not stored)",
+  "Gemini-high-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "There is a meeting at 4:00 PM today; please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 27.75,
+    "error": null
+  },
+  "Gemini-high-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Whisper",
+    "fallback_warning": "Gemini gemini-3.8-flash：The read operation timed out",
+    "text": "Please do not hold a meeting again on Friday. The report has three points, not four points.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 33.9380000000001,
+    "error": null
+  },
+  "Gemini-high-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "I will arrive at the hospital at 9:00 AM tomorrow and go home at 2:00 PM.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 6.984000000000378,
+    "error": null
+  },
+  "OpenAI-high-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "There will be a meeting at four o’clock this afternoon. Please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 5.45299999999952,
+    "error": null
+  },
+  "OpenAI-high-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "Please don’t hold a meeting on Friday. The report has three points, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 5.608999999998559,
+    "error": null
+  },
+  "OpenAI-high-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "I will arrive at the hospital at 9 a.m. tomorrow and go home at 2 p.m.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 3.5930000000007567,
+    "error": null
+  },
+  "Gemini-medium-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "The meeting is at 4:00 this afternoon, please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 12.484000000000378,
+    "error": null
+  },
+  "Gemini-medium-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "Please do not hold a meeting on Friday. There are three copies of the report, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 10.5,
+    "error": null
+  },
+  "Gemini-medium-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "I will arrive at the hospital at 9:00 AM tomorrow and return home at 2:00 PM.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 9.92200000000048,
+    "error": null
+  },
+  "Gemini-low-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "There is a meeting at 4:00 PM today; please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 10.95299999999952,
+    "error": null
+  },
+  "Gemini-low-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "Please do not hold the meeting on Friday. There are three copies of the report, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 8.311999999999898,
+    "error": null
+  },
+  "Gemini-low-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "backend": "Gemini gemini-3.8-flash",
+    "fallback_warning": "",
+    "text": "I will arrive at the hospital at 9:00 AM tomorrow and go home at 2:00 PM.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 10.375,
+    "error": null
+  },
+  "OpenAI-medium-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "We have a meeting at 4:00 this afternoon. Please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 4.17200000000048,
+    "error": null
+  },
+  "OpenAI-medium-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "Please don’t hold the meeting on Friday. The report has three points, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 4.890999999999622,
+    "error": null
+  },
+  "OpenAI-medium-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "I’ll arrive at the hospital at 9 tomorrow morning and return home at 2 in the afternoon.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 4.593999999999141,
+    "error": null
+  },
+  "OpenAI-low-meeting": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "The meeting is at four o’clock this afternoon. Please remember to bring the research report.",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 3.625,
+    "error": null
+  },
+  "OpenAI-low-negation": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "Please don’t hold the meeting on Friday. The report is worth three points, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 3.5,
+    "error": null
+  },
+  "OpenAI-low-hospital": {
+    "ok": true,
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "backend": "OpenAI gpt-6-luna",
+    "fallback_warning": "",
+    "text": "I’ll arrive at the hospital at 9 a.m. tomorrow and return home at 2 p.m.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 3.859999999998763,
+    "error": null
+  }
+}

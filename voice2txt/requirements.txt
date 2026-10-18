@@ -1,0 +1,4 @@
+faster-whisper==1.2.1
+sounddevice==0.5.3
+opencc-python-reimplemented==0.1.7
+numpy>=1.23,<3

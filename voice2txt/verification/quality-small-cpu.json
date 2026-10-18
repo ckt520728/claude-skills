@@ -1,0 +1,61 @@
+{
+  "model": "small",
+  "device": "cpu",
+  "cases": [
+    {
+      "id": "meeting",
+      "input": "今天下午四點開會，請記得帶研究報告。",
+      "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+      "audio_seconds": 4.7545625,
+      "inference_seconds": 3.657000000000153,
+      "keyword_checks": [
+        false,
+        true,
+        true
+      ],
+      "keyword_checks_passed": false
+    },
+    {
+      "id": "negation",
+      "input": "請不要在星期五開會。報告有三份，不是四份。",
+      "text": "Please do not hold a meeting again on Friday. The report has three points, not four points.",
+      "audio_seconds": 6.1028125,
+      "inference_seconds": 2.0159999999996217,
+      "keyword_checks": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "hospital",
+      "input": "我明天上午九點到醫院，下午兩點回家。",
+      "text": "I will go back home at 2 p.m. tomorrow at 9 p.m.",
+      "audio_seconds": 4.6815,
+      "inference_seconds": 1.9539999999997235,
+      "keyword_checks": [
+        false,
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": false
+    },
+    {
+      "id": "english",
+      "input": "The meeting starts at four in the afternoon. Please bring the research report.",
+      "text": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+      "audio_seconds": 5.5685625,
+      "inference_seconds": 1.875,
+      "keyword_checks": [
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": true
+    }
+  ],
+  "scope": "Windows 合成語音；關鍵詞檢查不證明完整語意、真人音訊或一般準確度"
+}

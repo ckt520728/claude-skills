@@ -1,0 +1,65 @@
+{
+  "model": "medium",
+  "device": "cuda",
+  "cases": [
+    {
+      "id": "meeting",
+      "input": "今天下午四點開會，請記得帶研究報告。",
+      "text": "The meeting will be held at 4 p.m. today. Please remember to bring your research report.",
+      "source_transcript": "今天下午四點開會,請記得帶研究報告",
+      "audio_seconds": 4.7545625,
+      "inference_seconds": 0.6410000000005311,
+      "keyword_checks": [
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "negation",
+      "input": "請不要在星期五開會。報告有三份，不是四份。",
+      "text": "Please do not have a meeting on Friday The report has three parts, not four parts",
+      "source_transcript": "請不要在星期五開會報告有三份,不是四份",
+      "audio_seconds": 6.1028125,
+      "inference_seconds": 0.4070000000001528,
+      "keyword_checks": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": true
+    },
+    {
+      "id": "hospital",
+      "input": "我明天上午九點到醫院，下午兩點回家。",
+      "text": "I will go to the hospital at 9 o'clock in the morning and go home at 2 p.m.",
+      "source_transcript": "我明天上午9點到醫院,下午2點回家",
+      "audio_seconds": 4.6815,
+      "inference_seconds": 0.40599999999994907,
+      "keyword_checks": [
+        true,
+        false,
+        true,
+        true
+      ],
+      "keyword_checks_passed": false
+    },
+    {
+      "id": "english",
+      "input": "The meeting starts at four in the afternoon. Please bring the research report.",
+      "text": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+      "source_transcript": "",
+      "audio_seconds": 5.5685625,
+      "inference_seconds": 0.3899999999994179,
+      "keyword_checks": [
+        true,
+        true,
+        true
+      ],
+      "keyword_checks_passed": true
+    }
+  ],
+  "scope": "Windows 合成語音；關鍵詞檢查不證明完整語意、真人音訊或一般準確度"
+}

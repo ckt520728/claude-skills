@@ -1,0 +1,205 @@
+{
+  "whisper_model": "small",
+  "device": "cpu",
+  "backends": [
+    "Ollama gemma4:latest",
+    "OpenAI gpt-6-luna (high)",
+    "Gemini gemini-3.8-flash (low)"
+  ],
+  "scope": "Windows TTS 合成的含贅詞／口誤語句，各 3 句；不代表真人或一般準確度",
+  "cases": [
+    {
+      "id": "zh-correction",
+      "mode": "zh",
+      "spoken": "嗯，那個，我們明天下午，呃，三點，不對，是四點開會，就是，記得帶報告。",
+      "whisper_raw": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+      "results": {
+        "Whisper only": {
+          "text": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+          "seconds": 0.0,
+          "passed": false,
+          "missing": [],
+          "leftover": [
+            "3點"
+          ]
+        },
+        "Ollama gemma4:latest": {
+          "text": "我們明天下午四點開會，記得帶報告。",
+          "seconds": 0.62,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "OpenAI gpt-6-luna (high)": {
+          "text": "我們明天下午4點開會，記得帶報告。",
+          "seconds": 2.56,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "Gemini gemini-3.8-flash (low)": {
+          "text": "",
+          "seconds": 0.25,
+          "passed": false,
+          "error": "HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/"
+        }
+      }
+    },
+    {
+      "id": "zh-correction",
+      "mode": "translate",
+      "spoken": "嗯，那個，我們明天下午，呃，三點，不對，是四點開會，就是，記得帶報告。",
+      "whisper_raw": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+      "results": {
+        "Whisper only": {
+          "text": "恩,那个,我们明天下午,二,三点,不对,是四点开会,就是,记得带报告。",
+          "seconds": 2.25,
+          "passed": false,
+          "missing": [
+            "four",
+            "meet",
+            "report",
+            "tomorrow"
+          ],
+          "leftover": []
+        },
+        "Ollama gemma4:latest": {
+          "text": "We have a meeting tomorrow afternoon at 4 o'clock. Remember to bring the report.",
+          "seconds": 0.62,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "OpenAI gpt-6-luna (high)": {
+          "text": "We have a meeting tomorrow afternoon at 4. Remember to bring the report.",
+          "seconds": 3.3,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "Gemini gemini-3.8-flash (low)": {
+          "text": "We have a meeting tomorrow at 4:00 PM. Remember to bring the report.",
+          "seconds": 2.62,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        }
+      }
+    },
+    {
+      "id": "zh-repeat",
+      "mode": "zh",
+      "spoken": "我我我想要，那個，預約，預約下禮拜一的門診，不是禮拜二。",
+      "whisper_raw": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+      "results": {
+        "Whisper only": {
+          "text": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+          "seconds": 0.0,
+          "passed": false,
+          "missing": [],
+          "leftover": [
+            "我我",
+            "預約預約"
+          ]
+        },
+        "Ollama gemma4:latest": {
+          "text": "我想要預約下禮拜一的門診，不是禮拜二。",
+          "seconds": 0.69,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "OpenAI gpt-6-luna (high)": {
+          "text": "我想要預約下禮拜一的門診，不是禮拜二。",
+          "seconds": 2.08,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "Gemini gemini-3.8-flash (low)": {
+          "text": "",
+          "seconds": 0.27,
+          "passed": false,
+          "error": "HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/"
+        }
+      }
+    },
+    {
+      "id": "zh-repeat",
+      "mode": "translate",
+      "spoken": "我我我想要，那個，預約，預約下禮拜一的門診，不是禮拜二。",
+      "whisper_raw": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+      "results": {
+        "Whisper only": {
+          "text": "I, I, I want to, that, make an appointment, make an appointment, on Monday, not Monday.",
+          "seconds": 1.98,
+          "passed": false,
+          "missing": [
+            "tuesday"
+          ],
+          "leftover": []
+        },
+        "Ollama gemma4:latest": {
+          "text": "I want to book a clinic appointment for next Monday, not Tuesday.",
+          "seconds": 0.61,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "OpenAI gpt-6-luna (high)": {
+          "text": "I’d like to book an outpatient appointment for next Monday, not Tuesday.",
+          "seconds": 2.17,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "Gemini gemini-3.8-flash (low)": {
+          "text": "",
+          "seconds": 0.23,
+          "passed": false,
+          "error": "HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/"
+        }
+      }
+    },
+    {
+      "id": "en-correction",
+      "mode": "en",
+      "spoken": "Um, so the, uh, the meeting is at three, sorry, I mean four p.m. tomorrow, you know, in room five.",
+      "whisper_raw": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+      "results": {
+        "Whisper only": {
+          "text": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+          "seconds": 0.0,
+          "passed": false,
+          "missing": [],
+          "leftover": [
+            "um",
+            "uh",
+            "you know"
+          ]
+        },
+        "Ollama gemma4:latest": {
+          "text": "The meeting is at 4 pm tomorrow in room 5.",
+          "seconds": 0.62,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "OpenAI gpt-6-luna (high)": {
+          "text": "The meeting is at 4 p.m. tomorrow in room 5.",
+          "seconds": 2.89,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        },
+        "Gemini gemini-3.8-flash (low)": {
+          "text": "The meeting is at 4pm tomorrow in room 5.",
+          "seconds": 2.59,
+          "passed": true,
+          "missing": [],
+          "leftover": []
+        }
+      }
+    }
+  ]
+}

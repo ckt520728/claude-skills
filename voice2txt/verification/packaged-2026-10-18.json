@@ -1,0 +1,75 @@
+{
+  "en-small": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "llm_model": null,
+    "mode": "en",
+    "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+    "source": "",
+    "inference_seconds": 2.07799999999952
+  },
+  "tr-largev3-cuda": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "large-v3",
+    "device": "cuda",
+    "llm_model": null,
+    "mode": "translate",
+    "text": "Please do not have a meeting on Friday The report has three copies, not four",
+    "source": "",
+    "inference_seconds": 11.67200000000048
+  },
+  "tr-medium-cuda": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "medium",
+    "device": "cuda",
+    "llm_model": null,
+    "mode": "translate",
+    "text": "The meeting will be held at 4 p.m. today. Please remember to bring your research report.",
+    "source": "",
+    "inference_seconds": 5.343000000000757
+  },
+  "tr-ollama": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "llm_model": "gemma4:latest",
+    "mode": "translate",
+    "text": "Please do not have a meeting on Friday. The report has three sections, not four.",
+    "source": "請不要在星期五開會。報告有三分,不是四分。",
+    "inference_seconds": 3.875
+  },
+  "tr-small": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "llm_model": null,
+    "mode": "translate",
+    "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+    "source": "",
+    "inference_seconds": 1.985000000000582
+  },
+  "zh-small": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "llm_model": null,
+    "mode": "zh",
+    "text": "今天下午四點開會,請記得帶研究報告。",
+    "source": "",
+    "inference_seconds": 2.17200000000048
+  },
+  "_scope": "2026-10-18 rebuilt dist (build_windows.ps1 -IncludeGpu) --self-test on fixed fixtures, RTX 3060; not real-microphone evidence"
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "zh-correction",
+    "language": "zh",
+    "text": "嗯，那個，我們明天下午，呃，三點，不對，是四點開會，就是，記得帶報告。",
+    "zh_present": [["四點", "4點", "16點", "16:00"], ["開會", "會議"], ["報告"], ["明天"]],
+    "zh_absent": ["三點", "3點", "嗯", "呃"],
+    "en_present": [["four", "4"], ["meet"], ["report"], ["tomorrow"]],
+    "en_absent": ["three", "3 p", "3:00"]
+  },
+  {
+    "id": "zh-repeat",
+    "language": "zh",
+    "text": "我我我想要，那個，預約，預約下禮拜一的門診，不是禮拜二。",
+    "zh_present": [["禮拜一", "星期一", "週一", "周一"], ["門診"], ["禮拜二", "星期二", "週二", "周二"], ["不是"]],
+    "zh_absent": ["我我", "預約，預約", "預約預約"],
+    "en_present": [["monday"], ["tuesday"], ["not"], ["appointment", "clinic", "outpatient"]],
+    "en_absent": []
+  },
+  {
+    "id": "en-correction",
+    "language": "en",
+    "text": "Um, so the, uh, the meeting is at three, sorry, I mean four p.m. tomorrow, you know, in room five.",
+    "en_present": [["four", "4"], ["room five", "room 5"], ["tomorrow"], ["meeting"]],
+    "en_absent": ["three", "um", "uh", "you know"]
+  }
+]

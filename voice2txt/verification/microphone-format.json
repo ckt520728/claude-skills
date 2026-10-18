@@ -1,0 +1,7 @@
+{
+  "default_input_format_supported": true,
+  "sample_rate": 16000,
+  "channels": 1,
+  "dtype": "float32",
+  "recording_test": false
+}

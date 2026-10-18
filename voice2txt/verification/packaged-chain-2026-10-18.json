@@ -1,0 +1,135 @@
+{
+  "_scope": "2026-10-18 packaged exe after two-stage redesign (Whisper transcribe -> LLM refine in all modes). Each scenario disables earlier LLMs (bad Ollama model name / removed key env var). disfluent TTS fixtures. Gemini answered HTTP 429 (account quota) in this run, so ollama-down-no-openai fell through to Whisper; chain order itself confirmed via translator_chain and fallback_warning.",
+  "all-healthy-zh": {
+    "ok": true,
+    "mode": "zh",
+    "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Ollama gemma4:latest",
+    "fallback_warning": "",
+    "text": "我們明天下午四點開會，記得帶報告。",
+    "source": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "inference_seconds": 3.062999999998283,
+    "error": null
+  },
+  "all-healthy-en": {
+    "ok": true,
+    "mode": "en",
+    "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Ollama gemma4:latest",
+    "fallback_warning": "",
+    "text": "The meeting is at 4 pm tomorrow in room 5.",
+    "source": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "inference_seconds": 3.0309999999990396,
+    "error": null
+  },
+  "all-healthy-translate": {
+    "ok": true,
+    "mode": "translate",
+    "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Ollama gemma4:latest",
+    "fallback_warning": "",
+    "text": "I want to book a clinic appointment for next Monday, not Tuesday.",
+    "source": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+    "inference_seconds": 2.8280000000013388,
+    "error": null
+  },
+  "ollama-down-zh": {
+    "ok": true,
+    "mode": "zh",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "OpenAI gpt-6-luna (high)",
+    "fallback_warning": "",
+    "text": "我們明天下午4點開會，記得帶報告。",
+    "source": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "inference_seconds": 4.84400000000096,
+    "error": null
+  },
+  "ollama-down-en": {
+    "ok": true,
+    "mode": "en",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "OpenAI gpt-6-luna (high)",
+    "fallback_warning": "",
+    "text": "So the meeting is at 4pm tomorrow in room 5.",
+    "source": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "inference_seconds": 5.514999999999418,
+    "error": null
+  },
+  "ollama-down-translate": {
+    "ok": true,
+    "mode": "translate",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "OpenAI gpt-6-luna (high)",
+    "fallback_warning": "",
+    "text": "I'd like to schedule an outpatient appointment for next Monday, not Tuesday.",
+    "source": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+    "inference_seconds": 4.812000000001717,
+    "error": null
+  },
+  "ollama-down-no-openai-zh": {
+    "ok": true,
+    "mode": "zh",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "Gemini gemini-3.8-flash (low)：HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+    "text": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "source": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "inference_seconds": 2.4219999999986612,
+    "error": null
+  },
+  "ollama-down-no-openai-en": {
+    "ok": true,
+    "mode": "en",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "Gemini gemini-3.8-flash (low)：HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+    "text": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "source": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "inference_seconds": 2.375,
+    "error": null
+  },
+  "ollama-down-no-openai-translate": {
+    "ok": true,
+    "mode": "translate",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Gemini gemini-3.8-flash (low) → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "Gemini gemini-3.8-flash (low)：HTTP 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/",
+    "text": "I, I, I want to, that, make an appointment, make an appointment, on Monday, not Monday.",
+    "source": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+    "inference_seconds": 4.46900000000096,
+    "error": null
+  },
+  "all-llm-down-zh": {
+    "ok": true,
+    "mode": "zh",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "所有 LLM 暫停中",
+    "text": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "source": "N,那個,我們明天下午,2,3點,不對,是4點開會,就是,記得帶報告。",
+    "inference_seconds": 2.172000000002299,
+    "error": null
+  },
+  "all-llm-down-en": {
+    "ok": true,
+    "mode": "en",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "所有 LLM 暫停中",
+    "text": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "source": "Um, so they, uh, the meeting is at 3, sorry, I mean 4pm tomorrow, you know, in room 5.",
+    "inference_seconds": 2.1409999999996217,
+    "error": null
+  },
+  "all-llm-down-translate": {
+    "ok": true,
+    "mode": "translate",
+    "translator_chain": "Whisper 轉錄 → Ollama missing-model:latest → Whisper 結果",
+    "backend": "Whisper",
+    "fallback_warning": "所有 LLM 暫停中",
+    "text": "I, I, I want to, that, make an appointment, make an appointment, on Monday, not Monday.",
+    "source": "我我想要那個預約預約下禮拜一的門診,不是禮拜二。",
+    "inference_seconds": 4.062000000001717,
+    "error": null
+  }
+}

@@ -1,0 +1,34 @@
+name: Voice2Txt
+options:
+  bundleIdPrefix: org.voice2txt
+  deploymentTarget:
+    iOS: '16.0'
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    exactVersion: 0.9.4
+targets:
+  Voice2Txt:
+    type: application
+    platform: iOS
+    sources: [Voice2Txt]
+    dependencies:
+      - package: WhisperKit
+    settings:
+      base:
+        SWIFT_VERSION: '5.0'
+        TARGETED_DEVICE_FAMILY: '1,2'
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Voice2Txt
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: 使用麥克風進行本機語音轉錄及中英翻譯。
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: '0.1.0'
+        PRODUCT_BUNDLE_IDENTIFIER: org.voice2txt.app
+        CODE_SIGN_STYLE: Automatic
+schemes:
+  Voice2Txt:
+    build:
+      targets:
+        Voice2Txt: all

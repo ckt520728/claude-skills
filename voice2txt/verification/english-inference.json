@@ -1,0 +1,11 @@
+{
+  "fixture": "https://github.com/ggml-org/whisper.cpp/blob/master/samples/jfk.wav",
+  "model": "base",
+  "device": "cpu",
+  "compute_type": "int8",
+  "audio_seconds": 11.0,
+  "load_seconds": 1.094,
+  "inference_seconds": 0.969,
+  "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+  "scope": "公開英文音訊的實際推論；不證明中文準確度或即時麥克風品質"
+}

@@ -1,0 +1,6 @@
+[
+  {"id":"meeting","language":"zh","text":"今天下午四點開會，請記得帶研究報告。","expected_english":[["meeting","meet"],["four","4"],["report"]]},
+  {"id":"negation","language":"zh","text":"請不要在星期五開會。報告有三份，不是四份。","expected_english":[["not","don't"],["friday"],["three","3"],["four","4"]]},
+  {"id":"hospital","language":"zh","text":"我明天上午九點到醫院，下午兩點回家。","expected_english":[["hospital"],["tomorrow"],["nine","9"],["two","2"]]},
+  {"id":"english","language":"en","text":"The meeting starts at four in the afternoon. Please bring the research report.","expected_english":[["meeting"],["four","4"],["report"]]}
+]

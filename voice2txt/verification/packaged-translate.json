@@ -1,0 +1,10 @@
+{
+  "stage": "completed",
+  "tk": "8.6.12",
+  "desktop_ui": true,
+  "input_devices": 12,
+  "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+  "inference_seconds": 2.094000000000051,
+  "mode": "translate",
+  "ok": true
+}

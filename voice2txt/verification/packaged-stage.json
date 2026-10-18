@@ -1,0 +1,5 @@
+{
+  "stage": "before_model_init",
+  "tk": "8.6.12",
+  "input_devices": 12
+}

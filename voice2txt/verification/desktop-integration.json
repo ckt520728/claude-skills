@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "real_tk_ui": true,
+  "microphone": "mock",
+  "decoder": "mock",
+  "checks": [
+    "8 秒上限與 2 秒尾段",
+    "畫面輸出",
+    "SQLite",
+    "字典儲存",
+    "辨識失敗不顯示成功",
+    "LLM 整理繁體中文並保留原始轉錄",
+    "LLM 中英文對照",
+    "LLM 失敗時改用 Whisper 直接翻譯、不中斷錄音、不彈窗"
+  ]
+}

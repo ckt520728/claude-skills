@@ -1,0 +1,57 @@
+{
+  "model": "medium",
+  "device": "cuda",
+  "input_seconds": 18.538875,
+  "scope": "固定合成語料以 100 ms 區塊加速重播，非真人麥克風或實際長時間錄音",
+  "chunks": [
+    {
+      "samples": 73280,
+      "available_at_audio_seconds": 4.6,
+      "inference_seconds": 0.6719999999995707,
+      "text": "The meeting will be held at 4 p.m. today. Please remember to bring your research report."
+    },
+    {
+      "samples": 16000,
+      "available_at_audio_seconds": 5.6,
+      "inference_seconds": 0.0,
+      "text": ""
+    },
+    {
+      "samples": 47040,
+      "available_at_audio_seconds": 8.6,
+      "inference_seconds": 0.2960000000002765,
+      "text": "Please do not have a meeting on Friday."
+    },
+    {
+      "samples": 50560,
+      "available_at_audio_seconds": 11.7,
+      "inference_seconds": 0.26600000000053114,
+      "text": "There are three reports, not four."
+    },
+    {
+      "samples": 16000,
+      "available_at_audio_seconds": 12.7,
+      "inference_seconds": 0.0,
+      "text": ""
+    },
+    {
+      "samples": 75840,
+      "available_at_audio_seconds": 17.5,
+      "inference_seconds": 0.40599999999994907,
+      "text": "I will go to the hospital at 9 o'clock in the morning and go home at 2 p.m."
+    },
+    {
+      "samples": 16000,
+      "available_at_audio_seconds": 18.5,
+      "inference_seconds": 0.0,
+      "text": ""
+    },
+    {
+      "samples": 1902,
+      "available_at_audio_seconds": 18.538875,
+      "inference_seconds": 0.0,
+      "text": ""
+    }
+  ],
+  "samples_preserved": true
+}

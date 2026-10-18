@@ -1,0 +1,11 @@
+{
+  "openstep_parse": true,
+  "swift_sources": [
+    "Voice2TxtApp.swift",
+    "ContentView.swift",
+    "Transcriber.swift",
+    "AudioChunker.swift"
+  ],
+  "xcode_build": false,
+  "device_test": false
+}

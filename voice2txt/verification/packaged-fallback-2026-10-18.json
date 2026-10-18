@@ -1,0 +1,121 @@
+{
+  "en": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "en",
+    "translator_chain": null,
+    "prepare_warnings": null,
+    "backend": "",
+    "fallback_warning": "",
+    "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+    "source": "",
+    "inference_seconds": 2.3280000000013388,
+    "error": null
+  },
+  "tr-gemini-badkey": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "translate",
+    "translator_chain": "Ollama missing-model:latest → Gemini gemini-3.8-flash → Whisper",
+    "prepare_warnings": [
+      "Ollama missing-model:latest 無法使用（HTTP Error 404: Not Found），先改用備援。"
+    ],
+    "backend": "Whisper",
+    "fallback_warning": "Gemini gemini-3.8-flash：HTTP 400 API key not valid. Please pass a valid API key.",
+    "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 3.811999999999898,
+    "error": null
+  },
+  "tr-medium-cuda": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "medium",
+    "device": "cuda",
+    "mode": "translate",
+    "translator_chain": null,
+    "prepare_warnings": null,
+    "backend": "Whisper",
+    "fallback_warning": "",
+    "text": "The meeting will be held at 4 p.m. today. Please remember to bring your research report.",
+    "source": "",
+    "inference_seconds": 1.6409999999996217,
+    "error": null
+  },
+  "tr-ollama-broken": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "translate",
+    "translator_chain": "Ollama missing-model:latest → Whisper",
+    "prepare_warnings": [
+      "Ollama missing-model:latest 無法使用（HTTP Error 404: Not Found），先改用備援。"
+    ],
+    "backend": "Whisper",
+    "fallback_warning": "所有 LLM 翻譯引擎暫停中",
+    "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 3.82799999999952,
+    "error": null
+  },
+  "tr-ollama": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "translate",
+    "translator_chain": "Ollama gemma4:latest → Whisper",
+    "prepare_warnings": [],
+    "backend": "Ollama gemma4:latest",
+    "fallback_warning": "",
+    "text": "I will go to the hospital at nine o'clock tomorrow morning and go home at two o'clock in the afternoon.",
+    "source": "我明天上午九點到醫院,下午兩點回家。",
+    "inference_seconds": 3.32799999999952,
+    "error": null
+  },
+  "tr-openai-badkey": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "translate",
+    "translator_chain": "Ollama missing-model:latest → OpenAI gpt-6-luna → Whisper",
+    "prepare_warnings": [
+      "Ollama missing-model:latest 無法使用（HTTP Error 404: Not Found），先改用備援。"
+    ],
+    "backend": "Whisper",
+    "fallback_warning": "OpenAI gpt-6-luna：HTTP 401 Incorrect API key provided: invalid-****-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "text": "Today afternoon at 4 o'clock, please remember to bring the research report",
+    "source": "今天下午四點開會,請記得帶研究報告。",
+    "inference_seconds": 4.218999999999141,
+    "error": null
+  },
+  "zh": {
+    "ok": true,
+    "stage": "completed",
+    "desktop_ui": true,
+    "model": "small",
+    "device": "cpu",
+    "mode": "zh",
+    "translator_chain": null,
+    "prepare_warnings": null,
+    "backend": "",
+    "fallback_warning": "",
+    "text": "今天下午四點開會,請記得帶研究報告。",
+    "source": "",
+    "inference_seconds": 2.45299999999952,
+    "error": null
+  },
+  "_scope": "2026-10-18 packaged exe (-IncludeGpu) after Ollama-default + fallback chain; fixed fixtures, RTX 3060. Cloud runs used an intentionally invalid key: proves endpoint reachability and the fallback path, not cloud translation quality."
+}

@@ -1,0 +1,10 @@
+{
+  "stage": "completed",
+  "tk": "8.6.12",
+  "desktop_ui": true,
+  "input_devices": 12,
+  "text": "今天下午四點開會,請記得帶研究報告。",
+  "inference_seconds": 3.125,
+  "mode": "zh",
+  "ok": true
+}

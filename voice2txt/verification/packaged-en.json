@@ -1,0 +1,10 @@
+{
+  "stage": "completed",
+  "tk": "8.6.12",
+  "desktop_ui": true,
+  "input_devices": 12,
+  "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+  "inference_seconds": 2.1409999999996217,
+  "mode": "en",
+  "ok": true
+}

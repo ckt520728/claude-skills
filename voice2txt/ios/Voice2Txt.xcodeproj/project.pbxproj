@@ -1,0 +1,211 @@
+// !$*UTF8*$!
+{
+	"archiveVersion" = "1";
+	"classes" = {
+
+	};
+	"objectVersion" = "56";
+	"objects" = {
+		"000000000000000000000014" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Voice2TxtApp.swift";
+			"sourceTree" = "<group>";
+		};
+		"00000000000000000000001E" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "000000000000000000000014";
+		};
+		"000000000000000000000015" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "ContentView.swift";
+			"sourceTree" = "<group>";
+		};
+		"00000000000000000000001F" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "000000000000000000000015";
+		};
+		"000000000000000000000016" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Transcriber.swift";
+			"sourceTree" = "<group>";
+		};
+		"000000000000000000000020" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "000000000000000000000016";
+		};
+		"000000000000000000000017" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "AudioChunker.swift";
+			"sourceTree" = "<group>";
+		};
+		"000000000000000000000021" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "000000000000000000000017";
+		};
+		"000000000000000000000028" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.application";
+			"includeInIndex" = "0";
+			"path" = "Voice2Txt.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"000000000000000000000002" = {
+			"isa" = "PBXGroup";
+			"children" = ("000000000000000000000003", "000000000000000000000004",);
+			"sourceTree" = "<group>";
+		};
+		"000000000000000000000003" = {
+			"isa" = "PBXGroup";
+			"path" = "Voice2Txt";
+			"children" = ("000000000000000000000014", "000000000000000000000015", "000000000000000000000016", "000000000000000000000017",);
+			"sourceTree" = "<group>";
+		};
+		"000000000000000000000004" = {
+			"isa" = "PBXGroup";
+			"name" = "Products";
+			"children" = ("000000000000000000000028",);
+			"sourceTree" = "<group>";
+		};
+		"00000000000000000000000A" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = ("00000000000000000000001E", "00000000000000000000001F", "000000000000000000000020", "000000000000000000000021",);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"00000000000000000000000B" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = ("000000000000000000000033",);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"00000000000000000000000C" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"000000000000000000000032" = {
+			"isa" = "XCRemoteSwiftPackageReference";
+			"repositoryURL" = "https://github.com/argmaxinc/WhisperKit.git";
+			"requirement" = {
+				"kind" = "exactVersion";
+				"version" = "0.9.4";
+			};
+		};
+		"000000000000000000000034" = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "000000000000000000000032";
+			"productName" = "WhisperKit";
+		};
+		"000000000000000000000033" = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "000000000000000000000034";
+		};
+		"000000000000000000000005" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "00000000000000000000003D";
+			"buildPhases" = ("00000000000000000000000A", "00000000000000000000000B", "00000000000000000000000C",);
+			"buildRules" = ();
+			"dependencies" = ();
+			"name" = "Voice2Txt";
+			"packageProductDependencies" = ("000000000000000000000034",);
+			"productName" = "Voice2Txt";
+			"productReference" = "000000000000000000000028";
+			"productType" = "com.apple.product-type.application";
+		};
+		"000000000000000000000001" = {
+			"isa" = "PBXProject";
+			"attributes" = {
+				"BuildIndependentTargetsInParallel" = "1";
+				"LastUpgradeCheck" = "1600";
+			};
+			"buildConfigurationList" = "00000000000000000000003C";
+			"compatibilityVersion" = "Xcode 14.0";
+			"developmentRegion" = "zh_TW";
+			"knownRegions" = ("zh_TW", "en", "Base",);
+			"mainGroup" = "000000000000000000000002";
+			"packageReferences" = ("000000000000000000000032",);
+			"productRefGroup" = "000000000000000000000004";
+			"projectDirPath" = "";
+			"projectRoot" = "";
+			"targets" = ("000000000000000000000005",);
+		};
+		"000000000000000000000046" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"SDKROOT" = "iphoneos";
+				"IPHONEOS_DEPLOYMENT_TARGET" = "16.0";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"SWIFT_VERSION" = "5.0";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+			};
+		};
+		"000000000000000000000047" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"SDKROOT" = "iphoneos";
+				"IPHONEOS_DEPLOYMENT_TARGET" = "16.0";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"SWIFT_VERSION" = "5.0";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+			};
+		};
+		"000000000000000000000048" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"CODE_SIGN_STYLE" = "Automatic";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"MARKETING_VERSION" = "0.1.0";
+				"GENERATE_INFOPLIST_FILE" = "YES";
+				"INFOPLIST_KEY_CFBundleDisplayName" = "Voice2Txt";
+				"INFOPLIST_KEY_NSMicrophoneUsageDescription" = "使用麥克風進行本機語音轉錄及中英翻譯。";
+				"INFOPLIST_KEY_UILaunchScreen_Generation" = "YES";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "org.voice2txt.app";
+				"PRODUCT_NAME" = "$(TARGET_NAME)";
+				"TARGETED_DEVICE_FAMILY" = "1,2";
+				"SUPPORTED_PLATFORMS" = "iphoneos iphonesimulator";
+				"SWIFT_EMIT_LOC_STRINGS" = "YES";
+			};
+		};
+		"000000000000000000000049" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"CODE_SIGN_STYLE" = "Automatic";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"MARKETING_VERSION" = "0.1.0";
+				"GENERATE_INFOPLIST_FILE" = "YES";
+				"INFOPLIST_KEY_CFBundleDisplayName" = "Voice2Txt";
+				"INFOPLIST_KEY_NSMicrophoneUsageDescription" = "使用麥克風進行本機語音轉錄及中英翻譯。";
+				"INFOPLIST_KEY_UILaunchScreen_Generation" = "YES";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "org.voice2txt.app";
+				"PRODUCT_NAME" = "$(TARGET_NAME)";
+				"TARGETED_DEVICE_FAMILY" = "1,2";
+				"SUPPORTED_PLATFORMS" = "iphoneos iphonesimulator";
+				"SWIFT_EMIT_LOC_STRINGS" = "YES";
+			};
+		};
+		"00000000000000000000003C" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = ("000000000000000000000046", "000000000000000000000047",);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"00000000000000000000003D" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = ("000000000000000000000048", "000000000000000000000049",);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+	};
+	"rootObject" = "000000000000000000000001";
+}

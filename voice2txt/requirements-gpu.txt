@@ -1,0 +1,3 @@
+# Windows x64 的選用 GPU 套件，安裝至工作資料夾 gpu，不改動系統 Python。
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.27.0.42

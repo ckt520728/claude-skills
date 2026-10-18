@@ -1,0 +1,7 @@
+{
+  "seconds": 18.84400000000005,
+  "model": "gemma4:latest",
+  "text": "I will go to the hospital at nine o'clock tomorrow morning and return home at two o'clock in the afternoon.",
+  "load_duration": 6820095300,
+  "eval_duration": 450161000
+}

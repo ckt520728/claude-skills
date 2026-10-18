@@ -1,0 +1,47 @@
+{
+  "json_complete": true,
+  "fields": [
+    "input_path",
+    "format",
+    "root_artifact_sha256",
+    "inventory_manifest_id",
+    "inventory_graph_sha256",
+    "graph",
+    "summary",
+    "statistics",
+    "limitations",
+    "semantic_graph"
+  ],
+  "graph_fields": [
+    "schema",
+    "root_node_ids",
+    "nodes",
+    "edges",
+    "coverage",
+    "limitations",
+    "graph_id"
+  ],
+  "scalars": {
+    "evidence_id": "ev_562aabc74749f85073d80f8fcefa522c9b53ecf113099eeefa694adbd62877d9",
+    "subject.name": "D:\\2026 Voice2Txt\\tools\\typeless-reference\\resources\\app.asar",
+    "subject.format": "asar",
+    "subject.architecture": null,
+    "subject.local_path": "D:\\2026 Voice2Txt\\tools\\typeless-reference\\resources\\app.asar",
+    "provider.id": "rea-javascript-application",
+    "provider.name": "REA JavaScript application analyzer",
+    "provider.version": "1",
+    "predicate_type": "rea.javascript-application-analysis",
+    "operation": "analyze_javascript_application",
+    "parameters.format": "auto",
+    "raw_result": null,
+    "normalized_result.input_path": "D:\\2026 Voice2Txt\\tools\\typeless-reference\\resources\\app.asar",
+    "normalized_result.format": "asar",
+    "normalized_result.root_artifact_sha256": "dc26918ff1e86816913f709767408d60ecf8b54c19d9acf63ad82632540ecd9f",
+    "normalized_result.inventory_manifest_id": "agm_27d96e812bbe57a99990d9c78869ade08e06dc19fe5e4eec02993e708cef1936",
+    "normalized_result.inventory_graph_sha256": "7f1d32a80b9dcc4ed7010660ae7b5edca538aa2c8ddd73387b4846478ecfedcb",
+    "confidence": "derived",
+    "authority": "shipped-artifact",
+    "environment": null,
+    "limitations.item": "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+  }
+}
