@@ -18,6 +18,9 @@
 | 「一直在修錯的東西」 | 修症狀不修機制 | 失敗簽名 + `mine` |
 | 「跑到一半忘了某條硬規則」 | 約束被上下文壓縮掉了 | 不變約束 `constraint` |
 | 「為了過關把答案寫死」 | 驗證器是靜態的，被鑽了 | `challenge:` 動態挑戰 |
+| 「報告的進步，換一批資料就不見了」 | 挑選修改與回報成績用同一組題目 | `sealed` 分組 + 只跑一次的 `final` |
+| 「改到一半，檔案壞掉了」 | 自由改寫，沒有驗證 | 原子化 SEARCH/REPLACE `patch` |
+| 「新版比較潮，其實比較差」 | 沒有和現任版本比較 | `score` + `select`（未嚴格勝出就保留現任）|
 
 **核心規則一句話**：交付物必須通過事先寫好的契約，才准進 `out/`。
 
@@ -30,7 +33,7 @@ git clone https://github.com/ckt520728/claude-skills.git
 cd claude-skills/harness-os
 
 # 兩個 gate，都必須 PASS
-python scripts/harness_kernel.py selftest          # 42 checks
+python scripts/harness_kernel.py selftest          # 77 checks
 python scripts/verifiers/test_verifiers.py         # 72 checks
 ```
 
@@ -219,6 +222,73 @@ python $V/check_challenge_response.py -- python solver.py   # 由 challenge: 帶
 
 每個都有 `--help`。細節見 `scripts/verifiers/README.md`。
 
+### v2.2.0：測試階段的 Harness 學習（Test-Time Harness Learning）
+
+來源：Zhang et al.（CMU, 2026）《Harness Learning Enables Generalizable Test-Time Adaptation》。核心想法：**模型參數不動，只改模型外面那層程式（harness）**，靠執行回饋一輪一輪改，並且用嚴格分開的題組來挑選與評分。
+
+**一、三個題組，各司其職**
+
+| split | 別名 | 論文 | 用途 | 誰看得到細節 |
+|---|---|---|---|---|
+| `held_in` | `feedback` | Q_fb | 失敗會被 `mine`、寫進 `report`，給你改 | 你 |
+| `held_out` | `score` | Q_score | 幫候選修改打分、決定誰留下 | 只看總分，不進 `mine` |
+| `sealed` | `eval` | Q_eval | 最後用 `final` 盲測一次 | 沒人，直到 `final` |
+
+`assert` 會拒絕 sealed 契約，`assertall` 會跳過它們。要真的「盲」，請**使用者自己把 sealed 契約放在工作區外**，最後用 `final --sealed-dir <路徑>` 跑。
+
+> 行為變更：v2.2.0 起 `mine` 預設**不再**讀 `held_out` 的失敗（挑選用的題組不該變成訓練資料）。需要舊行為時加 `--all-splits`。
+
+**二、一輪「錦標賽」怎麼跑**
+
+```bash
+$K assertall --round 1                       # 更新 Q_fb 證據
+$K report --round 1                          # 讀這份，不要讀原始 trace
+$K snapshot --round 1 --paths tools          # 現任版本 h_{t-1}
+$K score --round 1 --label incumbent         # 一定要先幫現任打分
+$K patch --file edits/c1.patch --round 1 --label c1   # 自動還原現任，再套 c1
+$K score --round 1 --label c1
+$K patch --file edits/c2.patch --round 1 --label c2
+$K score --round 1 --label c2
+$K select --round 1                          # c 的 J 嚴格大於現任才 PROMOTE，否則 RETAIN
+```
+
+修改檔格式（診斷寫在最前面，會出現在之後的 `report` 裡）：
+
+```
+Diagnosis: 第二跳摘要遺失關鍵細節（cluster empty_answer|direct|summary_loss, n=5）
+Mechanism: evidence rewiring
+
+FILE: tools/answer.py
+<<<<<<< SEARCH
+    return llm(f"Answer based on: {summaries}")
+=======
+    return llm(f"Context: {raw_passages}\nAnswer the query:")
+>>>>>>> REPLACE
+```
+
+`patch` 的規則：SEARCH 必須**剛好出現一次**；多個區塊要嘛全套、要嘛全不套；拒絕改工作區外、`.harness/`、被 `guard` 保護的契約或驗證器；`.py` 改完不能編譯就拒絕；保留原本的換行格式。被拒絕的提案會計入 `patch_validity`。
+
+**三、分數怎麼算**
+
+- J ＝ score 題組每份契約「通過檢查的比例」的平均（密集分數，差一點的會排在完全失敗的前面）。
+- v ＝ 0.05·產出都存在 ＋ 0.10·驗證器都能執行 ＋ 0.15·完整執行比例（論文的權重）。
+- **v 只用來在候選之間打平手**，不能讓候選靠 v 贏過現任——「能跑但答錯」不能贏「答對但偶爾出錯」。平手一律保留現任。
+
+**四、四種常見的修改機制（論文中訓練後自發出現）**
+
+| 機制 | 修什麼 | 在本套件的對應 |
+|---|---|---|
+| 證據重接線 Evidence rewiring | 摘要的摘要把細節壓掉了 | 文獻整理：最後一步直接餵原文段落 |
+| 解譯器迴圈 Interpreter loop | 口算／口頭推理出錯 | 訊號分析：指標一律用程式算 |
+| 驗證分支 Verification branch | 答案沒有出現在檢索證據中 | 各種寫作 profile 的引文檢查 |
+| 驗證後重試 Validate-and-retry | 輸出格式不合 | 帶著 parser 錯誤訊息重試，次數有上限 |
+
+**五、收尾**
+
+連續兩輪 RETAIN 就停。最後跑一次 `$K final`，回報這一次的分數。之後若再修改，`patch` / `select` 都會帶警告，第二次 `final` 會被標記為「非盲測」。
+
+**誠實的差距**：論文用強化學習（GRPO）訓練了一個專門的提案模型；這裡的提案者就是正在執行的模型，沒有訓練過，所以提案無效率會比論文高——這正是要追蹤 `patch_validity` 的原因。
+
 ---
 
 ## 5. 六種任務的實戰用法
@@ -400,6 +470,10 @@ Harness OS 有真實的 overhead。它在下列情況划算：任務長（超過
 | `guard check` 回 `TAMPERED` | 契約或驗證器被改過。**上次乾淨檢查之後的所有結果作廢。** 停下來告訴使用者，不要「修一修繼續」 |
 | 同一個 contract 連三輪失敗 | 停止修補，走 `mine` — 你在修症狀 |
 | `loopcheck` 回 `{"loop": true}` | 停。換機制、換工具、或問使用者。不要重試得更用力 |
+| `contract '…' is sealed` | 正常：sealed 契約只能由 `final` 執行 |
+| `patch` 回 `search_not_found` / `search_ambiguous` | SEARCH 內容與檔案不一致，或出現多次；重讀檔案、多帶幾行上下文 |
+| `patch` 回 `not_snapshotted` | 候選修改碰到 snapshot 以外的檔案；把它加進 `snapshot --paths` |
+| `score` 說 workspace 裡是別的候選 | 先 `patch --round N --label X` 套上該候選再打分；現任要在任何候選之前打分 |
 | 路徑含空格導致指令壞掉 | `KP="路徑"` + `python "$KP"`，不要 `K="python 路徑"` + 裸 `$K` |
 
 ---
@@ -428,6 +502,11 @@ Harness OS 有真實的 overhead。它在下列情況划算：任務長（超過
 ---
 
 ## 版本
+
+**v2.2.0（2026-10-15）** — 測試階段 Harness 學習（Zhang et al., CMU 2026）：
+`sealed` 分組與 `final` 盲測、原子化 SEARCH/REPLACE `patch`、`report` →
+`score` → `select` 候選錦標賽與適應曲線；`mine` 預設不再讀 `held_out`。閘門
+77 / 72。詳見 `references/evidence-ledger.md` 的「v2.2.0 upgrade」。
 
 **v2.1.0（2026-09-06）** — 新增 `constraint`（撐過壓縮的不變約束）、`challenge:`
 （每輪換 nonce 的抗作弊驗證）、`ladder`（分級進度計）。閘門 42 / 72。詳見

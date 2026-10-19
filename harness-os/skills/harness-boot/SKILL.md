@@ -136,6 +136,12 @@ The ladder scores the **highest contiguous tier passed** — a dense progress
 meter, not a gate. Promotion still runs through held-in/held-out `gate`; the
 ladder never touches it.
 
+If a number from this run will be reported to anyone, also write `--split
+sealed` (alias `eval`) contracts now — they never run until `final`, and
+`assert` refuses them. Best of all, ask the user to keep them outside the
+workspace for `final --sealed-dir`. See [[harness-os]] step 3 for the three
+splits.
+
 **At least one contract must be `--split held_out`** — a check the repair loop is
 not allowed to aim at. Without it the promotion gate cannot detect overfitting
 and will warn you every round.

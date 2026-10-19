@@ -17,6 +17,13 @@ $K mine --round 1
 # writes .harness/evidence/round_1/bundle.json
 ```
 
+Since v2.2.0 `mine` reads only feedback-split (`held_in`) and unsplit failures.
+`held_out` is the selection set and `sealed` the blind set — mining them would
+quietly turn both into training data. `--all-splits` adds `held_out` back when
+you deliberately want it (never `sealed`). For a tournament round, `report
+--round N` wraps the bundle together with Q_fb check messages, prior candidates
+and their outcomes — the proposer's whole input in one file.
+
 ## The signature triple
 
 ```

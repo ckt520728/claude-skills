@@ -1,5 +1,28 @@
 # Handoff — Harness OS build
 
+## v2.2.0 — Test-Time Harness Learning (2026-10-15)
+
+**Workspace:** `G:\我的雲端硬碟\2026 Agent Harness engineering\harness-os`
+(copied from `ckt520728/claude-skills` master `harness-os/`, then upgraded).
+**Status:** built and tested locally — kernel selftest **77/77**, verifiers
+**72/72**, full tournament driven through the real CLI in a path containing
+spaces and CJK. **Not yet pushed or merged** to GitHub.
+
+Source: `r13_Zhang_2026_Test_Time_Harness Learning.md` (project workspace, not in repo; zh-TW analysis of
+Zhang et al., CMU 2026). Added `sealed` split + `final`, `patch`
+(SEARCH/REPLACE), `report`, `score`, `select`, adaptation curve; `mine` skips
+`held_out` by default. Ledger section "v2.2.0 upgrade" records provenance (note,
+not PDF — numbers unverified) and the one deliberate deviation: `select` ranks
+by (J, v) and promotes only on strict J improvement, rather than on r = J + v.
+
+Mutation testing of the new selftest found two gaps, both fixed: a kernel
+`SystemExit` escaped selftest's `except Exception` (now caught and reported),
+and a `>=` vs `>` retention bug went undetected (tie case added).
+
+The sections below describe v2.1.0 and earlier.
+
+---
+
 **Date:** 2026-09-06 (v2.1.0); base build 2026-09-02
 **Workspace:** `D:\2026 Claude Harness OS_General Purpose`
 **Status:** v2.1.0 complete, self-tested (kernel 42/42, verifiers 72/72), and **merged to `ckt520728/claude-skills` master** — squash-merged 2026-09-06 via [PR #4](https://github.com/ckt520728/claude-skills/pull/4), master commit `e41f40c`; branch `harness-os-v2.1.0` deleted. `master`'s `harness-os/.claude-plugin/plugin.json` now reads `2.1.0` (verified on GitHub). The v2.0.0 base was merged earlier (commit `37ffa4f`, PR #3, 2026-09-02). Nothing in flight.
