@@ -162,6 +162,17 @@ Restores and operationalizes an OpenClaw + LINE assistant on Windows when the lo
 
 ---
 
+### medicloud-word-capture
+
+Turns Taiwan NHI MediCloud (健保醫療資訊雲端查詢系統) views into readable, searchable Word documents for history writing — fixing the "whole-screen screenshot pasted into Word, text too small and blurry" problem. Diagnoses why captures look bad (a 1920×1080 screen shrunk to ~15 cm leaves ~5 pt text), then provides: a narrow-margin Word template (portrait cover + landscape capture pages, patient/date header, source and confidentiality footer); a screenshot batch tool (fixed-pixel `--top/--bottom/--left/--right` strip, auto-trim, full-width landscape placement, prints effective px/inch); and a pasted-table reorganizer that rebuilds a MediCloud 西醫用藥紀錄 page as a **table-free** summary grouped by visit date and by drug, keeping repeated rows as `×N` with their original item numbers.
+
+Built around hard boundaries: the clinician logs in with their own 醫事人員卡 + PIN (there is no API key for individual doctors); the session is never automated; cloud data is for treating the patient, not for research cohorts (that needs an IRB-approved request); source files are read-only and outputs refuse to overwrite; patient data never enters git.
+
+- Folder: `medicloud-word-capture/` (`SKILL.md`, `scripts/`, `assets/` — the template holds no patient data)
+- Session wrap-up (繁中, de-identified): `2026-10-19_MediCloud_Word_Capture_Lessons_and_Pitfalls.md`
+
+---
+
 ### admission-note
 
 Automatically generates a hospital admission note (`.docx`) from patient data provided via:
