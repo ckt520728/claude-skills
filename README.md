@@ -2,6 +2,21 @@
 
 A collection of custom Claude Code skills.
 
+### cognitive_task_pilot_skill
+
+Simulate and analyse a cognitive-psychology task battery before (and while) running real participants. Ten headless virtual participants (SIM01–SIM10) run each task. Descriptive and inferential statistics are computed at the participant level with Holm correction, and each new participant's data is compared against the simulation baseline with quality checks.
+
+It was first generated in Antigravity for the 2026 Attention & Memory battery (35 tasks), then audited and corrected in Claude Code. The rules it now enforces:
+- **One session per participant per cohort.** Repeat sessions, demo vs full presets and different task versions are never pooled.
+- **N < 2 or zero variance is reported as not estimable**, never as p = 0 or t = ∞. A missing primary DV is never silently swapped for another column.
+- **Each hypothesis declares its design.** `one_sample`; `between` (for example the M08 control − misled contrast, using Welch t and an exact label permutation); or `proportion` (one 0/1 value per person, Wilson CI).
+- **Direction warnings require the primary DV, N ≥ 2, p < .05 and the opposite sign.** The empirical/simulation ratio is only a note, because simulated effect sizes are set by whoever wrote the responder.
+- **Simulated summaries are exactly what `summarize` returns.** Responders add trial-level RT noise so that SIMs differ.
+
+Bundled files: `pilot_stats.py` (shared selection and statistics), an analysis template, an empirical-vs-simulation comparison report, a simulation template, and a SHA-256 verifier that actually fails on mismatch.
+
+- Skill folder: `cognitive_task_pilot_skill/`
+
 ### voice2txt (app)
 
 A Typeless-like voice input app with no subscription: Traditional Chinese, English, and Chinese speech → English. It is designed in two stages:

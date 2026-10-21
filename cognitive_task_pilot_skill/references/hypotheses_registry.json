@@ -1,0 +1,569 @@
+{
+  "M01": {
+    "id": "M01",
+    "name": {
+      "en": "Iconic Memory Decay",
+      "zh-TW": "圖像記憶衰退與部分報告優勢"
+    },
+    "statement": {
+      "en": "Partial-report accuracy exceeds whole-report capacity at ISI = 0 ms due to high-capacity iconic memory, with superiority decaying over delay.",
+      "zh-TW": "在 ISI = 0 ms 時，受試者依提示回報之部分報告容量顯著超越全部報告容量（圖像記憶優勢），此優勢隨線索延遲逐漸衰退。"
+    },
+    "dvKey": "partial_superiority_free_isi0",
+    "unit": "items",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+2.0 ~ +4.5 items"
+  },
+  "M02": {
+    "id": "M02",
+    "name": {
+      "en": "Modality & Suffix Effect",
+      "zh-TW": "序列回憶感官模態與後綴抑制"
+    },
+    "statement": {
+      "en": "Spoken suffixes selectively disrupt terminal recency in auditory recall (PAS disruption); double suffixes disinhibit recency.",
+      "zh-TW": "聽覺呈現之單一口語後綴會特異性破壞序列末端的近因回憶率（前聲學儲存區干擾），而雙口語後綴可誘發去抑制復原。"
+    },
+    "dvKey": "suffix_effect_aud",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15% ~ +35%"
+  },
+  "M03": {
+    "id": "M03",
+    "name": {
+      "en": "Continuous Distractor Ratio Rule",
+      "zh-TW": "連續干擾比率法則與近因效應"
+    },
+    "statement": {
+      "en": "Recency effect magnitude in free recall is governed by temporal distinctiveness (log IPI/RI ratio), re-emerging under continuous distraction.",
+      "zh-TW": "自由回憶的近因效應受時間獨特性比率（log IPI/RI）所決定；在項目間連續加入干擾作業時，近因效應重新浮現。"
+    },
+    "dvKey": "ratio_rule_slope",
+    "unit": "proportion/log-ratio",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "> 0.0"
+  },
+  "M04": {
+    "id": "M04",
+    "name": {
+      "en": "Brown-Peterson PI Release",
+      "zh-TW": "前攝干擾累積與類別轉換釋放"
+    },
+    "statement": {
+      "en": "Recall drops from Trial 1 to 3 due to proactive interference (PI buildup) and significantly rebounds upon category shift on Trial 4 (PI release).",
+      "zh-TW": "同語意類別字詞在試次 1 至 3 產生前攝干擾（PI 累積導致回憶率下降），並在試次 4 轉換類別時顯著反彈回升（PI 釋放）。"
+    },
+    "dvKey": "release_magnitude",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+25% ~ +50%"
+  },
+  "M05": {
+    "id": "M05",
+    "name": {
+      "en": "Sternberg Memory Scanning",
+      "zh-TW": "記憶掃描線性搜尋與平行擴散"
+    },
+    "statement": {
+      "en": "Reaction time increases linearly with memory set size (35–45 ms/item), reflecting serial memory scanning, with drift rate modulating with speed/accuracy trade-off.",
+      "zh-TW": "反應時間隨記憶集大小呈線性遞增（約 35–45 ms/項），反映序列式記憶掃描歷程，漂移率隨速度／正確率取捨調節。"
+    },
+    "dvKey": "slope_all",
+    "unit": "ms/item",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "30 ~ 50 ms/item"
+  },
+  "M06": {
+    "id": "M06",
+    "name": {
+      "en": "Generation & TAP Crossover",
+      "zh-TW": "生成效應與遷移適當處理"
+    },
+    "statement": {
+      "en": "Generation predicts a standard-recognition advantage for words; transfer-appropriate processing requires a separate encoding-rule by test-format contrast.",
+      "zh-TW": "生成詞彙預期在標準再認具有優勢；遷移適當處理（TAP）需另以編碼規則與測驗形式的交互作用檢查。"
+    },
+    "dvKey": "gen_effect_word_std",
+    "unit": "d′",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "尚無本實作之實測參考範圍"
+  },
+  "M07": {
+    "id": "M07",
+    "name": {
+      "en": "Spacing Effect & Frequency",
+      "zh-TW": "間隔複習效應與頻率判斷"
+    },
+    "statement": {
+      "en": "Spaced repetitions produce superior long-term recall and frequency estimates compared to massed repetitions, with secondary probes revealing greater attentional effort.",
+      "zh-TW": "分散重複學習（Spaced）相較於集中重複（Massed）能產生顯著較高的回憶率與頻率判斷精確度，且次要探針反應時間揭示分散編碼時投入更多注意力資源。"
+    },
+    "dvKey": "recall_spacing_effect",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15% ~ +35%"
+  },
+  "M08": {
+    "id": "M08",
+    "name": {
+      "en": "Eyewitness Misinformation",
+      "zh-TW": "目擊者誤導資訊與來源記憶監控"
+    },
+    "statement": {
+      "en": "Misleading post-event narratives impair standard recognition of original details, while modified tests distinguish memory substitution from retrieval competition.",
+      "zh-TW": "事後誤導資訊顯著降低受試者在標準測驗中的正確辨認率；修正測驗能區分記憶痕跡覆寫與檢索競爭機制。"
+    },
+    "dvKey": "acc_standard",
+    "design": "between",
+    "groupKey": "group",
+    "groups": [
+      "control",
+      "misled"
+    ],
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+0.05 ~ +0.20（control − misled）"
+  },
+  "M09": {
+    "id": "M09",
+    "name": {
+      "en": "Implicit vs Explicit Crossover",
+      "zh-TW": "內隱與外顯記憶雙重分離"
+    },
+    "statement": {
+      "en": "Semantic vs physical orienting dissociates explicit recall from perceptual identification priming, establishing a double dissociation.",
+      "zh-TW": "語意性 vs 物理性定向編碼對外顯自由回憶產生巨大促進，但對閾下知覺促發（Perceptual Priming）無顯著調控，確立雙重分離。"
+    },
+    "dvKey": "priming_score_implicit",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+0.10 ~ +0.30"
+  },
+  "A01": {
+    "id": "A01",
+    "name": {
+      "en": "Endogenous vs Exogenous Attention",
+      "zh-TW": "內源設定與外源突現注意捕捉"
+    },
+    "statement": {
+      "en": "Irrelevant abrupt peripheral onset flashes capture attention involuntarily, causing an RT capture cost (RT Flash > RT No-Flash).",
+      "zh-TW": "任務無關的周邊突發亮光會不自主捕捉空間注意力，造成顯著之反應時間捕捉代價（干擾試次 RT 顯著慢於無干擾試次）。"
+    },
+    "dvKey": "capture_cost_rt",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+25 ~ +65 ms"
+  },
+  "A02": {
+    "id": "A02",
+    "name": {
+      "en": "Visual Partial Report Decay",
+      "zh-TW": "3×3 視覺部分報告身分與位置衰退"
+    },
+    "statement": {
+      "en": "Partial-report superiority confirms sensory storage capacity exceeding whole report, with exponential decay over cue delay.",
+      "zh-TW": "部分報告優勢證實早期感覺儲存容量超越全部報告，且隨線索延遲呈指數衰退。"
+    },
+    "dvKey": "partial_superiority_isi0",
+    "unit": "items",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+1.5 ~ +3.5 items"
+  },
+  "A03": {
+    "id": "A03",
+    "name": {
+      "en": "Perceptual Load & Flanker Interference",
+      "zh-TW": "知覺負荷與側抑制干擾"
+    },
+    "statement": {
+      "en": "Flanker interference (RT Incompatible - RT Compatible) is robust under low perceptual load, but extinguished under high perceptual load.",
+      "zh-TW": "在低知覺負荷下，不相容側翼刺激造成顯著干擾延緩；但在高知覺負荷下，知覺資源耗盡使側翼干擾完全消失（Lavie 負荷理論）。"
+    },
+    "dvKey": "flanker_low",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+30 ~ +70 ms"
+  },
+  "A04": {
+    "id": "A04",
+    "name": {
+      "en": "Feature vs Conjunction Search",
+      "zh-TW": "特徵搜尋與連結搜尋斜率差異"
+    },
+    "statement": {
+      "en": "Feature search exhibits near-zero search slopes (flat pop-out), whereas conjunction search yields steep slopes (>20 ms/item) and illusory conjunctions under brief exposure.",
+      "zh-TW": "特徵搜尋呈現平坦之彈出斜率（Pop-out，接近 0 ms/項），而連結搜尋需要序列焦點掃描（斜率 > 20 ms/項），短時呈現伴隨錯覺結合。"
+    },
+    "dvKey": "slope_conjunction_present",
+    "unit": "ms/item",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "20 ~ 45 ms/item"
+  },
+  "A05": {
+    "id": "A05",
+    "name": {
+      "en": "Postural Remapping & Tactile Cueing",
+      "zh-TW": "跨感官肢體姿勢空間重對應"
+    },
+    "statement": {
+      "en": "Crossing hands over the midline incurs a postural remapping cost and reverses external vs anatomical spatial cueing advantages.",
+      "zh-TW": "雙手跨越中線交叉會誘發大腦空間座標重對應代價（反應時間顯著增加），並調控外部空間相對於解剖肢體空間的線索優勢。"
+    },
+    "dvKey": "postural_cost_rt",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+25 ~ +60 ms"
+  },
+  "A06": {
+    "id": "A06",
+    "name": {
+      "en": "Hybrid PRP x Attentional Blink",
+      "zh-TW": "心理不應期與注意瞬脫雙重瓶頸"
+    },
+    "statement": {
+      "en": "Shorter SOA produces linear delay in R2 (PRP effect), while T2 detection drops sharply when appearing at Lags 2-3 (Attentional Blink).",
+      "zh-TW": "SOA 縮短使作業二反應時間呈線性遞增（PRP 中央瓶頸），且 T2 出現在 T1 後 200–300 ms (Lag 2–3) 時正確率驟降（注意瞬脫）。"
+    },
+    "dvKey": "ab_depth",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+25% ~ +55%"
+  },
+  "A07": {
+    "id": "A07",
+    "name": {
+      "en": "Stroop Automaticity & Motor Focus",
+      "zh-TW": "一致映射搜尋自動化與傾斜平衡"
+    },
+    "statement": {
+      "en": "Consistent mapping develops automatic pop-out (flatter slope over practice), while external focus improves motor balance stability over internal focus.",
+      "zh-TW": "一致映射（CM）隨練習發展出自動化彈出效應（搜尋斜率顯著變平），且外部注意焦點相較於內部焦點能顯著降低姿勢平衡誤差。"
+    },
+    "dvKey": "search_slope_cm_vs_vm",
+    "unit": "ms/item",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +35 ms/item"
+  },
+  "A08": {
+    "id": "A08",
+    "name": {
+      "en": "Task Switching & Residual Cost",
+      "zh-TW": "作業切換代價與殘餘切換定勢"
+    },
+    "statement": {
+      "en": "Switching tasks increases RT (switch cost), which attenuates with long preparation (CSI = 800 ms) but leaves a significant residual switch cost.",
+      "zh-TW": "切換作業維度會誘發切換代價（RT 增加）；給予充分準備時間（CSI = 800 ms）能減少代價，但仍存在顯著之殘餘切換代價（Residual Cost）。"
+    },
+    "dvKey": "switch_cost_value_100",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+60 ~ +150 ms"
+  },
+  "A09": {
+    "id": "A09",
+    "name": {
+      "en": "Flicker Change Blindness & Masked Priming",
+      "zh-TW": "閃爍變化盲視與客觀遮蔽促發"
+    },
+    "statement": {
+      "en": "Brief visual blanks between alternating scenes induce profound change blindness, while subliminal masked primes reliably facilitate lexical decisions.",
+      "zh-TW": "交替場景間插入短暫空白畫格會引發強烈之變化盲視；而閾下遮蔽促發詞即使不可見仍能顯著加速目標詞辨認。"
+    },
+    "dvKey": "masked_priming_facilitation_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +45 ms"
+  },
+  "A10": {
+    "id": "A10",
+    "name": {
+      "en": "Covert Spatial Attention (Helmholtz)",
+      "zh-TW": "內隱空間注意火花辨識優勢"
+    },
+    "statement": {
+      "en": "Covert spatial pre-cueing enhances letter identification accuracy in the cued quadrant under brief 16.6 ms display exposure without eye movements.",
+      "zh-TW": "在無眼跳（Fixation）條件下，內隱空間箭頭提示能顯著提升 16.6 ms 極速閃現字母陣列在提示象限之辨識正確率。"
+    },
+    "dvKey": "accuracy_cueing_effect",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15% ~ +40%"
+  },
+  "A11": {
+    "id": "A11",
+    "name": {
+      "en": "Object-Specific Preview Benefit",
+      "zh-TW": "物件檔案移動框架特定預覽效益"
+    },
+    "statement": {
+      "en": "Targets appearing in the same moving frame as the preview letter are identified faster than targets appearing in different frames (object-specific advantage).",
+      "zh-TW": "目標字母若出現在曾呈現過預覽字母的同一個移動方框中，其反應速度顯著快於出現在其他方框（物件特定預覽優勢，Kahneman 物件檔案理論）。"
+    },
+    "dvKey": "object_specific_advantage_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+20 ~ +50 ms"
+  },
+  "A12": {
+    "id": "A12",
+    "name": {
+      "en": "Inattentional Blindness",
+      "zh-TW": "高負荷交叉作業下之無注意視盲"
+    },
+    "statement": {
+      "en": "Under high perceptual load in the primary cross task, observers fail to notice an unexpected critical stimulus appearing directly in the visual field.",
+      "zh-TW": "當注意力高度集中於主要的十字臂長度判斷作業時，多數受試者無法察覺視野中突然出現的意外明顯刺激（無注意視盲）。"
+    },
+    "dvKey": "inattentional_blindness_rate",
+    "design": "proportion",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "0.40 ~ 0.75"
+  },
+  "A13": {
+    "id": "A13",
+    "name": {
+      "en": "Object-Scene Negative Priming",
+      "zh-TW": "物件中心與場景中心負啟動"
+    },
+    "statement": {
+      "en": "Ignoring a distractor at a rotating location slows subsequent response to a target at that location (negative priming), modulated by object boundaries.",
+      "zh-TW": "在前一試次被忽略的干擾物位置／物件，在後續試次若成為目標會產生反應延遲（負啟動效應），且受物件結構邊界調控。"
+    },
+    "dvKey": "negative_priming_cost_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +40 ms"
+  },
+  "A14": {
+    "id": "A14",
+    "name": {
+      "en": "Instance Automatization",
+      "zh-TW": "字母算術實例提取與自動化轉折"
+    },
+    "statement": {
+      "en": "Consistent practice transforms alphabet arithmetic from algorithm counting (+2..+5 addend slope) to direct single-step memory retrieval, obeying power-law speedup.",
+      "zh-TW": "一致映射練習使字母算術從依加數大小線性增加之計數演算法，轉變為直接記憶實例提取，符合 Logan 實例理論與冪定律擬合。"
+    },
+    "dvKey": "instance_retrieval_transition_point",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "> 0"
+  },
+  "A15": {
+    "id": "A15",
+    "name": {
+      "en": "Exogenous Zoom & IOR Onset",
+      "zh-TW": "外源變焦與返回抑制 (IOR) 起始"
+    },
+    "statement": {
+      "en": "Exogenous cues facilitate target processing at short CTOA (50–100 ms), but convert into robust Inhibition of Return (IOR) at longer CTOA (>300 ms).",
+      "zh-TW": "外源性閃光在短 CTOA（50–100 ms）產生顯著促進，但在長 CTOA（>300 ms）轉化為抑制效應（返回抑制 IOR，Posner 標誌性效應）。"
+    },
+    "dvKey": "ior_onset_ctoa_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "200 ~ 400 ms"
+  },
+  "A16": {
+    "id": "A16",
+    "name": {
+      "en": "Abrupt Onset New Object Capture",
+      "zh-TW": "突現新物件與單一特徵注意捕捉"
+    },
+    "statement": {
+      "en": "Abrupt onset of a new object produces a flat search slope across set sizes (automatic capture), whereas color singletons still require serial search.",
+      "zh-TW": "突然出現的新物件具有特異性之注意捕捉能力（搜尋斜率接近平坦），相較之下單純顏色變換項目無法完全豁免序列搜尋。"
+    },
+    "dvKey": "capture_probability_index",
+    "unit": "index",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "> 0.2"
+  },
+  "A17": {
+    "id": "A17",
+    "name": {
+      "en": "Multiple Object Tracking (FINST)",
+      "zh-TW": "多物件動態追蹤容量限制"
+    },
+    "statement": {
+      "en": "Visual tracking accuracy remains high for 3–4 targets but declines sharply at 5–6 items, reflecting Pylyshyn's FINST visual index capacity limit (4 items).",
+      "zh-TW": "多物件動態追蹤正確率在 3–4 個目標時維持優良，但在 5–6 個目標時顯著下降，證實大腦空間索引機制（FINST）具有約 4 個物件的容量極限。"
+    },
+    "dvKey": "max_velocity_threshold_80pct",
+    "unit": "°/s",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "6.0 ~ 10.0 °/s"
+  },
+  "A18": {
+    "id": "A18",
+    "name": {
+      "en": "Crossmodal Audio-Visual Cueing & IOR",
+      "zh-TW": "跨感官視聽線索促進與 IOR"
+    },
+    "statement": {
+      "en": "Uninformative auditory cues facilitate visual target discrimination at short CTOA (100 ms) and produce crossmodal IOR at long CTOA (600 ms).",
+      "zh-TW": "無預測性的聲音線索能在 100 ms 短 CTOA 加速視覺目標辨認，並在 600 ms 長 CTOA 產生顯著之跨感官返回抑制（Crossmodal IOR）。"
+    },
+    "dvKey": "crossmodal_facilitation_100_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +40 ms"
+  },
+  "A19": {
+    "id": "A19",
+    "name": {
+      "en": "Infant Disengagement (Gap/Overlap)",
+      "zh-TW": "嬰兒注意解離代價與預期注視"
+    },
+    "statement": {
+      "en": "Keeping the central fixator visible during peripheral target onset incurs a significant disengagement cost (Overlap RT > Gap RT).",
+      "zh-TW": "在周邊目標出現時維持中央刺激（Overlap 條件），會引發大腦注意解離代價（反應延遲顯著大於中央預先消失的 Gap 條件）。"
+    },
+    "dvKey": "proxy_disengagement_cost_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+30 ~ +80 ms"
+  },
+  "A20": {
+    "id": "A20",
+    "name": {
+      "en": "Infant Audio-Visual Congruency",
+      "zh-TW": "嬰兒視聽一致性空間結合效應"
+    },
+    "statement": {
+      "en": "Spatially congruent audio-visual stimulation elicits faster saccadic orienting compared to incongruent or unimodal stimulation.",
+      "zh-TW": "空間同側一致的視聽同步刺激相較於不一致刺激能顯著加速眼跳反應時間（跨感官多重整合效應）。"
+    },
+    "dvKey": "crossmodal_binding_effect_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+20 ~ +50 ms"
+  },
+  "A21": {
+    "id": "A21",
+    "name": {
+      "en": "RSVP Attentional Blink & VSTM",
+      "zh-TW": "RSVP 注意瞬脫深度與 Lag-1 豁免"
+    },
+    "statement": {
+      "en": "T2 accuracy conditional on T1 correct exhibits a profound dip at Lag 2-3 (Attentional Blink) with preservation at Lag 1 (Lag-1 Sparing).",
+      "zh-TW": "在 T1 正確辨識的前提下，T2 正確率在 Lag 2–3 處顯著驟降（注意瞬脫），但在 Lag 1 呈現高度正確率（Lag-1 豁免現象）。"
+    },
+    "dvKey": "blink_depth",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+30% ~ +60%"
+  },
+  "A22": {
+    "id": "A22",
+    "name": {
+      "en": "Non-Reflexive Multi-Location IOR",
+      "zh-TW": "非反射性多位置返回抑制與容量"
+    },
+    "statement": {
+      "en": "Inhibition of return can simultaneously tag multiple sequential locations (up to 3 positions), with endogenous cue validity modulating IOR depth.",
+      "zh-TW": "返回抑制（IOR）能同時標記多個依序呈現的空間位置（具備多位置儲存容量），且內源預測性線索能顯著調控 IOR 之深度。"
+    },
+    "dvKey": "ior_ms_uninformative",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +40 ms"
+  },
+  "A23": {
+    "id": "A23",
+    "name": {
+      "en": "Visual Search Accuracy vs Time (Palmer)",
+      "zh-TW": "視覺搜尋正確率與呈現時間 (Palmer)"
+    },
+    "statement": {
+      "en": "Log-log accuracy threshold set-size slope matches the independent channels model (~0.22) rather than fixed-capacity sharing (~0.72).",
+      "zh-TW": "對數-對數空間之搜尋正確率閾值斜率緊密符合獨立無容量限制通道模型（理論斜率 0.22），顯著偏離固定容量共享模型（0.72）。"
+    },
+    "dvKey": "search_time_rt_slope",
+    "unit": "ms/item",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "10 ~ 30 ms/item"
+  },
+  "A24": {
+    "id": "A24",
+    "name": {
+      "en": "Recursive Rejection in Conjunction Search",
+      "zh-TW": "連結搜尋中干擾群組遞迴拒絕"
+    },
+    "statement": {
+      "en": "Spatially grouped distractor arrays allow serial recursive rejection of whole clusters, producing significantly shallower search slopes than random arrays.",
+      "zh-TW": "空間上分組聚集的干擾陣列允許大腦以群組為單位進行「遞迴拒絕」，其搜尋斜率顯著低於隨機分佈陣列（遞迴拒絕效率指標 > 0）。"
+    },
+    "dvKey": "recursive_rejection_efficiency_index",
+    "unit": "ms/item",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+15 ~ +35 ms/item"
+  },
+  "A25": {
+    "id": "A25",
+    "name": {
+      "en": "Orienting vs Resolving (LaBerge)",
+      "zh-TW": "注意力定向與空間解析變焦"
+    },
+    "statement": {
+      "en": "Close flankers incur a substantial resolving cost (RT Close > RT Wide), which is significantly attenuated by strong focal location pre-cues.",
+      "zh-TW": "近距離側翼干擾會造成高空間解析代價（RT 顯著慢於寬間距）；而強聚焦預先提示能預先收縮注意變焦，大幅減少解析代價。"
+    },
+    "dvKey": "resolving_cost_ms",
+    "unit": "ms",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+30 ~ +70 ms"
+  },
+  "A26": {
+    "id": "A26",
+    "name": {
+      "en": "ERP P1/N1 Binding Suppression",
+      "zh-TW": "ERP P1/N1 特徵結合抑制與錯覺結合"
+    },
+    "statement": {
+      "en": "Unattended distractor features induce elevated illusory conjunction errors, with ERP probe sync markers capturing sensory P1 suppression and N1 enhancement.",
+      "zh-TW": "非注意象限之色條特徵會誘發錯覺結合錯誤；同時探針觸發標記（Trigger Markers）可同步捕捉非注意區域之 P1 抑制與注意區域之 N1 增益。"
+    },
+    "dvKey": "illusory_binding_cost",
+    "unit": "proportion",
+    "expectedDirection": "greater_than_zero",
+    "expectedSign": "+",
+    "benchmark": "+0.15 ~ +0.35"
+  }
+}
