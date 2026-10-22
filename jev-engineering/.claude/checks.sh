@@ -35,6 +35,7 @@ for required in \
   "skills/jev-engineering/SKILL.md" \
   "skills/jev-engineering/assets/jev/__init__.py" \
   "skills/jev-engineering/assets/jev/workflow.py" \
+  "skills/jev-engineering/assets/jev/swarm.py" \
   "skills/jev-engineering/references/18-two-phase-workflow.md" \
   "agents/jev-planner.md" "agents/jev-executor-medium.md" "agents/jev-executor-low.md" \
   "CLAUDE.md" "AGENTS.md" "UNKNOWNS.md" "HANDOFFS.md"
@@ -63,7 +64,8 @@ from jev import (decide, Choice, Score, Noul, gate, cascade, available_providers
                  ToolGate, CAPABILITIES, ControlLoop, RiskLimits,
                  run_plan, speculative, two_stage_choice, ensemble,
                  compare_policies, router_breakeven_accuracy,
-                 plan_phase, execute_phase, TaskSpec, PlannerResult, WorkerResult)
+                 plan_phase, execute_phase, TaskSpec, PlannerResult, WorkerResult,
+                 execute_swarm, preflight, write_manifest, load_manifest, SwarmPolicy)
 print("  version:   ", jev.__version__)
 print("  providers: ", ", ".join(available_providers()))
 print("  primitives: Choice, Score, Noul")
@@ -122,9 +124,11 @@ else
   status=1
 fi
 
-say "two-phase behaviour and actual artifact verification (offline)"
+say "two-phase and swarm behaviour, actual artifact verification (offline)"
 if "$PY" skills/jev-engineering/eval/test_workflow.py && \
-   "$PY" skills/jev-engineering/assets/examples/two_phase.py; then
+   "$PY" skills/jev-engineering/eval/test_swarm.py && \
+   "$PY" skills/jev-engineering/assets/examples/two_phase.py && \
+   "$PY" skills/jev-engineering/assets/examples/swarm_fanout.py; then
   printf '  ok      workflow\n'
 else
   printf '  FAILED  workflow\n'

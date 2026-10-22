@@ -1,4 +1,4 @@
-# JEV Engineering v1.2
+# JEV Engineering v1.3
 
 **兩階段處理：high agent 規劃與決策，medium/low agent 負責實際寫作與執行。** Jev 原有決策 primitive、八類工具能力與信心 gate 全部保留。
 
@@ -14,9 +14,12 @@ Phase 2：指定 executor → 工具 gate → 產出 → 獨立驗收
 
 ```powershell
 python -X utf8 skills/jev-engineering/assets/examples/two_phase.py
+python -X utf8 skills/jev-engineering/assets/examples/swarm_fanout.py
 ```
 
-這個離線示範會驗證 Phase 1 沒有成品、Phase 2 實際寫入後獨立讀回；模型為 stub，不代表真實節省率。
+第一個離線示範會驗證 Phase 1 沒有成品、Phase 2 實際寫入後獨立讀回。第二個示範 v1.3 swarm：清單交接、12 份同模板任務加一份彙整以並行上限 4 執行，再示範規格被誤讀時 canary 擋下、只花 1 份 worker。模型皆為 stub，不代表真實節省率或任何供應商的並行配額。
+
+**v1.3 寬度：雙大腦 swarm 扇出。** 任務多半獨立且數量大時，`execute_swarm()` 取代依序的 `execute_phase()`：Phase 1 寫出帶 sha256 的 `task_manifest.json`（Handoff Wire），執行端 `load_manifest()` 重新驗證；扇出前 `preflight()` 以 Jev `Noul` 審查每個共用模板的任務組，不清楚就退回規劃；大組先跑 canary；有界並行、共用速率限制、失敗只阻擋依賴者、失敗比例過高時斷路。每份任務仍走同一個 `run_task()`。`kimi-k3` 已登錄但 `api_id` 未驗證，永不派發。細節見 `references/18-two-phase-workflow.md` 的 v1.3 一節。
 
 Claude Code plugin 附帶 `jev-planner`（opus、唯讀）、`jev-executor-medium`（sonnet）、`jev-executor-low`（haiku）。載入 plugin 後，可要求「先用 jev-planner 規劃，再依分配交給 medium/low executor」。Python host 使用 `plan_phase()` 與 `execute_phase()` 接入模型及工具 adapter。
 
@@ -77,9 +80,9 @@ claude plugin install jev-engineering@jev-engineering-local
 claude --plugin-dir "D:/2026 JEV Engineering"
 ```
 
-可攜交付檔位於 `dist/jev-engineering-1.2.0.plugin.zip` 與 `dist/jev-engineering-1.2.0.skill`，由 `python -X utf8 scripts/package.py` 產生；`dist/SHA256.json` 記錄雜湊。plugin ZIP 解壓後可交給 `claude --plugin-dir`；skill ZIP 解壓得到 `jev-engineering/`，放入宿主支援的 skills 目錄。
+可攜交付檔位於 `dist/jev-engineering-1.3.0.plugin.zip` 與 `dist/jev-engineering-1.3.0.skill`，由 `python -X utf8 scripts/package.py` 產生；`dist/SHA256.json` 記錄雜湊。plugin ZIP 解壓後可交給 `claude --plugin-dir`；skill ZIP 解壓得到 `jev-engineering/`，放入宿主支援的 skills 目錄。
 
-交付套件只包含可攜 skill、角色及必要說明，工作區專用的 `CLAUDE.md`／hooks 不會自動安裝。完整 `.claude/checks.sh` 在原工作資料夾執行；套件內可直接跑 `skills/jev-engineering/eval/test_smoke.py` 與 `test_workflow.py`。載入新模型角色不會自動接上宿主的 Jev middleware，接線方式見兩階段工作流。
+交付套件只包含可攜 skill、角色及必要說明，工作區專用的 `CLAUDE.md`／hooks 不會自動安裝。完整 `.claude/checks.sh` 在原工作資料夾執行；套件內可直接跑 `skills/jev-engineering/eval/test_smoke.py`、`test_workflow.py` 與 `test_swarm.py`。載入新模型角色不會自動接上宿主的 Jev middleware，接線方式見兩階段工作流。
 
 **The runnable layer** — standard library only, Python 3.9+, no `pip install`:
 

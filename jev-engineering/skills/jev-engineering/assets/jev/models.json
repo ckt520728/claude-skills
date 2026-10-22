@@ -41,7 +41,8 @@
   "platforms": {
     "anthropic": { "preference": 0, "available": true, "data_classes_allowed": ["public", "internal", "customer_data"] },
     "openai":    { "preference": 1, "available": true, "data_classes_allowed": ["public", "internal"] },
-    "google":    { "preference": 2, "available": true, "data_classes_allowed": ["public", "internal"] }
+    "google":    { "preference": 2, "available": true, "data_classes_allowed": ["public", "internal"] },
+    "moonshot":  { "preference": 3, "available": true, "data_classes_allowed": ["public"] }
   },
 
   "models": [
@@ -181,6 +182,21 @@
       "cache_read_multiplier": 0.25,
       "available": true,
       "notes": "Same weights as gemini-3.6-flash-high, lower reasoning effort."
+    },
+    {
+      "key": "kimi-k3",
+      "display": "Kimi K3 (Moonshot AI)",
+      "platform": "moonshot",
+      "tier": "medium",
+      "effort": null,
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 1.0,
+      "available": true,
+      "notes": "Swarm executor candidate from the two-brain note (v1.3). Tier set from its ROLE in that architecture (execution layer), not from measured capability. Claimed 300-agent swarm, 1M context and 2.8T parameters come from an X post via a NotebookLM note and are UNVERIFIED; the note's model ids and base_url are not confirmed, so api_id stays null and the model is never dispatched. Needs its own MOONSHOT_API_KEY (environment variable, never in a committed config). Platform allows public data only until the user reviews Moonshot's data terms."
     }
   ],
 

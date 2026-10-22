@@ -1,6 +1,6 @@
 ---
 name: jev-engineering
-description: 將 agent 工作分為 high 規劃決策與 medium/low 實際執行兩階段，以 Jev 信心 gate 分配算力。適用於模型路由、八類工具能力 gate、guardrails、triage、reranking、eval、bulk labelling、control loop 與成本稽核。
+description: 將 agent 工作分為 high 規劃決策與 medium/low 實際執行兩階段，以 Jev 信心 gate 分配算力；v1.3 加入雙大腦 swarm 扇出（task manifest 交接、扇出前規格審查、canary、有界並行與斷路器）。適用於模型路由、八類工具能力 gate、guardrails、triage、reranking、eval、bulk labelling、大量同模板任務並行、control loop 與成本稽核。
 ---
 
 # JEV Engineering
@@ -30,6 +30,17 @@ description: 將 agent 工作分為 high 規劃決策與 medium/low 實際執行
 3. 工具執行前保留八類能力 gate。規劃資料不代表核准尚未出現的工具參數；沿用使用者既有且涵蓋該動作的授權，需要時由宿主取得人工決定。
 4. 用獨立測試、讀回或事先定義的驗收確認結果，不能只相信 executor 自稱完成。
 5. 失敗只回傳 task ID、成品參照與精簡錯誤，退回 Phase 1；不自動重試或啟動 high 生成。記錄已完成的副作用，重新規劃時不能盲目重做。
+
+## Phase 2 寬度版：Swarm 扇出（v1.3）
+
+任務多半獨立且數量大（同模板 × N）時，用 `execute_swarm()` 取代依序的 `execute_phase()`。扇出會把一個規格缺陷複製 N 次，所以多了四道關：
+
+1. **Handoff Wire**：Phase 1 輸出 `task_manifest.json`（`write_manifest()`），內容只有控制資料，並附 sha256；執行端以 `load_manifest()` 讀回，重新驗證全部欄位與自己 registry 中的模型。
+2. **扇出前審查**：`preflight()` 對每個共用模板的任務組問一題 Jev `Noul`（各 worker 是否能獨立做出一致結果），低於 `SPEC_CLEAR_THRESHOLD` 就退回規劃，一份 worker 都不派。
+3. **Canary**：大模板組先跑一份，通過獨立驗收才放行其餘。
+4. **有界並行**：`SwarmPolicy.concurrency` 上限、共用速率限制；失敗只阻擋依賴者；失敗比例過高就斷路；任一工具 gate 回 ask 即停止派發。
+
+每份任務仍走同一個 `run_task()`，模型、gate、一次嘗試、獨立驗收的規則不變。並行縮短的是等待時間，不會減少 token。外部集群（例如 Kimi K3）的接線、API key 與未驗證事項見 [18-two-phase-workflow.md](references/18-two-phase-workflow.md) 的「v1.3 寬度執行」。
 
 Claude Code plugin 提供 `jev-planner`（opus、唯讀）、`jev-executor-medium`（sonnet）與 `jev-executor-low`（haiku），由主控依配置派工。其他宿主使用相同角色與 API 契約。宿主若無法選擇／派發不同模型，輸出待交接規格並回報未執行，不得以 high 代做後宣稱節省。
 
@@ -120,6 +131,7 @@ Two generation calls. Eleven decisions. Two hard rules. In a default stack all t
 | Ask | Playbook |
 |---|---|
 | 兩階段規劃、分配、實際執行 | `references/18-two-phase-workflow.md` |
+| 大量同模板任務並行扇出（swarm、Kimi K3 類集群） | `references/18-two-phase-workflow.md` §v1.3 |
 | Route the prompt to a proper model | `references/01-model-routing.md` |
 | Screen for injection, abuse, off-policy input | `references/02-guardrails.md` |
 | Classify and gate tool calls cheaply | `references/03-tool-gating.md` |
@@ -142,6 +154,7 @@ Cross-cutting: `10-threshold-tuning.md` (calibration protocol) · `11-economics.
 | Module | What it gives you |
 |---|---|
 | `workflow` | `plan_phase()`、`execute_phase()`：high 規劃、medium/low 執行、精簡交接、預算與獨立驗收 |
+| `swarm` | `write_manifest()`／`load_manifest()`、`preflight()`、`execute_swarm()`：task manifest 交接、扇出前審查、canary、有界並行與斷路器 |
 | `client`, `types` | `decide(state, questions)` over a pluggable provider; `Choice` / `Score` / `Noul` with the seven rules enforced as validation |
 | `gate` | `gate()` with four exits, `cascade()`, per-action thresholds |
 | `routing` | `models.json` registry, `route_task()`, `worth_switching()`, `self_route()` |
@@ -186,7 +199,7 @@ Test decision logic against a stub provider rather than the live API — `@regis
 
 ## Before you ship
 
-兩階段離線演練：`python -X utf8 skills/jev-engineering/assets/examples/two_phase.py`。
+兩階段離線演練：`python -X utf8 skills/jev-engineering/assets/examples/two_phase.py`；swarm 扇出與放大保護演練：`python -X utf8 skills/jev-engineering/assets/examples/swarm_fanout.py`。
 測試使用 stub，不能用測試通過宣稱真實節省。量測須納入 planner、Jev、executor、工具 gate、重試與重新規劃；未定價不宣稱最便宜，未驗證的 API ID 不派發。完整檢查：`bash .claude/checks.sh`。
 
 Three numbers, measured for a week, decide whether the fork was worth moving.

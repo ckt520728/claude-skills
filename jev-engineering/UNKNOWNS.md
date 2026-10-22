@@ -1,5 +1,15 @@
 # UNKNOWNS
 
+## 2026-10-15 — v1.3 swarm 扇出與證據
+
+- **來源性質：** 一份 NotebookLM 筆記（`JEV_Claude_Kimi-K3_雙大腦代理架構.md`），整理 X 上 Ricker 的「雙大腦／兩階段」貼文。這是**二手整理的社群貼文**，不是論文或官方文件。
+- **未驗證、未採用為事實：** Kimi K3 的 300 agent swarm、1M context、2.8T 參數、5 個即時資料源；「100 家 EV 公司單次爆發完成、耗時不隨任務數線性增加」；筆記中的 model ID（`moonshot-v1-300-swarm`、`kimi-k3`）與 base URL（筆記中已被移除）；Open Code Go／OpenClaw 的設定檔格式與 `spawn_agent()` 介面。`kimi-k3` 以 `api_id=null`、`api_id_verified=false` 登錄，永不派發。
+- **採用的設計模式（與既有 v1.2 證據一致）：** 推理與執行解耦；結構化交接取代自然語言；扇出會放大規格歧義。後者是筆記自己列出的限制，本次把它當成主要設計目標。
+- **本地政策，未校準：** `SPEC_CLEAR_THRESHOLD=0.85`（Noul 機率，不同於 `ROUTE_CONFIDENCE` 的量尺）、`SwarmPolicy` 預設（並行 8、60 rpm、canary 門檻 3、斷路 2 份且 25%）、`MAX_CONCURRENCY=512`。
+- **刻意偏離：** 筆記主張「單次爆發」完成全部任務；這裡在大模板組先跑 canary，犧牲一段等待時間，換取規格錯誤只燒一份 worker。
+- **未量測：** 真實並行下的 wall-clock、token 與費用；任何供應商的實際並行／速率配額；`template_groups()` 以「能力＋驗收條件相同」近似模板，可能漏掉驗收不同但共用含糊 objective 的任務。
+- **證據：** `eval/test_swarm.py` 19 項（stub），10 個 mutant 中 9 個被抓到、1 個為等價 mutant（已刪除對應的死碼）。`moonshot` 平台預設只允許 public 資料。
+
 ## 2026-10-02 — v1.2 兩階段政策與證據
 
 - **已實作並離線驗證：** high 規劃／medium-low 執行、八類工具能力 gate、task 依賴與精簡交接、named confidence 與預算上限、模型可用性與資料政策、實際檔案產出及獨立驗收。測試都是 stub，沒有呼叫付費模型。
