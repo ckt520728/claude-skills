@@ -1,0 +1,23 @@
+{
+  "files": {
+    "__init__.py": "2c13c5596eafee20c4f3f849df692d757514dcf3493070809b25c00a7fec6620",
+    "bulk.py": "b9a529636714ce6a3ddfee2a5ebe3cc2d30ad14b9b93503af3686761447a9f80",
+    "calibration.py": "99d66cf531f225d97c3fc483ca37c89eb12844df06c2c7dd07cba483ef67db5c",
+    "client.py": "c3f849425f605b1114bfe4757027b655176ec845183e7dea2e68f44d1ae51838",
+    "compose.py": "32e1d071a95dacaffb63a5404128b3dac2b1f4be20c992ba9d5723053040ac7f",
+    "control.py": "9655065f91496736e4c7f3905c94d4a825b25fafc3ddebfe58a2bd04d4b06087",
+    "economics.py": "cdfcbbd807d08901438771b669c35c4ced9f7e47a8d7f59917340caf7d342cae",
+    "gate.py": "2b5d87c9ebc7e28c04fd1cfd5be9dce575eb8ceeaff55747b7fe5d32be7ffbea",
+    "models.json": "1303355593e3857b39dfb2797575b4f872f704537080fdb518902f3ccb2911a3",
+    "providers/__init__.py": "52db07f98ed5c486abff8d7d53b0b0be2402081228cbe744c9da6645c1858fa3",
+    "providers/jev_api.py": "64b15b1b2687cd06e5ae44e88b8abee703b70084e3ca44949d89c9a1d7f01aad",
+    "providers/llm.py": "5a27b86a1b345ae33a12a5421f811a3dc30ca35b904bba8b6a44b442351bb70d",
+    "providers/local.py": "9e8ee7bd4788f5912f965b597074d29d102ac30d382bf9d14f17a59c03f484bb",
+    "routing.py": "094d0685f73d281667b86cade6271244e5f0cff9cbc39110e09176001cc8c2f3",
+    "toolgate.py": "10a19b9df7d23dfb2ef98ce573eb96239472af2b78c21cee5400f78244ea536f",
+    "types.py": "4b939341abab4fe2de04bf4d05ed85c50d56f599105bf7da30d8a7b1992b8347"
+  },
+  "note": "Verbatim copy. Fix bugs in the skill, then re-sync; never edit here.",
+  "source": "D:\\2026 JEV Engineering\\skills\\jev-engineering",
+  "version": "1.1.0"
+}

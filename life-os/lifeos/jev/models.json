@@ -1,0 +1,197 @@
+{
+  "$schema_version": 1,
+  "$notes": [
+    "The model registry. Data, not code, because prices and model ids change weekly and a",
+    "constant buried in a module is a constant nobody re-checks.",
+    "",
+    "A TIER is not a model -- it is a (model, reasoning effort) pair. Gemini 3.6 Flash appears",
+    "twice below at two efforts, which is exactly why: the same weights buy medium capability",
+    "at one effort and low capability at another, at different prices. Routing that ignores",
+    "effort will route to 'Flash' and get whichever one the default is.",
+    "",
+    "PRICES ARE MOSTLY UNSET on purpose. `null` means nobody here verified it. The router",
+    "refuses cost-based selection for a model with no price and falls back to platform",
+    "preference order, and routing.audit() lists what is missing. Fill these from the",
+    "provider's live pricing page -- do not let an agent guess them.",
+    "",
+    "API IDS with api_id_verified=false are display names, not identifiers. Fill them before",
+    "the registry drives a real call. The ids that COULD be confirmed at build time:",
+    "  claude-haiku-4-5-20251001, claude-opus-5, claude-sonnet-5, gpt-6-astra, gpt-5.6-sol",
+    "See UNKNOWNS.md for why the 5.5-generation Claude ids are blank."
+  ],
+
+  "tiers": {
+    "high": {
+      "rank": 2,
+      "use_for": "Architecture, an unfamiliar subsystem, a decision that is expensive to reverse, multi-step derivations.",
+      "default_escalation": null
+    },
+    "medium": {
+      "rank": 1,
+      "use_for": "Multi-file changes with a clear specification and no design decision left to make.",
+      "default_escalation": "high"
+    },
+    "low": {
+      "rank": 0,
+      "use_for": "Direct lookups, extraction, a rename, a single localized edit, a formatting pass.",
+      "default_escalation": "medium"
+    }
+  },
+
+  "platforms": {
+    "anthropic": { "preference": 0, "available": true, "data_classes_allowed": ["public", "internal", "customer_data"] },
+    "openai":    { "preference": 1, "available": true, "data_classes_allowed": ["public", "internal"] },
+    "google":    { "preference": 2, "available": true, "data_classes_allowed": ["public", "internal"] }
+  },
+
+  "models": [
+    {
+      "key": "claude-opus-5.5",
+      "display": "Claude Opus 5.5",
+      "platform": "anthropic",
+      "tier": "high",
+      "effort": null,
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.1,
+      "available": true,
+      "notes": "claude-opus-5 is the newest Opus id confirmable at build time."
+    },
+    {
+      "key": "gpt-6-astra",
+      "display": "GPT-6 Astra",
+      "platform": "openai",
+      "tier": "high",
+      "effort": null,
+      "api_id": "gpt-6-astra",
+      "api_id_verified": true,
+      "input_usd_per_mtok": 10.0,
+      "output_usd_per_mtok": 50.0,
+      "price_source": "Li et al. 2026, frozen price panel (Table 5)",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": "The paper's strongest comparator. $12.182 per 1,000 judgments, 1.885s median."
+    },
+    {
+      "key": "sol-high",
+      "display": "Sol-high",
+      "platform": "openai",
+      "tier": "high",
+      "effort": "high",
+      "api_id": "gpt-5.6-sol",
+      "api_id_verified": false,
+      "input_usd_per_mtok": 4.0,
+      "output_usd_per_mtok": 20.0,
+      "price_source": "Li et al. 2026 Table 5, for gpt-5.6-sol at LOW effort -- high effort will cost more",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": "Cheaper high-tier option. As an eval fallback the paper reached 91.9% pooled at ~$3.4/1k vs GPT-6's $6.3."
+    },
+
+    {
+      "key": "claude-sonnet-5.5",
+      "display": "Claude Sonnet 5.5",
+      "platform": "anthropic",
+      "tier": "medium",
+      "effort": null,
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.1,
+      "available": true,
+      "notes": "claude-sonnet-5 is the newest Sonnet id confirmable at build time (2/10 per Mtok in the paper's panel)."
+    },
+    {
+      "key": "gpt-5-terra-high",
+      "display": "GPT-5 Terra-high",
+      "platform": "openai",
+      "tier": "medium",
+      "effort": "high",
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": ""
+    },
+    {
+      "key": "gemini-3.6-flash-high",
+      "display": "Gemini 3.6 Flash-high",
+      "platform": "google",
+      "tier": "medium",
+      "effort": "high",
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": "Same weights as gemini-3.6-flash-medium below, higher reasoning effort. Tier is the (model, effort) pair."
+    },
+
+    {
+      "key": "claude-haiku-4.5",
+      "display": "Claude Haiku 4.5",
+      "platform": "anthropic",
+      "tier": "low",
+      "effort": null,
+      "api_id": "claude-haiku-4-5-20251001",
+      "api_id_verified": true,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.1,
+      "available": true,
+      "notes": ""
+    },
+    {
+      "key": "gpt-5-luna-high",
+      "display": "GPT-5 Luna-high",
+      "platform": "openai",
+      "tier": "low",
+      "effort": "high",
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": "A 'luna' model is what LangChain's middleware examples route to as the cheap tier."
+    },
+    {
+      "key": "gemini-3.6-flash-medium",
+      "display": "Gemini 3.6 Flash-medium",
+      "platform": "google",
+      "tier": "low",
+      "effort": "medium",
+      "api_id": null,
+      "api_id_verified": false,
+      "input_usd_per_mtok": null,
+      "output_usd_per_mtok": null,
+      "price_source": "unset",
+      "cache_read_multiplier": 0.25,
+      "available": true,
+      "notes": "Same weights as gemini-3.6-flash-high, lower reasoning effort."
+    }
+  ],
+
+  "decision_layer": {
+    "key": "jev-1.13.0",
+    "display": "Jev 1.13",
+    "platform": "typesafe",
+    "input_usd_per_mtok": 0.042,
+    "output_usd_per_mtok": 0.0,
+    "price_source": "vendor-listed; NOT confirmed by direct fetch -- see UNKNOWNS.md",
+    "median_latency_s": 0.152,
+    "notes": "The router itself. Never enters the conversation, so it adds no cache-rebuild term."
+  }
+}
