@@ -1,0 +1,8 @@
+.env
+.phi_blocklist.txt
+.rsi/
+outputs/
+references/
+__pycache__/
+*.pyc
+.venv/

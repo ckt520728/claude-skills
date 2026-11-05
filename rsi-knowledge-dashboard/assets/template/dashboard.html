@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSI Knowledge Dashboard</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            color-scheme: dark;
+            --accent: #0d9488; --accent-hover: #0f766e; --teal: #4dd9cf; --teal-soft: #7ee8e2; --bg: #09131f; --card: #112236;
+            --line: #1e3a5f; --row: rgba(15, 43, 72, 0.5); --text: #f1f5f9; --muted: #a3b3c7; --ok: #34d399; --warn: #fbbf24; --bad: #f87171;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 30px; line-height: 1.55; }
+        .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { font-size: 1.6rem; color: #fff; line-height: 1.3; overflow-wrap: anywhere; }
+        .header p, .note, .intro { font-size: 0.86rem; color: var(--muted); }
+        .intro { margin-bottom: 16px; }
+        .badge { border: 1px solid var(--line); background: var(--row); color: var(--muted); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .badge.on { border-color: var(--ok); color: var(--ok); } .badge.off { border-color: var(--warn); color: var(--warn); }
+        .grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 30px; align-items: start; }
+        .stack { display: grid; gap: 25px; min-width: 0; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 25px; min-width: 0; }
+        h2 { font-size: 1.15rem; color: #fff; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; }
+        .group { margin-bottom: 16px; }
+        .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        label { display: block; font-size: 0.86rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+        input, select, textarea { width: 100%; background: rgba(15, 43, 72, 0.6); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: #fff; font: inherit; font-size: 0.93rem; }
+        textarea { min-height: 70px; resize: vertical; }
+        :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+        .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        button { font: inherit; font-weight: 700; border-radius: 8px; padding: 11px 20px; cursor: pointer; border: 1px solid transparent; }
+        .primary { background: var(--accent); color: #fff; flex: 1 1 220px; } .primary:hover:not(:disabled) { background: var(--accent-hover); }
+        .secondary { background: transparent; color: var(--text); border-color: var(--line); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .message { font-size: 0.86rem; margin-top: 12px; } .message.error { color: var(--bad); } .message.warn { color: var(--warn); }
+        .message a { color: var(--teal); }
+        .log { background: #060c14; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-family: Consolas, monospace; font-size: 0.78rem; color: #8fd3f4; height: 240px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .pill { display: inline-block; font-size: 0.72rem; font-weight: 700; border: 1px solid currentColor; border-radius: 4px; padding: 1px 8px; white-space: nowrap; }
+        .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .none { color: var(--muted); }
+        .source { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; }
+        .source:last-child { border-bottom: none; }
+        .source strong { display: block; color: #fff; } .source span.detail { color: var(--muted); overflow-wrap: anywhere; }
+        .run { background: var(--row); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+        .run:last-child { margin-bottom: 0; }
+        .run h3 { font-size: 0.98rem; color: #fff; margin-bottom: 4px; overflow-wrap: anywhere; }
+        .run p.meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 9px; overflow-wrap: anywhere; }
+        .actions { display: flex; gap: 7px; flex-wrap: wrap; }
+        .file { background: rgba(13, 148, 136, 0.28); border: 1px solid var(--teal); color: var(--teal-soft); padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.79rem; font-weight: 600; }
+        .file:hover { background: var(--accent-hover); color: #fff; }
+        code { font-family: Consolas, monospace; color: var(--teal-soft); overflow-wrap: anywhere; }
+        @media (max-width: 992px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 1.3rem; } .card { padding: 18px; } .row3 { grid-template-columns: minmax(0, 1fr); } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div><h1 id="title">RSI Knowledge Dashboard</h1><p id="owner"></p></div>
+        <div class="badge" id="badge" role="status"></div>
+    </header>
+    <main class="grid">
+        <div class="stack">
+            <section class="card" aria-labelledby="h-console">
+                <h2 id="h-console" data-t="console"></h2>
+                <p class="intro" data-t="intro"></p>
+                <form id="form">
+                    <div class="group"><label for="topic" data-t="topic"></label><input type="text" id="topic" minlength="3" maxlength="300" required></div>
+                    <div class="row3 group">
+                        <div><label for="passes" data-t="passes"></label><select id="passes"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+                        <div><label for="model" data-t="model"></label><select id="model"></select></div>
+                        <div><label for="budget" data-t="budget"></label><input type="number" id="budget" min="0.1" max="30" step="any" value="5" required></div>
+                    </div>
+                    <div class="group"><label for="feedback" data-t="feedback"></label><textarea id="feedback" maxlength="4000"></textarea></div>
+                    <div class="buttons">
+                        <button type="submit" class="primary" id="run" disabled></button>
+                        <button type="button" class="secondary" id="cancel" hidden data-t="cancel"></button>
+                    </div>
+                    <p class="message" id="message" role="status"></p>
+                </form>
+            </section>
+            <section class="card" aria-labelledby="h-log">
+                <h2 id="h-log" data-t="log"></h2>
+                <p class="note" id="progress" style="margin-bottom:10px" data-t="not_started"></p>
+                <div class="log" id="logBox" tabindex="0"></div>
+            </section>
+        </div>
+        <div class="stack">
+            <section class="card" aria-labelledby="h-runs"><h2 id="h-runs" data-t="runs"></h2><div id="runs"></div></section>
+            <section class="card" aria-labelledby="h-sources"><h2 id="h-sources" data-t="sources"></h2><p class="intro" id="sourcesIntro" data-t="sources_intro"></p><div id="sources"></div></section>
+        </div>
+    </main>
+    <script>
+        const I18N = {
+            en: {
+                console: 'Research console', intro: 'Collects sources, has the model write, checks citations and figures with code, feeds failures back, then produces a paper, slides, a blog post and an infographic. Each run has its own folder.',
+                topic: 'Research topic or question', passes: 'RSI passes (max)', model: 'Model', budget: 'Spending limit (USD)', feedback: 'Feedback or changes (optional). Do not enter personal data.', start: 'Start RSI research', running: 'Research running…', cancel: 'Cancel',
+                log: 'Run log', not_started: 'Not started. This shows what actually happens.', runs: 'Research runs', no_runs: 'No runs yet.', sources: 'Sources', sources_intro: 'The real state of each source appears here during a run.',
+                connected: 'Server connected', no_server: 'Server not running', server_up: 'Server running', local_file: 'This is a local file, so it cannot start research. Open ', local_file2: ' instead.',
+                start_server: 'To start research, run start_dashboard, then open http://127.0.0.1:8080/.', lost: 'Cannot reach the server. Check that start_dashboard is still running.', retry: 'Cannot reach the server; still retrying.', cannot_start: 'Could not start.',
+                cancelling: 'Cancelling. The run stops after the current step.', done_ok: 'Finished: all outputs passed the automated checks.', done_review: 'Finished. See the results and any flagged problems.',
+                RUNNING: 'Running', COMPLETED: 'All checks passed', NEEDS_REVIEW: 'Needs human review', FAILED: 'Failed', CANCELLED: 'Cancelled', LIVE: 'Live', FALLBACK: 'Fallback', SAVED: 'Saved', UNAVAILABLE: 'Unavailable',
+                paper: 'Paper', deck: 'Slides', blog: 'Blog', infographic: 'Infographic', passes_word: 'passes', sources_word: 'sources', failed_n: 'failed checks (⚠)', cites_n: 'citations to confirm', spent: 'spent', seconds: 's', dropped: 'dropped for privacy',
+            },
+            'zh-TW': {
+                console: 'RSI 研究指令台', intro: '蒐集文獻後由模型撰寫，程式查核引用與數字，失敗項目回饋修正，最後產出論文、簡報、部落格與資訊圖表。每次執行存入獨立資料夾。',
+                topic: '研究主題或問題', passes: 'RSI 循環上限', model: '模型', budget: '花費上限 (USD)', feedback: '回饋或修正要求（選填）。請勿輸入個人資料。', start: '啟動 RSI 研究循環', running: '研究循環執行中…', cancel: '取消',
+                log: '執行紀錄', not_started: '尚未開始。這裡顯示實際發生的步驟。', runs: '研究執行成果', no_runs: '尚無執行紀錄。', sources: '資料來源', sources_intro: '各來源的實際狀態會在執行時顯示於此。',
+                connected: '伺服器已連線', no_server: '伺服器未啟動', server_up: '伺服器已啟動', local_file: '這是本機檔案，無法啟動研究。請改用 ', local_file2: ' 開啟。',
+                start_server: '要啟動研究，請先執行 start_dashboard，再開啟 http://127.0.0.1:8080/。', lost: '無法連線到伺服器，請確認 start_dashboard 仍在執行。', retry: '暫時無法連線到伺服器，將持續重試。', cannot_start: '無法啟動。',
+                cancelling: '取消中，目前步驟完成後會停止。', done_ok: '完成：所有成果皆通過自動查核。', done_review: '已結束，請查看成果與標示的問題。',
+                RUNNING: '進行中', COMPLETED: '全部通過查核', NEEDS_REVIEW: '需要人工審閱', FAILED: '失敗', CANCELLED: '已取消', LIVE: '即時', FALLBACK: '替代來源', SAVED: '已存檔', UNAVAILABLE: '無法使用',
+                paper: '論文', deck: '簡報', blog: '部落格', infographic: '資訊圖表', passes_word: '次循環', sources_word: '筆證據', failed_n: '項未通過查核（⚠）', cites_n: '筆引用待確認', spent: '已花費', seconds: '秒', dropped: '筆因隱私排除',
+            },
+        };
+        const TONE = { COMPLETED: 'ok', LIVE: 'ok', NEEDS_REVIEW: 'warn', FALLBACK: 'warn', SAVED: 'warn', FAILED: 'bad', UNAVAILABLE: 'bad' };
+        const SERVER = 'http://127.0.0.1:8080';
+        const isFile = location.protocol === 'file:';
+        const $ = (id) => document.getElementById(id);
+        let lang = I18N[navigator.language] ? navigator.language : 'en';
+        let timer = null;
+        let current = null;
+        const t = (key) => I18N[lang][key] || key;
+
+        function applyLanguage() {
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-t]').forEach((node) => { node.textContent = t(node.dataset.t); });
+            if ($('run').textContent !== t('running')) $('run').textContent = t('start');
+        }
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
+        const pill = (state) => el('span', `pill ${TONE[state] || 'none'}`, t(state));
+
+        function say(text, tone) {
+            $('message').textContent = text || '';
+            $('message').className = `message ${tone || ''}`;
+        }
+
+        function setRunning(running) {
+            $('run').disabled = running || isFile;
+            $('run').textContent = t(running ? 'running' : 'start');
+            $('cancel').hidden = !running;
+            $('cancel').disabled = false;
+        }
+
+        function showSources(report) {
+            if (!report.sources || !report.sources.length) return;
+            $('sourcesIntro').textContent = `${report.evidence_count} ${t('sources_word')}` + (report.dropped_for_privacy ? `, ${report.dropped_for_privacy} ${t('dropped')}` : '');
+            $('sources').replaceChildren(...report.sources.map((source) => {
+                const row = el('div', 'source');
+                const left = el('div');
+                left.append(pill(source.state));
+                const right = el('div');
+                right.append(el('strong', '', `${source.name} (${source.items})`));
+                if (source.detail) right.append(el('span', 'detail', source.detail));
+                row.append(left, right);
+                return row;
+            }));
+        }
+
+        function showRuns(runs) {
+            if (!runs.length) {
+                $('runs').replaceChildren(el('p', 'note', t('no_runs')));
+                return;
+            }
+            $('runs').replaceChildren(...runs.map((run) => {
+                const item = el('article', 'run');
+                const title = el('h3', '', `${run.request.topic} `);
+                title.append(pill(run.status));
+                item.append(title, el('p', 'meta', `${run.run_id} · ${run.request.model} · ${(run.passes || []).length} ${t('passes_word')} · ${run.evidence_count} ${t('sources_word')} · US$${(run.spent_usd || 0).toFixed(2)}`));
+                const actions = el('div', 'actions');
+                (run.deliverables || []).forEach((d) => Object.entries(d.files || {}).forEach(([type, name]) => {
+                    const link = el('a', 'file', `${t(d.kind)} ${type.toUpperCase()}${d.verified ? '' : ' ⚠'}`);
+                    link.href = `outputs/runs/${encodeURIComponent(run.run_id)}/${encodeURIComponent(name)}`;
+                    if (name.endsWith('.html')) { link.target = '_blank'; link.rel = 'noopener'; } else { link.download = ''; }
+                    actions.append(link);
+                }));
+                item.append(actions);
+                const failed = (run.deliverables || []).filter((d) => !d.verified).length;
+                const cites = (run.citation_problems || []).length;
+                const parts = [run.error, failed && `${failed} ${t('failed_n')}`, cites && `${cites} ${t('cites_n')}`].filter(Boolean);
+                if (parts.length) item.append(el('p', 'message warn', parts.join(' · ')));
+                return item;
+            }));
+        }
+
+        function showRun(report) {
+            $('logBox').textContent = (report.log || []).join('\n');
+            $('logBox').scrollTop = $('logBox').scrollHeight;
+            $('progress').textContent = `${t(report.status)} · ${report.stage} · ${t('spent')} US$${(report.spent_usd || 0).toFixed(2)} / ${report.request.budget_usd} · ${report.elapsed_seconds}${t('seconds')}`;
+            showSources(report);
+        }
+
+        async function refreshRuns() {
+            const data = await (await fetch('api/runs')).json();
+            showRuns(data.runs);
+            return data;
+        }
+
+        async function watch(runId) {
+            current = runId;
+            setRunning(true);
+            clearInterval(timer);
+            const tick = async () => {
+                try {
+                    const report = await (await fetch(`api/runs/${encodeURIComponent(runId)}`)).json();
+                    showRun(report);
+                    if (report.status !== 'RUNNING') {
+                        clearInterval(timer);
+                        await refreshRuns();
+                        setRunning(false);
+                        const good = report.status === 'COMPLETED';
+                        say(t(good ? 'done_ok' : 'done_review'), good ? '' : 'warn');
+                    }
+                } catch (err) {
+                    say(t('retry'), 'warn');
+                }
+            };
+            await tick();
+            timer = setInterval(tick, 3000);
+        }
+
+        $('form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            say('');
+            setRunning(true);
+            try {
+                const response = await fetch('api/research', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: $('topic').value, passes: Number($('passes').value), model: $('model').value, budget_usd: Number($('budget').value), feedback: $('feedback').value }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    setRunning(false);
+                    say(data.message || t('cannot_start'), 'error');
+                    if (data.run_id) watch(data.run_id);
+                    return;
+                }
+                await watch(data.run_id);
+            } catch (err) {
+                setRunning(false);
+                say(t('lost'), 'error');
+            }
+        });
+
+        $('cancel').addEventListener('click', async () => {
+            $('cancel').disabled = true;
+            say(t('cancelling'));
+            await fetch(`api/runs/${encodeURIComponent(current)}/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        });
+
+        async function start() {
+            applyLanguage();
+            if (isFile) {
+                try {
+                    await (await fetch(`${SERVER}/api/health`)).json();
+                    $('badge').textContent = t('server_up');
+                    $('badge').classList.add('on');
+                    const link = el('a', '', `${SERVER}/`);
+                    link.href = `${SERVER}/`;
+                    $('message').className = 'message warn';
+                    $('message').replaceChildren(t('local_file'), link, t('local_file2'));
+                } catch (err) {
+                    $('badge').textContent = t('no_server');
+                    $('badge').classList.add('off');
+                    say(t('start_server'), 'warn');
+                }
+                return;
+            }
+            try {
+                const config = await (await fetch('api/config')).json();
+                if (I18N[config.language]) lang = config.language;
+                applyLanguage();
+                document.title = config.title;
+                $('title').textContent = config.title;
+                $('owner').textContent = config.owner;
+                $('topic').value = config.default_topic;
+                $('budget').value = config.default_budget;
+                $('budget').max = config.max_budget;
+                $('model').replaceChildren(...config.models.map((name) => { const o = el('option', '', name); o.value = name; return o; }));
+                $('model').value = config.default_model;
+                const data = await refreshRuns();
+                $('badge').textContent = t('connected');
+                $('badge').classList.add('on');
+                setRunning(false);
+                if (data.active) await watch(data.active);
+                else if (data.runs.length) showSources(data.runs[0]);
+            } catch (err) {
+                $('badge').textContent = t('no_server');
+                $('badge').classList.add('off');
+                say(t('lost'), 'error');
+            }
+        }
+
+        start();
+    </script>
+</body>
+</html>

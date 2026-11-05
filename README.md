@@ -2,6 +2,23 @@
 
 A collection of custom Claude Code skills.
 
+### rsi-knowledge-dashboard
+
+Builds a local web dashboard where one button runs a real recursive self-improvement research loop on a scientific topic, then produces an academic paper, HTML and PowerPoint decks, a blog post and an infographic. Each pass collects evidence, writes, checks with code, repairs, and is critiqued by a reviewer who sends it back for more evidence.
+
+It was distilled from auditing a dashboard whose "verified" labels were hard-coded and whose "research" was template text. The rules it enforces:
+- **The model writes; code decides what counts as verified.** The page shows only what actually happened in a run, including sources that failed.
+- **Citations cannot be invented.** The model cites collected sources by key, and code builds the reference list.
+- **Every figure must appear in the source cited beside it.** A DOI must exist and be registered to the right title, because real DOIs can belong to unrelated papers.
+- **No fake success.** No sample papers on failure, no mock text, and no settings that do nothing.
+- **Learned rules are kept only on measured evidence**, and every decision is recorded in a tamper-evident ledger.
+- **Runs never overwrite earlier results**, and spending limits and local-only access are enforced by the server.
+
+It runs on Claude or any OpenAI-compatible endpoint, in English or Traditional Chinese. A scaffold script creates a new project, with offline tests and a real-browser smoke test. Tested on Windows with Claude live; `references/platform-adapters.md` lists what has not been tested yet, including macOS, Linux and live non-Claude providers.
+
+- Skill folder: `rsi-knowledge-dashboard/`
+- Bundle: `rsi-knowledge-dashboard.skill`
+
 ### cognitive_task_pilot_skill
 
 Simulate and analyse a cognitive-psychology task battery before (and while) running real participants. Ten headless virtual participants (SIM01–SIM10) run each task. Descriptive and inferential statistics are computed at the participant level with Holm correction, and each new participant's data is compared against the simulation baseline with quality checks.

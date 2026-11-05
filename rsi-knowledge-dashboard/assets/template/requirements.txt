@@ -1,0 +1,8 @@
+# Python 3.10+. Remove claude-agent-sdk if you use an OpenAI-compatible provider.
+python-pptx>=0.6.21
+requests>=2.28.0
+flask>=2.2.0
+pypdf>=3.0.0
+markdown>=3.5
+anyio>=4.0
+claude-agent-sdk>=0.2.176
