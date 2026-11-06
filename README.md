@@ -2,6 +2,14 @@
 
 A collection of custom Claude Code skills.
 
+### gemini-notebook-mcp-lazypack
+
+A guided setup that connects Claude Code or Cursor to Google's remote Gemini Notebook MCP server on Windows, macOS or Linux. It checks `gcloud`, enables the API, walks through creating your own OAuth client, signs in, tests the connection and registers the server. Claude Code gets a fresh token each time it connects, so no token is stored in its config.
+
+Not yet tested end to end against Google's live server. It has passed offline tests and a Windows dry run; see its README for details.
+
+- Folder: `gemini-notebook-mcp-lazypack/`
+
 ### rsi-knowledge-dashboard
 
 Builds a local web dashboard where one button runs a real recursive self-improvement research loop on a scientific topic, then produces an academic paper, HTML and PowerPoint decks, a blog post and an infographic. Each pass collects evidence, writes, checks with code, repairs, and is critiqued by a reviewer who sends it back for more evidence.

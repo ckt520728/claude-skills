@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+client_secret*.json
+application_default_credentials.json
+mcp.json
+config.json
