@@ -1,0 +1,102 @@
+{
+  "title": "Autoresearch RSI Knowledge Dashboard",
+  "owner": "",
+  "default_topic": "",
+  "language": "en",
+  "default_budget_usd": 5,
+  "writer_role": "You are a meticulous research writer. Write for expert readers.",
+  "provider": {
+    "type": "claude",
+    "models": [
+      "claude-opus-5-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5"
+    ],
+    "default_model": "claude-opus-5-5"
+  },
+  "sources": {
+    "reference_pdfs": true,
+    "pubmed": true,
+    "arxiv": true,
+    "clinical_trials": true,
+    "notebooklm_id": "",
+    "saved_answers": true
+  },
+  "terms": {
+    "preferred": {
+      "speculative decoding": "推測解碼"
+    },
+    "forbidden": [
+      "推論解碼"
+    ]
+  },
+  "deliverables": [
+    "deck",
+    "blog"
+  ],
+  "providers": {
+    "claude": {
+      "type": "claude"
+    },
+    "openai": {
+      "type": "openai_compatible",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "price_per_mtok": {
+        "gpt-6-astra": {
+          "input": 10.0,
+          "output": 50.0
+        },
+        "gpt-6.1-sol": {
+          "input": 2.0,
+          "output": 10.0
+        }
+      }
+    },
+    "gemini": {
+      "type": "openai_compatible",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_key_env": "GEMINI_API_KEY",
+      "price_per_mtok": {
+        "gemini-4-argon": {
+          "input": 4.0,
+          "output": 20.0
+        },
+        "gemini-3.8-flash": {
+          "input": 1.5,
+          "output": 7.5
+        }
+      }
+    }
+  },
+  "tiers": {
+    "high": [
+      "claude:claude-opus-5-5",
+      "openai:gpt-6-astra",
+      "openai:gpt-6.1-sol@high",
+      "gemini:gemini-4-argon"
+    ],
+    "medium": [
+      "claude:claude-sonnet-5-5",
+      "openai:gpt-6.1-sol@medium",
+      "gemini:gemini-3.8-flash",
+      "claude:claude-haiku-5-5"
+    ]
+  },
+  "_tiers_note": "Ids from run_agent.py --models on 2026-11-08. '@high'/'@medium' sets reasoning_effort. Prices are standard API list prices (USD per 1M tokens) from developers.openai.com/api/docs/pricing and ai.google.dev/gemini-api/docs/pricing; Gemini uses the post-introductory rates (Argon from 2026-12-01, 3.8 Flash from 2027-01-01) so the budget over- rather than under-estimates. Prompts over 272K tokens on OpenAI cost more.",
+  "default_loops": 2,
+  "blog_language": "zh-TW",
+  "knowledge_base": {
+    "root": "",
+    "queue_md": "",
+    "_note": "Empty root = ./knowledge_base inside the project. Point root at a folder inside your Obsidian vault, e.g. <vault>/知識庫/<Project>."
+  },
+  "blog": {
+    "category": "研究筆記",
+    "author": "",
+    "avatar": "",
+    "author_bio": "",
+    "site_url": "https://example.org",
+    "tags": []
+  }
+}

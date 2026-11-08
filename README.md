@@ -2,6 +2,25 @@
 
 A collection of custom Claude Code skills.
 
+### jev-autoresearch-rsi
+
+A custom autoresearch agent built on the Jev-Engineering two-phase workflow. A high-tier planner writes the plan, parallel medium-tier executors carry it out, and a high-tier auditor checks the result, preferably on a different provider. A failed audit sends the work back for a replan. The agent:
+- collects real evidence from PubMed, arXiv, ClinicalTrials.gov, a Gemini Notebook / NotebookLM notebook and local PDFs
+- writes an English paper with APA 7 citations, a 15-slide PPTX, an interactive HTML deck and a zh-TW blog post
+- merges every run into an Obsidian "Second Brain" wiki, then measures and improves that wiki (KB RSI). A change is kept only if it measurably helps, and every decision goes into a SHA-256 ledger.
+
+It extends `rsi-knowledge-dashboard` with:
+- **Model tiers across providers:** `claude:claude-opus-5-5`, `openai:gpt-6-astra`, `openai:gpt-6.1-sol@high` / `@medium` (the suffix sets reasoning effort) and `gemini:gemini-4-argon` / `gemini-3.8-flash`. Model ids are read from each provider and never guessed; a paid model without a price is refused.
+- **A Jev graph** with a live view in the dashboard, plus `graph.md` / `checks.md` / `progress.md` per run.
+- **Wiki and RSI panels:** a wiki browser, a concept map, gaps, fitness and the RSI ledger.
+- **A house-style blog publisher** with a staging guide and an approval gate before any push.
+
+Tested on Windows. The full demo run (Opus planner, Sonnet executor, gpt-6-astra auditor, 2 loops) completed for US$1.46: every source answered LIVE, there were 0 citation problems, and 36 wiki pages were created. 167 offline tests pass, both in the original project and in a freshly scaffolded one with blank config. `AGENTS.md` maps the workflow to Codex, Gemini CLI, Antigravity and OpenCode. `gemini-4-argon` was not live-tested (HTTP 429, quota). macOS and Linux have not been run yet.
+
+- Skill folder: `jev-autoresearch-rsi/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
+- Bundle: `jev-autoresearch-rsi.skill`
+- Session wrap-up: `2026-11-08_Jev_Autoresearch_RSI_Lessons_and_Pitfalls.md`
+
 ### gemini-notebook-mcp-lazypack
 
 A guided setup that connects Claude Code or Cursor to Google's remote Gemini Notebook MCP server on Windows, macOS or Linux. It checks `gcloud`, enables the API, walks through creating your own OAuth client, signs in, tests the connection and registers the server. Claude Code gets a fresh token each time it connects, so no token is stored in its config.

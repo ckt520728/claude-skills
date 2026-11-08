@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoresearch RSI Knowledge Dashboard</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            color-scheme: dark;
+            --accent: #0d9488; --accent-hover: #0f766e; --teal: #4dd9cf; --teal-soft: #7ee8e2; --bg: #09131f; --card: #112236;
+            --line: #1e3a5f; --row: rgba(15, 43, 72, 0.5); --text: #f1f5f9; --muted: #a3b3c7; --ok: #34d399; --warn: #fbbf24; --bad: #f87171; --purple: #a78bfa;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        [hidden] { display: none !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 30px; line-height: 1.55; }
+        .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 30px; }
+        h1 { font-size: 1.6rem; color: #fff; line-height: 1.3; overflow-wrap: anywhere; }
+        .header p, .note, .intro { font-size: 0.86rem; color: var(--muted); }
+        .intro { margin-bottom: 16px; }
+        .badge { border: 1px solid var(--line); background: var(--row); color: var(--muted); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .badge.on { border-color: var(--ok); color: var(--ok); } .badge.off { border-color: var(--warn); color: var(--warn); }
+        .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 25px; align-items: start; }
+        .span2 { grid-column: 1 / -1; }
+        .stack { display: grid; gap: 25px; min-width: 0; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; min-width: 0; }
+        h2 { font-size: 1.1rem; color: #fff; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; }
+        h3 { font-size: 0.95rem; color: #fff; margin: 14px 0 8px; }
+        .group { margin-bottom: 14px; }
+        .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        label { display: block; font-size: 0.84rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+        input, select, textarea { width: 100%; background: rgba(15, 43, 72, 0.6); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; color: #fff; font: inherit; font-size: 0.92rem; }
+        textarea { min-height: 64px; resize: vertical; }
+        :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+        .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        button { font: inherit; font-weight: 700; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; color: inherit; }
+        .primary { background: var(--accent); color: #fff; flex: 1 1 220px; } .primary:hover:not(:disabled) { background: var(--accent-hover); }
+        .secondary { background: transparent; color: var(--text); border-color: var(--line); }
+        .secondary:hover:not(:disabled) { border-color: var(--teal); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .message { font-size: 0.86rem; margin-top: 10px; } .message.error { color: var(--bad); } .message.warn { color: var(--warn); }
+        .message a { color: var(--teal); }
+        .log { background: #060c14; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-family: Consolas, monospace; font-size: 0.78rem; color: #8fd3f4; height: 220px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .pill { display: inline-block; font-size: 0.72rem; font-weight: 700; border: 1px solid currentColor; border-radius: 4px; padding: 1px 8px; white-space: nowrap; }
+        .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .none { color: var(--muted); }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 16px; padding: 2px 12px; font-size: 0.8rem; font-weight: 600; }
+        .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .source { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; }
+        .source:last-child { border-bottom: none; }
+        .source strong { display: block; color: #fff; } .source span.detail { color: var(--muted); overflow-wrap: anywhere; }
+        .run { background: var(--row); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+        .run.selected { border-color: var(--teal); }
+        .run:last-child { margin-bottom: 0; }
+        .run h3 { margin: 0 0 4px; overflow-wrap: anywhere; }
+        .run p.meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; overflow-wrap: anywhere; }
+        .actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+        .file { background: rgba(13, 148, 136, 0.28); border: 1px solid var(--teal); color: var(--teal-soft); padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.79rem; font-weight: 600; }
+        .file:hover { background: var(--accent-hover); color: #fff; }
+        .small { padding: 4px 10px; font-size: 0.8rem; }
+        code { font-family: Consolas, monospace; color: var(--teal-soft); overflow-wrap: anywhere; }
+        .scroll-x { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: #0b1a2b; }
+        svg.graph { display: block; }
+        svg.graph text { fill: var(--text); font-size: 12px; font-family: inherit; }
+        svg.graph .sub { fill: var(--muted); font-size: 10.5px; }
+        svg.graph .tier { fill: #09131f; font-size: 10px; font-weight: 700; }
+        svg.graph .edge { fill: none; stroke: #4b6a8f; stroke-width: 1.5; }
+        svg.graph .node.running rect.box { animation: pulse 1.6s ease-in-out infinite; }
+        @keyframes pulse { 50% { stroke-opacity: 0.35; } }
+        @media (prefers-reduced-motion: reduce) { svg.graph .node.running rect.box { animation: none; } }
+        .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; margin-top: 8px; }
+        .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: currentColor; margin-right: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.07); vertical-align: top; overflow-wrap: anywhere; }
+        th { color: var(--muted); font-weight: 600; }
+        .list { list-style: none; display: grid; gap: 6px; }
+        .list li { background: var(--row); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.84rem; overflow-wrap: anywhere; }
+        .list li button { all: unset; cursor: pointer; display: block; width: 100%; }
+        .list li button:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; }
+        .list .t { color: #fff; font-weight: 600; } .list .p { color: var(--muted); font-size: 0.76rem; }
+        .findings { margin: 4px 0 0 18px; color: var(--muted); }
+        .page { background: #0b1a2b; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; max-height: 460px; overflow: auto; font-size: 0.9rem; overflow-wrap: anywhere; }
+        .page h1, .page h2, .page h3, .page h4 { color: #fff; margin: 12px 0 6px; border: 0; padding: 0; line-height: 1.3; }
+        .page h1 { font-size: 1.25rem; } .page h2 { font-size: 1.1rem; } .page h3 { font-size: 1rem; } .page h4 { font-size: 0.92rem; }
+        .page p, .page ul, .page ol, .page pre { margin: 6px 0; } .page ul, .page ol { padding-left: 22px; }
+        .page pre { background: #060c14; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; font-size: 0.8rem; }
+        .page a { color: var(--teal); } .page a.wiki { color: var(--purple); text-decoration: underline dotted; }
+        .page hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+        dl.fm { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 0.78rem; background: var(--row); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+        dl.fm dt { color: var(--muted); } dl.fm dd { color: var(--text); overflow-wrap: anywhere; }
+        .mapwrap { position: relative; background: #0b1a2b; border: 1px solid var(--line); border-radius: 8px; }
+        #kbMap { display: block; width: 100%; height: 380px; touch-action: none; cursor: grab; }
+        .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        .tile { background: var(--row); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+        .tile b { display: block; font-size: 1.25rem; color: #fff; } .tile span { font-size: 0.75rem; color: var(--muted); }
+        .bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+        .bar i { display: block; height: 100%; background: var(--ok); }
+        @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 1.3rem; } .card { padding: 16px; } .row3, .row2 { grid-template-columns: minmax(0, 1fr); } .source { grid-template-columns: minmax(0, 1fr); } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div><h1 id="title">Autoresearch RSI Knowledge Dashboard</h1><p id="owner"></p></div>
+        <div class="badge" id="badge" role="status"></div>
+    </header>
+    <main class="grid">
+        <section class="card span2" aria-labelledby="h-console">
+            <h2 id="h-console" data-t="console"></h2>
+            <p class="intro" data-t="intro"></p>
+            <div class="group"><label data-t="providers"></label><div class="chips" id="providers"></div></div>
+            <form id="form">
+                <div class="group"><label for="topic" data-t="topic"></label><input type="text" id="topic" minlength="3" maxlength="300" required></div>
+                <div class="row2 group">
+                    <div><label for="loops" data-t="loops"></label><select id="loops"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+                    <div><label for="budget" data-t="budget"></label><input type="number" id="budget" min="0.1" max="30" step="any" value="5" required></div>
+                </div>
+                <div class="row3 group">
+                    <div><label for="planner" data-t="planner"></label><select id="planner"></select></div>
+                    <div><label for="executor" data-t="executor"></label><select id="executor"></select></div>
+                    <div><label for="auditor" data-t="auditor"></label><select id="auditor"></select></div>
+                </div>
+                <div class="group"><label for="feedback" data-t="feedback"></label><textarea id="feedback" maxlength="4000"></textarea></div>
+                <div class="buttons">
+                    <button type="submit" class="primary" id="run" disabled></button>
+                    <button type="button" class="secondary" id="cancel" hidden data-t="cancel"></button>
+                </div>
+                <p class="message" id="message" role="status"></p>
+            </form>
+        </section>
+
+        <section class="card span2" aria-labelledby="h-graph">
+            <h2 id="h-graph" data-t="graph"></h2>
+            <p class="note" id="progress" style="margin-bottom:10px" data-t="not_started"></p>
+            <div class="scroll-x" id="graphBox"></div>
+            <div class="legend" id="legend"></div>
+        </section>
+
+        <div class="stack">
+            <section class="card" aria-labelledby="h-log">
+                <h2 id="h-log" data-t="log"></h2>
+                <div class="log" id="logBox" tabindex="0"></div>
+            </section>
+            <section class="card" aria-labelledby="h-sources"><h2 id="h-sources" data-t="sources"></h2><p class="intro" id="sourcesIntro" data-t="sources_intro"></p><div id="sources"></div>
+                <h3 data-t="audits"></h3><div id="audits"></div>
+            </section>
+        </div>
+        <div class="stack">
+            <section class="card" aria-labelledby="h-deliv"><h2 id="h-deliv" data-t="deliverables"></h2><div id="deliverables"></div></section>
+            <section class="card" aria-labelledby="h-runs"><h2 id="h-runs" data-t="runs"></h2><div id="runs"></div></section>
+        </div>
+
+        <section class="card span2" aria-labelledby="h-kb">
+            <h2 id="h-kb" data-t="kb"></h2>
+            <div class="grid" style="gap:20px">
+                <div style="min-width:0">
+                    <div class="group"><label for="kbQuery" data-t="kb_search"></label><input type="search" id="kbQuery" autocomplete="off"></div>
+                    <ul class="list" id="kbResults"></ul>
+                    <h3 data-t="page"></h3>
+                    <div id="kbPageBox"><div class="page" id="kbPage"></div></div>
+                </div>
+                <div style="min-width:0">
+                    <label data-t="map"></label>
+                    <div class="mapwrap"><canvas id="kbMap" role="img" aria-label="Concept map"></canvas></div>
+                    <div class="legend" id="mapLegend"></div>
+                    <p class="note" id="mapNote"></p>
+                    <h3 data-t="gaps"></h3>
+                    <ul class="list" id="gaps"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="card span2" aria-labelledby="h-rsi">
+            <h2 id="h-rsi" data-t="rsi"></h2>
+            <div class="grid" style="gap:20px">
+                <div style="min-width:0">
+                    <h3 style="margin-top:0" data-t="fitness"></h3>
+                    <div id="fitness"></div>
+                    <div class="buttons" style="margin-top:12px"><button type="button" class="secondary" id="improve" data-t="improve"></button></div>
+                    <p class="message" id="improveMsg" role="status"></p>
+                    <h3 data-t="run_kb"></h3>
+                    <div id="runKb"></div>
+                </div>
+                <div style="min-width:0">
+                    <h3 style="margin-top:0"><span data-t="ledger"></span> <span id="chain"></span></h3>
+                    <div class="scroll-x"><table id="ledgerTable"><thead><tr id="ledgerHead"></tr></thead><tbody id="ledger"></tbody></table></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        const I18N = {
+            en: {
+                console: 'Command panel', intro: 'A planner (high tier) breaks the topic into a Jev graph, executors (medium tier) do the tasks, an auditor checks each loop, and the verified results are filed into the knowledge base.',
+                providers: 'Providers', no_providers: 'No provider information from the server.', available: 'available', unavailable: 'unavailable',
+                topic: 'Research topic or question', loops: 'Loops (1-3)', budget: 'Spending limit (USD)', planner: 'Planner model (high)', executor: 'Executor model (medium)', auditor: 'Auditor model (high)',
+                feedback: 'Feedback or changes (optional). Do not enter personal data.', start: 'Start', running: 'Running…', cancel: 'Cancel',
+                graph: 'Jev graph (live)', no_graph: 'No graph yet. It appears when a run starts.', not_started: 'Not started. This shows what actually happens.',
+                log: 'Run log', no_log: 'No log lines.', sources: 'Source status', sources_intro: 'The real state of each source appears here during a run.', no_sources: 'No source status for this run.',
+                audits: 'Audits', no_audits: 'No audits yet.', loop: 'Loop', verdict: 'Verdict', score: 'Score', findings: 'Findings',
+                deliverables: 'Deliverables (selected run)', no_deliv: 'No deliverables for this run.', verified: 'verified', needs_review: 'needs review',
+                runs: 'Run history', no_runs: 'No runs yet.', view: 'View', selected: 'Selected',
+                kb: 'Knowledge base', kb_search: 'Search pages', no_pages: 'No matching pages.', page: 'Page viewer', no_page: 'Select a page to view it.', map: 'Concept map', no_map: 'No concepts in the knowledge base yet.', map_hint: 'Drag nodes, hover for labels, click to open.',
+                gaps: 'Open gaps', no_gaps: 'No open gaps.',
+                rsi: 'KB self-improvement (RSI)', fitness: 'KB fitness', no_fitness: 'No fitness data.', improve: 'Run KB improvement', improving: 'Improving…', improved: 'Decisions', run_kb: 'Knowledge base changes of this run', no_kb: 'This run has no knowledge base block.',
+                ledger: 'Ledger', chain_ok: 'chain verified', chain_bad: 'chain BROKEN', no_ledger: 'Ledger is empty.', l_time: 'Time', l_kind: 'Kind', l_target: 'Target', l_decision: 'Decision', l_delta: 'Δ score', l_reason: 'Reason',
+                created: 'Created', updated: 'Updated', before: 'Before', after: 'After', decisions: 'Decisions', none: 'none',
+                m_pages: 'Pages', m_broken_links: 'Broken links', m_orphans: 'Orphans', m_unsourced_claims: 'Unsourced claims', m_open_gaps: 'Open gaps', m_concepts: 'Concepts', m_single_source_concepts: 'Single-source concepts', m_score: 'Score',
+                connected: 'Server connected', no_server: 'Server not running', server_up: 'Server running', local_file: 'This is a local file, so it cannot start research. Open ', local_file2: ' instead.',
+                start_server: 'To start research, run start_dashboard, then open http://127.0.0.1:8090/.', lost: 'Cannot reach the server. Check that start_dashboard is still running.', retry: 'Cannot reach the server; still retrying.', cannot_start: 'Could not start.', load_failed: 'Could not load this.',
+                cancelling: 'Cancelling. The run stops after the current step.', done_ok: 'Finished: all outputs passed the automated checks.', done_review: 'Finished. See the results and any flagged problems.',
+                RUNNING: 'Running', COMPLETED: 'All checks passed', NEEDS_REVIEW: 'Needs human review', FAILED: 'Failed', CANCELLED: 'Cancelled', LIVE: 'Live', FALLBACK: 'Fallback', SAVED: 'Saved', UNAVAILABLE: 'Unavailable',
+                pending: 'pending', running_s: 'running', passed: 'passed', failed: 'failed', skipped: 'skipped',
+                paper: 'Paper', deck: 'Slides', blog: 'Blog', infographic: 'Infographic', loops_word: 'loops', sources_word: 'sources', failed_n: 'failed checks', cites_n: 'citations to confirm', spent: 'spent', seconds: 's', dropped: 'dropped for privacy', attempts: 'attempts',
+            },
+            'zh-TW': {
+                console: '指令面板', intro: '規劃者（高階）把主題拆成 Jev 任務圖，執行者（中階）完成各項任務，審核者逐輪檢查，通過查核的成果歸檔到知識庫。',
+                providers: '模型供應者', no_providers: '伺服器未提供供應者資訊。', available: '可用', unavailable: '不可用',
+                topic: '研究主題或問題', loops: '循環次數 (1-3)', budget: '花費上限 (USD)', planner: '規劃者模型（高階）', executor: '執行者模型（中階）', auditor: '審核者模型（高階）',
+                feedback: '回饋或修正要求（選填）。請勿輸入個人資料。', start: '開始', running: '執行中…', cancel: '取消',
+                graph: 'Jev 任務圖（即時）', no_graph: '尚無任務圖，執行開始後會顯示。', not_started: '尚未開始。這裡顯示實際發生的步驟。',
+                log: '執行紀錄', no_log: '沒有紀錄。', sources: '資料來源狀態', sources_intro: '各來源的實際狀態會在執行時顯示於此。', no_sources: '此次執行沒有來源狀態。',
+                audits: '審核紀錄', no_audits: '尚無審核。', loop: '循環', verdict: '結論', score: '分數', findings: '發現',
+                deliverables: '成果（所選執行）', no_deliv: '此次執行沒有成果。', verified: '已查核', needs_review: '需人工審閱',
+                runs: '執行歷史', no_runs: '尚無執行紀錄。', view: '檢視', selected: '已選取',
+                kb: '知識庫', kb_search: '搜尋頁面', no_pages: '沒有符合的頁面。', page: '頁面檢視', no_page: '選擇一個頁面來檢視。', map: '概念地圖', no_map: '知識庫尚無概念。', map_hint: '可拖曳節點、懸停看標籤、點擊開啟。',
+                gaps: '待補缺口', no_gaps: '沒有待補缺口。',
+                rsi: '知識庫自我改進 (RSI)', fitness: '知識庫健康度', no_fitness: '沒有健康度資料。', improve: '執行知識庫改進', improving: '改進中…', improved: '決策數', run_kb: '此次執行對知識庫的變更', no_kb: '此次執行沒有知識庫區塊。',
+                ledger: '帳本', chain_ok: '雜湊鏈驗證通過', chain_bad: '雜湊鏈已損毀', no_ledger: '帳本是空的。', l_time: '時間', l_kind: '類型', l_target: '目標', l_decision: '決策', l_delta: 'Δ 分數', l_reason: '理由',
+                created: '新增', updated: '更新', before: '之前', after: '之後', decisions: '決策', none: '無',
+                m_pages: '頁面', m_broken_links: '斷裂連結', m_orphans: '孤立頁面', m_unsourced_claims: '無來源主張', m_open_gaps: '待補缺口', m_concepts: '概念', m_single_source_concepts: '單一來源概念', m_score: '分數',
+                connected: '伺服器已連線', no_server: '伺服器未啟動', server_up: '伺服器已啟動', local_file: '這是本機檔案，無法啟動研究。請改用 ', local_file2: ' 開啟。',
+                start_server: '要啟動研究，請先執行 start_dashboard，再開啟 http://127.0.0.1:8090/。', lost: '無法連線到伺服器，請確認 start_dashboard 仍在執行。', retry: '暫時無法連線到伺服器，將持續重試。', cannot_start: '無法啟動。', load_failed: '無法載入。',
+                cancelling: '取消中，目前步驟完成後會停止。', done_ok: '完成：所有成果皆通過自動查核。', done_review: '已結束，請查看成果與標示的問題。',
+                RUNNING: '進行中', COMPLETED: '全部通過查核', NEEDS_REVIEW: '需要人工審閱', FAILED: '失敗', CANCELLED: '已取消', LIVE: '即時', FALLBACK: '替代來源', SAVED: '已存檔', UNAVAILABLE: '無法使用',
+                pending: '等待中', running_s: '執行中', passed: '通過', failed: '失敗', skipped: '略過',
+                paper: '論文', deck: '簡報', blog: '部落格', infographic: '資訊圖表', loops_word: '次循環', sources_word: '筆證據', failed_n: '項未通過查核', cites_n: '筆引用待確認', spent: '已花費', seconds: '秒', dropped: '筆因隱私排除', attempts: '次嘗試',
+            },
+        };
+        const TONE = { COMPLETED: 'ok', LIVE: 'ok', NEEDS_REVIEW: 'warn', FALLBACK: 'warn', SAVED: 'warn', FAILED: 'bad', UNAVAILABLE: 'bad', CANCELLED: 'warn' };
+        const NODE_COLOR = { pending: '#7c8ea6', running: '#4dd9cf', passed: '#34d399', failed: '#f87171', skipped: '#6b7280' };
+        const TYPE_COLOR = { topic: '#4dd9cf', concept: '#a78bfa', source: '#fbbf24', gap: '#f87171', other: '#7c8ea6' };
+        const SERVER = 'http://127.0.0.1:8090';
+        const isFile = location.protocol === 'file:';
+        const $ = (id) => document.getElementById(id);
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let lang = I18N[navigator.language] ? navigator.language : 'en';
+        let timer = null;
+        let current = null;      // run being executed / watched
+        let selected = null;     // run shown in the panels
+        let runsCache = [];
+        const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+
+        function applyLanguage() {
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-t]').forEach((node) => { node.textContent = t(node.dataset.t); });
+            if ($('run').textContent !== t('running')) $('run').textContent = t('start');
+            $('mapNote').textContent = t('map_hint');
+            $('ledgerHead').replaceChildren(...['l_time', 'l_kind', 'l_target', 'l_decision', 'l_delta', 'l_reason'].map((k) => el('th', '', t(k))));
+            $('legend').replaceChildren(...['pending', 'running', 'passed', 'failed', 'skipped'].map((s) => { const x = el('span', '', t(s === 'running' ? 'running_s' : s)); x.style.color = NODE_COLOR[s]; return x; }));
+            $('mapLegend').replaceChildren(...Object.keys(TYPE_COLOR).map((k) => { const x = el('span', '', k); x.style.color = TYPE_COLOR[k]; return x; }));
+        }
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined && text !== null) node.textContent = String(text);
+            return node;
+        }
+        const svgEl = (tag, attrs, text) => {
+            const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+            Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v));
+            if (text !== undefined) node.textContent = String(text);
+            return node;
+        };
+        const pill = (state) => el('span', `pill ${TONE[state] || 'none'}`, t(state));
+        const empty = (key) => el('p', 'note', t(key));
+        const num = (v, d = 2) => (typeof v === 'number' && isFinite(v) ? v.toFixed(d) : '—');
+
+        async function api(path, options) {
+            const response = await fetch(path, options);
+            let data = null;
+            try { data = await response.json(); } catch (err) { data = null; }
+            if (!response.ok) { const e = new Error((data && data.message) || `HTTP ${response.status}`); e.data = data; e.status = response.status; throw e; }
+            return data;
+        }
+        const post = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+        function say(text, tone) { $('message').textContent = text || ''; $('message').className = `message ${tone || ''}`; }
+
+        function setRunning(running) {
+            $('run').disabled = running || isFile;
+            $('run').textContent = t(running ? 'running' : 'start');
+            $('cancel').hidden = !running;
+            $('cancel').disabled = false;
+        }
+
+        // ------------------------------------------------------------------ config
+        function fillSelect(id, values, preferred) {
+            const select = $(id);
+            select.replaceChildren(...values.map((name) => { const o = el('option', '', name); o.value = name; return o; }));
+            if (preferred && values.includes(preferred)) select.value = preferred;
+        }
+
+        function applyConfig(config) {
+            if (I18N[config.language]) lang = config.language;
+            applyLanguage();
+            if (config.title) { document.title = config.title; $('title').textContent = config.title; }
+            $('owner').textContent = config.owner || '';
+            $('topic').value = config.default_topic || '';
+            if (config.default_budget !== undefined) $('budget').value = config.default_budget;
+            if (config.max_budget !== undefined) $('budget').max = config.max_budget;
+            if (config.default_loops) $('loops').value = String(config.default_loops);
+            const tiers = config.tiers || {};
+            const high = tiers.high || config.models || [];
+            const medium = tiers.medium || config.models || [];
+            fillSelect('planner', high, config.default_planner);
+            fillSelect('executor', medium, config.default_executor);
+            fillSelect('auditor', high, config.default_auditor);
+            const providers = config.providers || [];
+            if (!providers.length) $('providers').replaceChildren(empty('no_providers'));
+            else $('providers').replaceChildren(...providers.map((p) => {
+                const chip = el('span', `chip ${p.available ? 'ok' : 'bad'}`, `${p.name}${p.type ? ' · ' + p.type : ''} · ${t(p.available ? 'available' : 'unavailable')}`);
+                if (p.detail) chip.title = p.detail;
+                return chip;
+            }));
+        }
+
+        // ------------------------------------------------------------------ graph (inline SVG DAG)
+        const NW = 168, NH = 58, GX = 56, GY = 22, PAD = 16;
+        function drawGraph(graph) {
+            const nodes = (graph && graph.nodes) || [];
+            const edges = (graph && graph.edges) || [];
+            if (!nodes.length) { $('graphBox').replaceChildren(empty('no_graph')); return; }
+            const index = new Map(nodes.map((n, i) => [n.id, i]));
+            const preds = nodes.map(() => []);
+            edges.forEach((e) => { const s = index.get(e.source), d = index.get(e.target); if (s !== undefined && d !== undefined && s !== d) preds[d].push(s); });
+            const layer = nodes.map(() => 0);
+            for (let pass = 0; pass < nodes.length; pass++) {
+                let changed = false;
+                nodes.forEach((n, i) => preds[i].forEach((p) => { if (layer[p] + 1 > layer[i] && layer[p] + 1 < nodes.length) { layer[i] = layer[p] + 1; changed = true; } }));
+                if (!changed) break;
+            }
+            const columns = [];
+            nodes.forEach((n, i) => { (columns[layer[i]] = columns[layer[i]] || []).push(i); });
+            const tallest = Math.max(...columns.filter(Boolean).map((c) => c.length));
+            const height = PAD * 2 + tallest * NH + (tallest - 1) * GY;
+            const width = PAD * 2 + columns.length * NW + (columns.length - 1) * GX;
+            const pos = [];
+            columns.forEach((col, c) => {
+                if (!col) return;
+                const colH = col.length * NH + (col.length - 1) * GY;
+                col.forEach((i, r) => { pos[i] = { x: PAD + c * (NW + GX), y: PAD + (height - PAD * 2 - colH) / 2 + r * (NH + GY) }; });
+            });
+            const svg = svgEl('svg', { class: 'graph', width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': t('graph') });
+            const defs = svgEl('defs');
+            const marker = svgEl('marker', { id: 'arrow', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' });
+            marker.append(svgEl('path', { d: 'M0,0 L10,5 L0,10 z', fill: '#4b6a8f' }));
+            defs.append(marker);
+            svg.append(defs);
+            edges.forEach((e) => {
+                const s = index.get(e.source), d = index.get(e.target);
+                if (s === undefined || d === undefined) return;
+                const x1 = pos[s].x + NW, y1 = pos[s].y + NH / 2, x2 = pos[d].x, y2 = pos[d].y + NH / 2;
+                const mid = Math.max(20, (x2 - x1) / 2);
+                svg.append(svgEl('path', { class: 'edge', d: `M${x1},${y1} C${x1 + mid},${y1} ${x2 - mid},${y2} ${x2},${y2}`, 'marker-end': 'url(#arrow)' }));
+            });
+            nodes.forEach((n, i) => {
+                const status = NODE_COLOR[n.status] ? n.status : 'pending';
+                const color = NODE_COLOR[status];
+                const g = svgEl('g', { class: `node ${status}`, 'data-node-id': n.id, transform: `translate(${pos[i].x},${pos[i].y})` });
+                g.append(svgEl('title', {}, `${n.label || n.id} · ${t(status === 'running' ? 'running_s' : status)}${n.detail ? '\n' + n.detail : ''}`));
+                g.append(svgEl('rect', { class: 'box', width: NW, height: NH, rx: 8, fill: '#0f2b48', stroke: color, 'stroke-width': 2, 'stroke-dasharray': status === 'skipped' ? '5 4' : '0' }));
+                const label = String(n.label || n.id);
+                g.append(svgEl('text', { x: 10, y: 22 }, label.length > 22 ? label.slice(0, 21) + '…' : label));
+                g.append(svgEl('text', { class: 'sub', x: 10, y: 43 }, `${t(status === 'running' ? 'running_s' : status)} · ${Number(n.attempts) || 0} ${t('attempts')}`));
+                if (n.tier) {
+                    const w = String(n.tier).length * 6.2 + 12;
+                    g.append(svgEl('rect', { x: NW - w - 6, y: 6, width: w, height: 15, rx: 7, fill: color }));
+                    g.append(svgEl('text', { class: 'tier', x: NW - w / 2 - 6, y: 17, 'text-anchor': 'middle' }, n.tier));
+                }
+                svg.append(g);
+            });
+            $('graphBox').replaceChildren(svg);
+        }
+
+        // ------------------------------------------------------------------ run panels
+        function showSources(report) {
+            const sources = report.sources || [];
+            if (!sources.length) { $('sources').replaceChildren(empty('no_sources')); $('sourcesIntro').textContent = t('sources_intro'); return; }
+            $('sourcesIntro').textContent = `${report.evidence_count || 0} ${t('sources_word')}` + (report.dropped_for_privacy ? `, ${report.dropped_for_privacy} ${t('dropped')}` : '');
+            $('sources').replaceChildren(...sources.map((source) => {
+                const row = el('div', 'source');
+                const left = el('div'); left.append(pill(source.state));
+                const right = el('div');
+                right.append(el('strong', '', `${source.name} (${source.items})`));
+                if (source.detail) right.append(el('span', 'detail', source.detail));
+                row.append(left, right);
+                return row;
+            }));
+        }
+
+        function showAudits(report) {
+            const audits = report.audits || [];
+            if (!audits.length) { $('audits').replaceChildren(empty('no_audits')); return; }
+            const body = el('tbody');
+            audits.forEach((a) => {
+                const tone = /fail|reject|bad/i.test(a.verdict || '') ? 'bad' : /pass|approve|ok|accept/i.test(a.verdict || '') ? 'ok' : 'warn';
+                const verdict = el('td'); verdict.append(el('span', `pill ${tone}`, a.verdict || '—'));
+                const findings = el('td');
+                if ((a.findings || []).length) { const ul = el('ul', 'findings'); a.findings.forEach((f) => {
+                    if (typeof f === 'string') { ul.append(el('li', '', f)); return; }
+                    const li = el('li', '');
+                    li.append(el('span', `pill ${String(f.severity).toLowerCase() === 'high' ? 'bad' : 'warn'}`, String(f.severity || '?')), document.createTextNode(` ${f.where ? f.where + ': ' : ''}${f.problem || ''}`));
+                    if (f.fix) li.append(el('div', 'none', `→ ${f.fix}`));
+                    ul.append(li);
+                }); findings.append(ul); }
+                const row = el('tr');
+                row.append(el('td', '', a.loop), verdict, el('td', '', num(a.score)), findings);
+                body.append(row);
+            });
+            const table = el('table');
+            const head = el('thead'); const hr = el('tr');
+            ['loop', 'verdict', 'score', 'findings'].forEach((k) => hr.append(el('th', '', t(k))));
+            head.append(hr); table.append(head, body);
+            const wrap = el('div', 'scroll-x'); wrap.append(table);
+            $('audits').replaceChildren(wrap);
+        }
+
+        function showDeliverables(report) {
+            const list = report.deliverables || [];
+            const links = [];
+            list.forEach((d) => Object.entries(d.files || {}).forEach(([type, name]) => {
+                if (type === 'publish_dir' || !/\.[a-z0-9]+$/i.test(String(name))) return;  // folders are not downloadable
+                const row = el('div', 'actions');
+                row.style.marginBottom = '8px';
+                const link = el('a', 'file', `${t(d.kind)} ${type.toUpperCase()}`);
+                link.href = `outputs/runs/${encodeURIComponent(report.run_id)}/${encodeURIComponent(name)}`;
+                if (/\.html?$/.test(name)) { link.target = '_blank'; link.rel = 'noopener'; } else { link.download = ''; }
+                row.append(link, el('span', `pill ${d.verified ? 'ok' : 'warn'}`, t(d.verified ? 'verified' : 'needs_review')));
+                links.push(row);
+            }));
+            const problems = [];
+            if (report.error) problems.push(report.error);
+            const cites = (report.citation_problems || []).length;
+            if (cites) problems.push(`${cites} ${t('cites_n')}`);
+            const extra = problems.length ? [el('p', 'message warn', problems.join(' · '))] : [];
+            $('deliverables').replaceChildren(...(links.length ? links : [empty('no_deliv')]), ...extra);
+        }
+
+        function showRunKb(report) {
+            const kb = report.kb;
+            if (!kb) { $('runKb').replaceChildren(empty('no_kb')); return; }
+            const parts = [];
+            const names = (title, arr) => { const d = el('div', 'group'); d.append(el('strong', '', `${title} (${(arr || []).length})`)); if ((arr || []).length) { const ul = el('ul', 'findings'); arr.forEach((p) => ul.append(el('li', '', p))); d.append(ul); } return d; };
+            parts.push(names(t('created'), kb.created), names(t('updated'), kb.updated));
+            const before = kb.fitness_before || {}, after = kb.fitness_after || {};
+            const keys = Object.keys(after).length ? Object.keys(after) : Object.keys(before);
+            if (keys.length) {
+                const table = el('table'); const body = el('tbody');
+                keys.filter((k) => typeof (after[k] ?? before[k]) === 'number').forEach((k) => {
+                    const row = el('tr'); row.append(el('td', '', t('m_' + k) === 'm_' + k ? k : t('m_' + k)), el('td', '', `${before[k] === undefined ? '—' : num(before[k], k === 'score' ? 3 : 0)} → ${after[k] === undefined ? '—' : num(after[k], k === 'score' ? 3 : 0)}`));
+                    body.append(row);
+                });
+                table.append(body); parts.push(table);
+            }
+            const dec = kb.decisions || [];
+            const d = el('div', 'group'); d.style.marginTop = '10px'; d.append(el('strong', '', `${t('decisions')} (${dec.length})`));
+            if (dec.length) { const ul = el('ul', 'findings'); dec.forEach((x) => ul.append(el('li', '', typeof x === 'string' ? x : `${x.decision || ''} ${x.kind || ''} ${x.target || ''} ${x.reason ? '— ' + x.reason : ''}`.trim()))); d.append(ul); }
+            parts.push(d);
+            $('runKb').replaceChildren(...parts);
+        }
+
+        function showRun(report) {
+            selected = report.run_id;
+            const lines = report.log || [];
+            $('logBox').textContent = lines.length ? lines.join('\n') : t('no_log');
+            $('logBox').scrollTop = $('logBox').scrollHeight;
+            const req = report.request || {};
+            $('progress').textContent = `${t(report.status)} · ${report.stage || ''} · ${t('spent')} US$${num(report.spent_usd)} / ${req.budget_usd ?? '—'} · ${report.elapsed_seconds ?? 0}${t('seconds')}`;
+            drawGraph(report.graph);
+            showSources(report);
+            showAudits(report);
+            showDeliverables(report);
+            showRunKb(report);
+            markSelected();
+        }
+
+        function markSelected() {
+            document.querySelectorAll('#runs .run').forEach((n) => n.classList.toggle('selected', n.dataset.run === selected));
+        }
+
+        function showRuns(runs) {
+            runsCache = runs;
+            if (!runs.length) { $('runs').replaceChildren(empty('no_runs')); return; }
+            $('runs').replaceChildren(...runs.map((run) => {
+                const req = run.request || {};
+                const item = el('article', 'run'); item.dataset.run = run.run_id;
+                const title = el('h3', '', `${req.topic || run.run_id} `);
+                title.append(pill(run.status));
+                const loopsN = (run.audits || run.passes || []).length;
+                item.append(title, el('p', 'meta', `${run.run_id} · ${loopsN} ${t('loops_word')} · ${run.evidence_count || 0} ${t('sources_word')} · US$${num(run.spent_usd)}`));
+                const actions = el('div', 'actions');
+                const view = el('button', 'secondary small', t('view')); view.type = 'button';
+                view.addEventListener('click', () => selectRun(run.run_id));
+                actions.append(view);
+                const failed = (run.deliverables || []).filter((d) => !d.verified).length;
+                if (failed) actions.append(el('span', 'pill warn', `${failed} ${t('failed_n')}`));
+                item.append(actions);
+                return item;
+            }));
+            markSelected();
+        }
+
+        async function refreshRuns() {
+            const data = await api('api/runs');
+            showRuns(data.runs || []);
+            return data;
+        }
+
+        async function selectRun(runId) {
+            try { showRun(await api(`api/runs/${encodeURIComponent(runId)}`)); } catch (err) { say(t('load_failed'), 'warn'); }
+        }
+
+        async function watch(runId) {
+            current = runId;
+            setRunning(true);
+            clearInterval(timer);
+            const tick = async () => {
+                try {
+                    const report = await api(`api/runs/${encodeURIComponent(runId)}`);
+                    if (selected === runId || selected === null || current === runId) showRun(report);
+                    if (report.status !== 'RUNNING') {
+                        clearInterval(timer);
+                        await refreshRuns();
+                        setRunning(false);
+                        const good = report.status === 'COMPLETED';
+                        say(t(good ? 'done_ok' : 'done_review'), good ? '' : 'warn');
+                        loadKb();
+                    }
+                } catch (err) { say(t('retry'), 'warn'); }
+            };
+            await tick();
+            timer = setInterval(tick, 2500);
+        }
+
+        $('form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            say('');
+            setRunning(true);
+            try {
+                const data = await post('api/research', { topic: $('topic').value, loops: Number($('loops').value), budget_usd: Number($('budget').value), feedback: $('feedback').value, planner: $('planner').value, executor: $('executor').value, auditor: $('auditor').value });
+                await watch(data.run_id);
+            } catch (err) {
+                setRunning(false);
+                if (err.status) { say(err.message || t('cannot_start'), 'error'); if (err.data && err.data.run_id) watch(err.data.run_id); }
+                else say(t('lost'), 'error');
+            }
+        });
+
+        $('cancel').addEventListener('click', async () => {
+            $('cancel').disabled = true;
+            say(t('cancelling'));
+            try { await post(`api/runs/${encodeURIComponent(current)}/cancel`, {}); } catch (err) { say(err.message || t('retry'), 'warn'); }
+        });
+
+        // ------------------------------------------------------------------ knowledge base: pages + viewer
+        const wikiTarget = (raw) => raw.trim().replace(/\.md$/i, '') + '.md';
+
+        function inline(parent, text) {
+            const re = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]|\[([^\]]+)\]\(([^)\s]+)\)|`([^`]+)`|\*\*([^*]+)\*\*/g;
+            let last = 0, m;
+            while ((m = re.exec(text)) !== null) {
+                if (m.index > last) parent.append(document.createTextNode(text.slice(last, m.index)));
+                if (m[1] !== undefined) {
+                    const a = el('a', 'wiki', (m[2] || m[1]).trim());
+                    a.href = '#'; a.dataset.path = wikiTarget(m[1]);
+                    a.addEventListener('click', (e) => { e.preventDefault(); openPage(a.dataset.path); });
+                    parent.append(a);
+                } else if (m[3] !== undefined) {
+                    if (/^https?:\/\//i.test(m[4])) { const a = el('a', '', m[3]); a.href = m[4]; a.target = '_blank'; a.rel = 'noopener noreferrer'; parent.append(a); }
+                    else parent.append(document.createTextNode(m[0]));
+                } else if (m[5] !== undefined) parent.append(el('code', '', m[5]));
+                else parent.append(el('strong', '', m[6]));
+                last = re.lastIndex;
+            }
+            if (last < text.length) parent.append(document.createTextNode(text.slice(last)));
+        }
+
+        function renderMarkdown(body) {
+            const root = document.createDocumentFragment();
+            const lines = String(body || '').replace(/\r\n?/g, '\n').split('\n');
+            let list = null, para = null, fence = null;
+            const flush = () => { para = null; list = null; };
+            for (const line of lines) {
+                if (fence) {
+                    if (/^```/.test(line)) { root.append(fence); fence = null; } else fence.firstChild.textContent += (fence.firstChild.textContent ? '\n' : '') + line;
+                    continue;
+                }
+                if (/^```/.test(line)) { flush(); fence = el('pre'); fence.append(el('code', '', '')); continue; }
+                if (/^\s*<!--.*-->\s*$/.test(line)) continue;
+                if (!line.trim()) { flush(); continue; }
+                let m;
+                if ((m = /^(#{1,4})\s+(.*)$/.exec(line))) { flush(); const h = el('h' + m[1].length); inline(h, m[2]); root.append(h); continue; }
+                if (/^\s*([-*_])\1{2,}\s*$/.test(line)) { flush(); root.append(el('hr')); continue; }
+                if ((m = /^\s*([-*+]|\d+\.)\s+(.*)$/.exec(line))) {
+                    const tag = /\d/.test(m[1]) ? 'ol' : 'ul';
+                    if (!list || list.tagName.toLowerCase() !== tag) { list = el(tag); root.append(list); }
+                    para = null;
+                    const li = el('li'); inline(li, m[2].replace(/^\[[ xX]\]\s+/, (c) => (/x/i.test(c) ? '☑ ' : '☐ '))); list.append(li);
+                    continue;
+                }
+                list = null;
+                if (!para) { para = el('p'); root.append(para); } else para.append(document.createTextNode(' '));
+                inline(para, line.replace(/^>\s?/, ''));
+            }
+            if (fence) root.append(fence);
+            return root;
+        }
+
+        function renderPage(page) {
+            const box = $('kbPage');
+            const nodes = [];
+            const fm = page.frontmatter || {};
+            const keys = Object.keys(fm);
+            if (keys.length) {
+                const dl = el('dl', 'fm');
+                keys.forEach((k) => { dl.append(el('dt', '', k), el('dd', '', Array.isArray(fm[k]) ? fm[k].join(', ') : (typeof fm[k] === 'object' && fm[k] !== null ? JSON.stringify(fm[k]) : fm[k]))); });
+                nodes.push(dl);
+            }
+            const title = el('h1', '', page.title || page.path);
+            title.id = 'kbTitle';
+            nodes.push(title, el('p', 'p note', page.path), renderMarkdown(page.body));
+            box.replaceChildren(...nodes);
+            box.scrollTop = 0;
+        }
+
+        async function openPage(rel) {
+            try {
+                renderPage(await api(`api/kb/page?path=${encodeURIComponent(rel)}`));
+            } catch (err) { $('kbPage').replaceChildren(el('p', 'message error', `${t('load_failed')} (${rel})`)); }
+        }
+
+        let searchSeq = 0;
+        async function searchPages() {
+            const seq = ++searchSeq;
+            try {
+                const data = await api(`api/kb/pages?q=${encodeURIComponent($('kbQuery').value)}`);
+                if (seq !== searchSeq) return;
+                const pages = Array.isArray(data) ? data : (data.pages || []);
+                if (!pages.length) { $('kbResults').replaceChildren(el('li', 'note', t('no_pages'))); return; }
+                $('kbResults').replaceChildren(...pages.map((p) => {
+                    const li = el('li'); const b = el('button'); b.type = 'button'; b.dataset.path = p.path;
+                    const head = el('span', 't', p.title || p.path); head.append(' ');
+                    if (p.type) head.append(el('span', 'pill none', p.type));
+                    b.append(head, el('span', 'p', `${p.path}${p.updated ? ' · ' + p.updated : ''}`));
+                    b.addEventListener('click', () => openPage(p.path));
+                    li.append(b); return li;
+                }));
+            } catch (err) { if (seq === searchSeq) $('kbResults').replaceChildren(el('li', 'note', t('load_failed'))); }
+        }
+        let searchTimer = null;
+        $('kbQuery').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(searchPages, 200); });
+
+        async function loadGaps() {
+            try {
+                const data = await api('api/kb/gaps');
+                const gaps = data.gaps || [];
+                $('gaps').replaceChildren(...(gaps.length ? gaps.map((g) => el('li', '', typeof g === 'string' ? g : (g.text || JSON.stringify(g)))) : [el('li', 'note', t('no_gaps'))]));
+            } catch (err) { $('gaps').replaceChildren(el('li', 'note', t('load_failed'))); }
+        }
+
+        // ------------------------------------------------------------------ knowledge base: concept map (canvas force layout)
+        const MAP = { nodes: [], edges: [], alpha: 0, raf: 0, drag: null, hover: null, w: 0, h: 0, dpr: 1, moved: 0 };
+        const canvas = $('kbMap');
+        const ctx = canvas.getContext('2d');
+
+        function sizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            MAP.dpr = window.devicePixelRatio || 1;
+            MAP.w = Math.max(1, rect.width); MAP.h = Math.max(1, rect.height);
+            canvas.width = Math.max(1, Math.round(MAP.w * MAP.dpr)); canvas.height = Math.max(1, Math.round(MAP.h * MAP.dpr));
+        }
+
+        function initMap(graph) {
+            const nodes = ((graph && graph.nodes) || []).slice(0, 400);
+            const byId = new Map();
+            MAP.nodes = nodes.map((n, i) => {
+                const a = (i / Math.max(1, nodes.length)) * Math.PI * 2, r = Math.min(MAP.w, MAP.h) * 0.3;
+                const node = { id: n.id, label: n.label || n.id, type: TYPE_COLOR[n.type] ? n.type : 'other', degree: n.degree || 0, x: MAP.w / 2 + Math.cos(a) * r, y: MAP.h / 2 + Math.sin(a) * r, vx: 0, vy: 0 };
+                node.r = 4 + Math.min(9, Math.sqrt(node.degree) * 2.2);
+                byId.set(n.id, node); return node;
+            });
+            MAP.edges = ((graph && graph.edges) || []).map((e) => [byId.get(e.source), byId.get(e.target)]).filter((p) => p[0] && p[1] && p[0] !== p[1]);
+            $('mapNote').textContent = MAP.nodes.length ? t('map_hint') : t('no_map');
+            MAP.hover = null; MAP.drag = null;
+            cancelAnimationFrame(MAP.raf); MAP.raf = 0;
+            if (reduceMotion) { for (let i = 0; i < 300; i++) step(0.5); draw(); }
+            else { MAP.alpha = 1; loop(); }
+        }
+
+        function step(alpha) {
+            const ns = MAP.nodes;
+            for (let i = 0; i < ns.length; i++) {
+                for (let j = i + 1; j < ns.length; j++) {
+                    let dx = ns[j].x - ns[i].x, dy = ns[j].y - ns[i].y, d2 = dx * dx + dy * dy;
+                    if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+                    if (d2 > 90000) continue;
+                    const f = (1800 / d2) * alpha, d = Math.sqrt(d2);
+                    ns[i].vx -= (dx / d) * f; ns[i].vy -= (dy / d) * f; ns[j].vx += (dx / d) * f; ns[j].vy += (dy / d) * f;
+                }
+            }
+            MAP.edges.forEach(([a, b]) => {
+                const dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) || 1, f = (d - 70) * 0.02 * alpha;
+                a.vx += (dx / d) * f; a.vy += (dy / d) * f; b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
+            });
+            ns.forEach((n) => {
+                n.vx += (MAP.w / 2 - n.x) * 0.012 * alpha; n.vy += (MAP.h / 2 - n.y) * 0.012 * alpha;
+                if (n !== MAP.drag) { n.x += n.vx; n.y += n.vy; }
+                n.vx *= 0.8; n.vy *= 0.8;
+                n.x = Math.min(MAP.w - n.r, Math.max(n.r, n.x)); n.y = Math.min(MAP.h - n.r, Math.max(n.r, n.y));
+            });
+        }
+
+        function loop() {
+            step(MAP.alpha); draw();
+            MAP.alpha *= 0.985;
+            MAP.raf = (MAP.alpha > 0.02 || MAP.drag) ? requestAnimationFrame(loop) : 0;
+        }
+        function kick() { if (reduceMotion) { draw(); return; } MAP.alpha = Math.max(MAP.alpha, 0.35); if (!MAP.raf) loop(); }
+
+        function draw() {
+            ctx.setTransform(MAP.dpr, 0, 0, MAP.dpr, 0, 0);
+            ctx.clearRect(0, 0, MAP.w, MAP.h);
+            ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(120,150,190,0.35)';
+            MAP.edges.forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); });
+            MAP.nodes.forEach((n) => {
+                ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                ctx.fillStyle = TYPE_COLOR[n.type]; ctx.fill();
+                if (n === MAP.hover) { ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+            });
+            if (MAP.hover) {
+                const n = MAP.hover; ctx.font = '12px sans-serif';
+                const tw = ctx.measureText(n.label).width + 12;
+                const x = Math.min(MAP.w - tw - 2, Math.max(2, n.x - tw / 2)), y = n.y - n.r - 24 < 2 ? n.y + n.r + 6 : n.y - n.r - 24;
+                ctx.fillStyle = 'rgba(6,12,20,0.92)'; ctx.fillRect(x, y, tw, 20);
+                ctx.strokeStyle = TYPE_COLOR[n.type]; ctx.lineWidth = 1; ctx.strokeRect(x, y, tw, 20);
+                ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(n.label, x + 6, y + 10);
+            }
+        }
+
+        function nodeAt(x, y) {
+            for (let i = MAP.nodes.length - 1; i >= 0; i--) { const n = MAP.nodes[i]; if (Math.hypot(n.x - x, n.y - y) <= n.r + 4) return n; }
+            return null;
+        }
+        const localXY = (e) => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+        canvas.addEventListener('pointerdown', (e) => {
+            const [x, y] = localXY(e); const n = nodeAt(x, y);
+            if (n) { MAP.drag = n; MAP.moved = 0; canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing'; kick(); }
+        });
+        canvas.addEventListener('pointermove', (e) => {
+            const [x, y] = localXY(e);
+            if (MAP.drag) { MAP.moved += 1; MAP.drag.x = x; MAP.drag.y = y; MAP.drag.vx = MAP.drag.vy = 0; kick(); if (reduceMotion) draw(); return; }
+            const n = nodeAt(x, y);
+            if (n !== MAP.hover) { MAP.hover = n; canvas.style.cursor = n ? 'pointer' : 'grab'; if (!MAP.raf) draw(); }
+        });
+        const endDrag = (e) => {
+            const n = MAP.drag; MAP.drag = null; canvas.style.cursor = 'grab';
+            if (n && e.type === 'pointerup' && MAP.moved < 3) openPage(n.id + '.md');
+        };
+        canvas.addEventListener('pointerup', endDrag);
+        canvas.addEventListener('pointercancel', endDrag);
+        canvas.addEventListener('pointerleave', () => { if (!MAP.drag && MAP.hover) { MAP.hover = null; if (!MAP.raf) draw(); } });
+        let resizeTimer = null;
+        window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { sizeCanvas(); MAP.nodes.forEach((n) => { n.x = Math.min(n.x, MAP.w); n.y = Math.min(n.y, MAP.h); }); draw(); }, 100); });
+
+        async function loadMap() {
+            try { initMap(await api('api/kb/graph')); } catch (err) { initMap(null); $('mapNote').textContent = t('load_failed'); }
+        }
+
+        // ------------------------------------------------------------------ RSI panel
+        function showFitness(f) {
+            if (!f || typeof f.score !== 'number') { $('fitness').replaceChildren(empty('no_fitness')); return; }
+            const order = ['pages', 'concepts', 'broken_links', 'orphans', 'unsourced_claims', 'single_source_concepts', 'open_gaps'];
+            const tiles = el('div', 'tiles');
+            const score = el('div', 'tile'); score.style.gridColumn = '1 / -1';
+            score.append(el('span', '', t('m_score')), el('b', '', `${(f.score * 100).toFixed(1)}%`));
+            const bar = el('div', 'bar'); const fill = el('i'); fill.style.width = `${Math.max(0, Math.min(100, f.score * 100))}%`; bar.append(fill); score.append(bar);
+            tiles.append(score);
+            order.filter((k) => typeof f[k] === 'number').forEach((k) => { const tile = el('div', 'tile'); tile.dataset.metric = k; tile.append(el('b', '', f[k]), el('span', '', t('m_' + k))); tiles.append(tile); });
+            $('fitness').replaceChildren(tiles);
+        }
+        async function loadFitness() { try { showFitness(await api('api/kb/fitness')); } catch (err) { $('fitness').replaceChildren(empty('no_fitness')); } }
+
+        async function loadLedger() {
+            try {
+                const data = await api('api/kb/ledger');
+                const entries = data.entries || [];
+                $('chain').replaceChildren();
+                if (typeof data.chain_ok === 'boolean') $('chain').append(el('span', `pill ${data.chain_ok ? 'ok' : 'bad'}`, t(data.chain_ok ? 'chain_ok' : 'chain_bad')));
+                if (!entries.length) { const tr = el('tr'); const td = el('td', 'note', t('no_ledger')); td.colSpan = 6; tr.append(td); $('ledger').replaceChildren(tr); return; }
+                $('ledger').replaceChildren(...entries.map((e) => {
+                    const tr = el('tr'); const dec = el('td'); dec.append(el('span', `pill ${/promot/i.test(e.decision || '') ? 'ok' : 'warn'}`, e.decision || '—'));
+                    tr.append(el('td', '', e.time || ''), el('td', '', e.kind || ''), el('td', '', e.target || ''), dec, el('td', '', typeof e.delta_score === 'number' ? (e.delta_score >= 0 ? '+' : '') + e.delta_score.toFixed(3) : '—'), el('td', '', e.reason || ''));
+                    return tr;
+                }));
+            } catch (err) { $('chain').replaceChildren(); const tr = el('tr'); const td = el('td', 'note', t('load_failed')); td.colSpan = 6; tr.append(td); $('ledger').replaceChildren(tr); }
+        }
+
+        $('improve').addEventListener('click', async () => {
+            $('improve').disabled = true; $('improve').textContent = t('improving');
+            $('improveMsg').textContent = ''; $('improveMsg').className = 'message';
+            try {
+                const data = await post('api/kb/improve', {});
+                $('improveMsg').textContent = `${t('improved')}: ${(data.decisions || []).length}`;
+                if (data.fitness) showFitness(data.fitness);
+                await Promise.all([loadLedger(), loadGaps(), loadMap()]);
+                searchPages();
+            } catch (err) { $('improveMsg').textContent = err.message || t('load_failed'); $('improveMsg').className = 'message error'; }
+            $('improve').disabled = false; $('improve').textContent = t('improve');
+        });
+
+        function loadKb() { return Promise.all([searchPages(), loadMap(), loadGaps(), loadFitness(), loadLedger()]); }
+
+        // ------------------------------------------------------------------ start
+        async function start() {
+            applyLanguage();
+            sizeCanvas();
+            $('graphBox').replaceChildren(empty('no_graph'));
+            $('sources').replaceChildren(empty('no_sources'));
+            $('audits').replaceChildren(empty('no_audits'));
+            $('deliverables').replaceChildren(empty('no_deliv'));
+            $('runs').replaceChildren(empty('no_runs'));
+            $('runKb').replaceChildren(empty('no_kb'));
+            $('kbPage').replaceChildren(empty('no_page'));
+            $('gaps').replaceChildren(el('li', 'note', t('no_gaps')));
+            $('fitness').replaceChildren(empty('no_fitness'));
+            $('providers').replaceChildren(empty('no_providers'));
+            $('improve').disabled = isFile;
+            if (isFile) {
+                try {
+                    await api(`${SERVER}/api/health`);
+                    $('badge').textContent = t('server_up'); $('badge').classList.add('on');
+                    const link = el('a', '', `${SERVER}/`); link.href = `${SERVER}/`;
+                    $('message').className = 'message warn';
+                    $('message').replaceChildren(t('local_file'), link, t('local_file2'));
+                } catch (err) {
+                    $('badge').textContent = t('no_server'); $('badge').classList.add('off');
+                    say(t('start_server'), 'warn');
+                }
+                return;
+            }
+            try {
+                applyConfig(await api('api/config'));
+                const data = await refreshRuns();
+                $('badge').textContent = t('connected'); $('badge').classList.add('on');
+                setRunning(false);
+                loadKb();
+                if (data.active) await watch(data.active);
+                else if ((data.runs || []).length) await selectRun(data.runs[0].run_id);
+            } catch (err) {
+                $('badge').textContent = t('no_server'); $('badge').classList.add('off');
+                say(t('lost'), 'error');
+            }
+        }
+
+        start();
+    </script>
+</body>
+</html>
