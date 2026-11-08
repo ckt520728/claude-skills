@@ -21,12 +21,27 @@ Vault-level rules (Obsidian "Second Brain" convention):
 - Optionally, RSI decisions are mirrored to a queue page (`knowledge_base.queue_md`).
 - Input folders such as `Clippings/` are never modified.
 
-## Fitness (measured by code)
+## Fitness (measured by code, `score_basis: normalised-v2`)
+
+Each defect count is divided by the thing it can occur in:
 
 ```
-score = 1 − Σ wᵢ · cᵢ / (cᵢ + 5)
-weights: broken_links .30 · unsourced_claims .25 · orphans .20 · duplicate_concepts .10 · single_source_concepts .10 · open_gaps .05
+score = 1 − Σ wᵢ · rateᵢ        rate = count / denominator (capped at 1)
+
+broken_links            / links (unique page→target pairs)   w .30
+unsourced_claims        / claims                             w .25
+orphans                 / linkable pages                     w .20
+duplicate_concepts      / concepts                           w .10
+single_source_concepts  / concepts                           w .10
+open_gaps               / all gaps listed (open + ticked)    w .05
 ```
+
+- A perfect wiki scores 1.0, and an empty one scores 0.
+- With the denominators held fixed, the score falls strictly as any count rises.
+- The same proportions at twice the size give the identical score.
+- `--kb-fitness` reports `totals` and `rates` alongside the raw counts.
+- Open gaps are measured as the share still open, not per concept. Otherwise a good merge, which removes a concept, would look worse.
+- Gaps close when someone ticks `- [x]` in `缺口/gaps.md`. Nothing closes them automatically, so the term stays at 1.0 until gaps are answered and ticked.
 
 ## Promotion rule
 
@@ -37,11 +52,8 @@ A proposal is one of `repair_link`, `merge_concepts` or `link_orphan`. It is app
 
 Otherwise it is rejected. Either way, the decision is appended to `.rsi/kb_ledger.jsonl`, a SHA-256 hash chain where each entry hashes the one before it.
 
-## Known design issue: absolute counts penalise growth
+## History: why v1 was replaced
 
-In the demo, the wiki grew from 31 to 67 pages and the score fell from 0.906 to 0.879:
-- open gaps went 6 → 20 and single-source concepts 10 → 21
-- the single-source *share* actually improved (71% → 64%)
-- broken links, orphans and unsourced claims stayed at 0
+v1 used absolute counts, `1 − Σ w·c/(c+5)`, so a growing wiki scored worse simply for being bigger. In the 2026-11-08 demo the wiki grew from 31 to 67 pages, and v1 fell from 0.906 to 0.879 even though every share improved. The same wiki scores 0.886 under v2.
 
-A growing wiki scores worse simply because it is bigger. The fix under consideration is to normalise the growth-driven counts by the number of concepts. Decide on it before relying on the score as a trend line.
+Scores from v1 and v2 are not comparable. Ledger entries written before the switch use the v1 scale.

@@ -361,13 +361,35 @@ def test_fitness_counts_single_source_and_gaps(root):
 
 def test_fitness_score_is_strictly_monotone_in_each_count():
     base = {k: 0 for k in kb_rsi.WEIGHTS}
-    assert kb_rsi._score(base) == 1.0
+    totals = {d: 40 for d in kb_rsi.DENOMINATORS.values()}
+    assert kb_rsi._score(base, totals) == 1.0
     for k in kb_rsi.WEIGHTS:
         prev = 1.0
         for n in range(1, 30):
-            s = kb_rsi._score({**base, k: n})
+            s = kb_rsi._score({**base, k: n}, totals)
             assert s < prev and 0 <= s <= 1
             prev = s
+
+
+def test_fitness_does_not_penalise_growth():
+    """The 2026-11-08 case: the wiki grew and every share improved, yet v1 (absolute counts) fell 0.906 -> 0.879."""
+    zero = {k: 0 for k in kb_rsi.WEIGHTS}
+    before = kb_rsi._score({**zero, "single_source_concepts": 10, "open_gaps": 6}, {"concepts": 14, "gaps": 8})
+    after = kb_rsi._score({**zero, "single_source_concepts": 21, "open_gaps": 20}, {"concepts": 33, "gaps": 30})
+    assert after > before
+    # Same proportions at twice the size: identical score.
+    small = kb_rsi._score({**zero, "orphans": 1, "single_source_concepts": 3}, {"linkable_pages": 10, "concepts": 6})
+    big = kb_rsi._score({**zero, "orphans": 2, "single_source_concepts": 6}, {"linkable_pages": 20, "concepts": 12})
+    assert small == big
+
+
+def test_fitness_reports_rates_and_totals(root):
+    perfect_kb(root)
+    put(root, "缺口/gaps.md", managed("- [ ] one\n- [x] done\n- [ ] two"))
+    f = kb_rsi.fitness(root)
+    assert f["score_basis"] == "normalised-v2"
+    assert f["totals"]["gaps"] == 3 and f["open_gaps"] == 2 and f["rates"]["open_gaps"] == round(2 / 3, 6)
+    assert set(f["rates"]) == set(kb_rsi.WEIGHTS) and all(0 <= v <= 1 for v in f["rates"].values())
 
 
 # ------------------------------------------------------------------ proposals and improve
@@ -432,8 +454,10 @@ def test_improve_rejects_when_another_metric_gets_worse(root, tmp_path, monkeypa
     real_before = snapshot(root)
 
     def sneaky_apply(r, proposal):                      # fixes the broken link but adds an unsourced claim
+        # Many sourced claims dilute the unsourced one, so the overall score RISES: only the held-out guard can catch it.
+        sourced = "\n".join(f"- c{i} ([[來源/pmid-{'111' if i % 2 else '222'}]])" for i in range(12))
         put(r, "index.md", managed("## Home\n- [[概念/A]]"))
-        put(r, "概念/A.md", managed("## Claims（主張）\n- first ([[來源/pmid-111]])\n- second ([[來源/pmid-222]])\n- unsourced new claim"))
+        put(r, "概念/A.md", managed("## Claims（主張）\n" + sourced + "\n- unsourced new claim"))
         return ["index.md", "概念/A.md"]
 
     crafted = Proposal("repair_link", "來源/pmid-1111", {"new": "來源/pmid-111", "pages": ["index"]}, "broken_links")
@@ -441,6 +465,7 @@ def test_improve_rejects_when_another_metric_gets_worse(root, tmp_path, monkeypa
     monkeypatch.setattr(kb_rsi, "apply", sneaky_apply)
     d = kb_rsi.improve(root, tmp_path / "l.jsonl")[0]
     assert d["decision"] == "REJECT" and "unsourced_claims" in d["reason"] and d["after"] == 0
+    assert d["delta_score"] > 0                          # the score alone would have promoted it
     assert snapshot(root) == real_before
 
 

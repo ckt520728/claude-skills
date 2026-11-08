@@ -108,7 +108,7 @@ On tools without subagents, see `AGENTS.md`.
 
 ### 6. Knowledge base and RSI
 
-- `--kb-fitness` measures the wiki: broken links, orphans, unsourced claims, duplicates, single-source concepts, open gaps.
+- `--kb-fitness` measures the wiki: broken links, orphans, unsourced claims, duplicates, single-source concepts and open gaps. Each is a share of its own denominator (`normalised-v2`), so growth alone does not lower the score.
 - `--kb-improve` proposes changes (repair link, merge concepts, link orphan), tests each on a scratch copy, and promotes it only if:
   - the targeted metric falls,
   - the overall score rises,

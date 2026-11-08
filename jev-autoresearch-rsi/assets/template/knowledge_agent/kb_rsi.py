@@ -21,19 +21,35 @@ from typing import Dict, List, Optional
 
 from . import kb
 
-# score = 1 - sum(weight * count / (count + K)). Each term rises strictly with its count, so any rise lowers
-# the score; a perfect KB (all counts 0) scores exactly 1.0; an empty KB (0 pages) scores 0.
+# score = 1 - sum(weight * rate). Each defect count is divided by the thing it can occur in, so a wiki that
+# grows without getting worse keeps its score (v1 used absolute counts and penalised growth: 0.906 -> 0.879
+# on 2026-11-08 while every share improved). A perfect KB scores exactly 1.0; an empty KB (0 pages) scores 0.
+# With the denominators held fixed, the score falls strictly as any count rises.
 WEIGHTS = {"broken_links": 0.30, "unsourced_claims": 0.25, "orphans": 0.20,
            "duplicate_concepts": 0.10, "single_source_concepts": 0.10, "open_gaps": 0.05}
-SATURATION = 5.0
+DENOMINATORS = {"broken_links": "links", "unsourced_claims": "claims", "orphans": "linkable_pages",
+                "duplicate_concepts": "concepts", "single_source_concepts": "concepts", "open_gaps": "gaps"}
+SCORE_BASIS = "normalised-v2"
 LEDGER_START = "0" * 64
 HEADING_RE = re.compile(r"^#{1,6}\s")
 CLAIMS_HEADING_RE = re.compile(r"^#{1,6}\s*Claims\b")
 SOURCE_LINK_RE = re.compile(r"\[\[" + kb.SOURCE_DIR + r"/([^\]|#]+)")
 
 
-def _score(counts: Dict[str, int]) -> float:
-    return round(1.0 - sum(w * counts[k] / (counts[k] + SATURATION) for k, w in WEIGHTS.items()), 6)
+def _rate(count: int, total: int) -> float:
+    """Share of `total` that is defective. A defect with no recorded denominator counts as fully defective."""
+    if count <= 0:
+        return 0.0
+    return min(1.0, count / total) if total > 0 else 1.0
+
+
+def _rates(counts: Dict[str, int], totals: Dict[str, int]) -> Dict[str, float]:
+    return {k: round(_rate(counts[k], totals.get(DENOMINATORS[k], 0)), 6) for k in WEIGHTS}
+
+
+def _score(counts: Dict[str, int], totals: Dict[str, int]) -> float:
+    rates = _rates(counts, totals)
+    return round(1.0 - sum(w * rates[k] for k, w in WEIGHTS.items()), 6)
 
 
 def claim_lines(text: str) -> List[str]:
@@ -58,14 +74,15 @@ def fitness(root: Path) -> dict:
     zero = {k: 0 for k in WEIGHTS}
     if not pages:
         return {"pages": 0, "broken_links": 0, "orphans": 0, "unsourced_claims": 0, "open_gaps": 0, "concepts": 0,
-                "single_source_concepts": 0, "duplicate_concepts": 0, "score": 0.0,
+                "single_source_concepts": 0, "duplicate_concepts": 0, "score": 0.0, "score_basis": SCORE_BASIS,
                 "details": {"broken": [], "orphans": [], "unsourced": [], "duplicates": []}}
     texts = {pid: kb.read_text(p) for pid, p in pages}
     by_cf = {pid.casefold(): pid for pid in texts}
     inbound: Dict[str, set] = {pid: set() for pid in texts}
-    broken, seen = [], set()
+    broken, seen, link_pairs = [], set(), set()
     for pid, text in texts.items():
         for t in kb.wikilinks(text):
+            link_pairs.add((pid, t.casefold()))
             target = by_cf.get(t.casefold())
             if target:
                 if target != pid:
@@ -76,9 +93,10 @@ def fitness(root: Path) -> dict:
     redirects = {pid for pid, t in texts.items() if kb.is_redirect(t)}
     orphans = [pid for pid in texts if pid != "index" and pid != kb.GAPS_ID and pid not in redirects and not inbound[pid]]
     concepts = {pid: t for pid, t in texts.items() if pid.startswith(kb.CONCEPT_DIR + "/") and pid not in redirects}
-    unsourced, single = [], 0
+    unsourced, single, claims_total = [], 0, 0
     for pid, text in concepts.items():
         claims = claim_lines(text)
+        claims_total += len(claims)
         for line in claims:
             if not SOURCE_LINK_RE.search(line):
                 unsourced.append({"page": pid, "claim": line})
@@ -87,7 +105,12 @@ def fitness(root: Path) -> dict:
     duplicates = _duplicate_pairs(concepts)
     counts = {"broken_links": len(broken), "unsourced_claims": len(unsourced), "orphans": len(orphans),
               "duplicate_concepts": len(duplicates), "single_source_concepts": single, "open_gaps": len(kb.open_gaps(root))}
-    return {"pages": len(texts), **counts, "concepts": len(concepts), "score": _score(counts),
+    gaps_path = root / (kb.GAPS_ID + ".md")
+    totals = {"links": len(link_pairs), "claims": claims_total, "concepts": len(concepts),
+              "linkable_pages": sum(1 for pid in texts if pid not in ("index", kb.GAPS_ID) and pid not in redirects),
+              "gaps": len(kb.parse_gap_lines(kb.read_text(gaps_path))) if gaps_path.exists() else 0}
+    return {"pages": len(texts), **counts, "concepts": len(concepts), "score": _score(counts, totals),
+            "score_basis": SCORE_BASIS, "totals": totals, "rates": _rates(counts, totals),
             "details": {"broken": broken, "orphans": orphans, "unsourced": unsourced, "duplicates": duplicates}}
 
 
