@@ -613,6 +613,9 @@ def integrate_run(root: Path, run: dict) -> dict:
                       ["autoresearch", "topic"], sources=len(sources), run_ids=[run_id])
 
     gaps_added = _write_gaps(root, gaps, topic_stem, run_id, date, tracker)
+    answered = [{"text": one_line(a.get("text", "")), "answer": one_line(a.get("answer", "")), "sources": keys_to_sids(a.get("keys") or [])}
+                for a in (run.get("answered_gaps") or []) if isinstance(a, dict)]
+    gaps_closed = close_gaps(root, answered, run_id, date, tracker)
     index_existed = (root / "index.md").exists()
     if _ensure_ledger_page(root):
         tracker["created"].add(LEDGER_PAGE + ".md")
@@ -620,7 +623,51 @@ def integrate_run(root: Path, run: dict) -> dict:
         tracker["created" if not index_existed else "updated"].add("index.md")
     _vault_files(root, run, topic_stem, len(set(concept_names)), len(sources))
     return {"created": sorted(tracker["created"]), "updated": sorted(tracker["updated"] - tracker["created"]),
-            "concepts": len({norm_name(c) for c in concept_names}), "sources": len(sources), "gaps_added": gaps_added}
+            "concepts": len({norm_name(c) for c in concept_names}), "sources": len(sources), "gaps_added": gaps_added,
+            "gaps_closed": gaps_closed}
+
+
+ANSWER_PREFIX = "  - 已回答"
+
+
+def close_gaps(root: Path, answered: List[dict], run_id: str, date: str, tracker: Optional[dict] = None) -> int:
+    """
+    Tick open gaps that a run answered (the run's code has already verified each answer).
+    Only lines inside the managed block change; the gap line keeps its exact text, and the answer goes on an
+    indented line beneath it, so parsing, de-duplication and the user's own edits outside the block are unaffected.
+    A gap the user already ticked or reopened by hand is matched by text and never touched twice.
+    """
+    path = Path(root) / (GAPS_ID + ".md")
+    if not answered or not path.exists():
+        return 0
+    old = read_text(path)
+    block = get_block(old)
+    if block is None:
+        return 0
+    wanted = {norm_name(a["text"]): a for a in answered if a.get("text") and a.get("answer") and len(a.get("sources") or []) >= 1}
+    lines, out, closed = block.split("\n"), [], 0
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        m = GAP_LINE_RE.match(line)
+        if m and m.group(1) == " ":
+            text = parse_gap_lines(line)[0]["text"]
+            hit = wanted.pop(norm_name(text), None)
+            if hit:
+                out[-1] = line.replace("- [ ]", "- [x]", 1)
+                links = "、".join(f"[[{SOURCE_DIR}/{s}]]" for s in hit["sources"])
+                out.append(f"{ANSWER_PREFIX}（run {run_id}，{date}）：{hit['answer']}（{links}）")
+                closed += 1
+        i += 1
+    if not closed:
+        return 0
+    new = set_block(old, "\n".join(out))
+    if new != old:
+        write_text(path, new)
+        if tracker is not None:
+            tracker["updated"].add(GAPS_ID + ".md")
+    return closed
 
 
 def _write_gaps(root: Path, gaps: List[str], topic_stem: str, run_id: str, date: str, tracker: dict) -> int:

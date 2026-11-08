@@ -97,7 +97,7 @@ def test_kb_root_uses_config_then_default(monkeypatch):
 
 def test_integrate_run_writes_expected_pages(root):
     result = kb.integrate_run(root, make_run())
-    assert set(result) == {"created", "updated", "concepts", "sources", "gaps_added"}
+    assert set(result) == {"created", "updated", "concepts", "sources", "gaps_added", "gaps_closed"} and result["gaps_closed"] == 0
     assert result["concepts"] == 2 and result["sources"] == 3 and result["gaps_added"] == 2
     assert result["updated"] == [] and "index.md" in result["created"]
     topic_stem = kb.safe_name("Agentic autoresearch (RSI) [2026]")
@@ -192,6 +192,36 @@ def test_gaps_dedupe_and_keep_checked_boxes(root):
     stem = kb.safe_name("Agentic autoresearch (RSI) [2026]")
     assert kb.open_gaps(root, "Agentic autoresearch (RSI) [2026]") == ["No long-horizon benchmark", "Brand new gap"]
     assert kb.open_gaps(root, "Another topic") == [] and stem
+
+
+def test_later_run_closes_an_answered_gap(root):
+    kb.integrate_run(root, make_run())
+    gaps = root / "缺口" / "gaps.md"
+    gaps.write_bytes((gaps.read_bytes().decode("utf-8") + "\nMy own note outside the block.\n").encode("utf-8"))
+    open_before = kb_rsi.fitness(root)["rates"]["open_gaps"]
+    answer = {"text": "Unclear cost curve", "answer": "Cost grows linearly with loops.", "keys": ["E1", "E2"]}
+    result = kb.integrate_run(root, make_run("r2", gaps=[], answered_gaps=[answer]))
+    assert result["gaps_closed"] == 1
+    text = gaps.read_text(encoding="utf-8")
+    assert "- [x] Unclear cost curve" in text and "- [ ] No long-horizon benchmark" in text
+    assert "  - 已回答（run r2，2026-11-08）：Cost grows linearly with loops.（[[來源/" in text
+    assert "My own note outside the block." in text
+    assert kb.open_gaps(root) == ["No long-horizon benchmark"]
+    f = kb_rsi.fitness(root)
+    assert f["rates"]["open_gaps"] < open_before and f["broken_links"] == 0   # the answer's source links resolve
+    # The same answer again changes nothing, and the closed gap is not re-added as a new open gap.
+    again = kb.integrate_run(root, make_run("r3", gaps=["Unclear cost curve"], answered_gaps=[answer]))
+    assert again["gaps_closed"] == 0 and again["gaps_added"] == 0
+    assert gaps.read_text(encoding="utf-8").count("已回答") == 1
+
+
+def test_close_gaps_ignores_unmatched_or_unsourced_answers(root):
+    kb.integrate_run(root, make_run())
+    gaps = root / "缺口" / "gaps.md"
+    before = gaps.read_bytes()
+    assert kb.close_gaps(root, [{"text": "A gap nobody recorded", "answer": "x", "sources": ["s1"]}], "r9", "2026-11-09") == 0
+    assert kb.close_gaps(root, [{"text": "Unclear cost curve", "answer": "x", "sources": []}], "r9", "2026-11-09") == 0
+    assert gaps.read_bytes() == before
 
 
 def test_vault_index_gets_one_line_and_log_one_line_per_run(root):

@@ -14,7 +14,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 import anyio
 
@@ -166,15 +166,24 @@ def notes_prompt(topic: str, pack: str) -> str:
     )
 
 
-def audit_prompt(topic: str, aspects: List[Dict], paper: str, pack: str) -> str:
+def audit_prompt(topic: str, aspects: List[Dict], paper: str, pack: str, open_gaps: Optional[List[str]] = None) -> str:
     plan = "\n".join(f"- {a.get('task_id', '')}: {a.get('objective', '')} (acceptance: {a.get('acceptance', '')})" for a in aspects) or "- (no aspects planned)"
+    gap_block, gap_schema, gap_rule = "", "", ""
+    if open_gaps:
+        gap_block = "OPEN KNOWLEDGE-BASE GAPS:\n" + "\n".join(f"G{i}: {g}" for i, g in enumerate(open_gaps, 1)) + "\n\n"
+        gap_schema = ', "answered_gaps": [{"gap": "G#", "answer": "one sentence; copy any figure exactly", "keys": ["E#", "E#"]}]'
+        gap_rule = (" List a gap in answered_gaps only if the EVIDENCE above directly answers the whole question; cite at least two "
+                    "independent keys, at least one of them a primary study rather than a secondary summary. Leave it empty otherwise.")
     return (
-        f"Topic: {topic}\n\nPLANNED ASPECTS:\n{plan}\n\nPAPER UNDER AUDIT:\n{paper}\n\nEVIDENCE:\n{pack}\n\n"
+        f"Topic: {topic}\n\nPLANNED ASPECTS:\n{plan}\n\n{gap_block}PAPER UNDER AUDIT:\n{paper}\n\nEVIDENCE:\n{pack}\n\n"
         'Return only JSON: {"verdict": "PASS" | "FAIL", "score": 0..1, "findings": [{"severity": "high|medium|low", "where": "section", '
         '"problem": "...", "evidence": "key or quote", "fix": "..."}], "new_queries": {"pubmed": [], "arxiv": [], "trials": []}, '
-        '"gaps": ["what is still unknown or under-evidenced, phrased as a research question"]}. '
-        "FAIL if any high-severity problem exists."
+        '"gaps": ["what is still unknown or under-evidenced, phrased as a research question"]' + gap_schema + '}. '
+        "FAIL if any high-severity problem exists." + gap_rule
     )
+
+
+MIN_GAP_KEYS = 2  # a gap closes only on at least two distinct collected sources, one of them primary
 
 
 # ---------------------------------------------------------------- the run
@@ -198,6 +207,9 @@ class JevRun(ResearchRun):
         self.kb_result: Dict = {}
         self.plan_status: List[Dict] = []
         self.off_topic: set = set()
+        self.open_gaps_seen: List[str] = []
+        self.gaps_closed: List[Dict] = []
+        self.gap_rejections: List[Dict] = []
         super().__init__(request, on_log)
 
     # ------------------------------------------------------------ records
@@ -210,6 +222,7 @@ class JevRun(ResearchRun):
             "roles": {"planner": self.request.planner, "executor": self.request.executor, "auditor": self.request.auditor} if hasattr(self.request, "planner") else {},
             "notes_count": len(getattr(self, "notes", [])), "dropped_claims": getattr(self, "dropped_claims", 0), "gaps": getattr(self, "gaps", []),
             "plan_status": getattr(self, "plan_status", []), "off_topic": sorted(getattr(self, "off_topic", set())),
+            "gaps_closed": getattr(self, "gaps_closed", []), "gap_rejections": getattr(self, "gap_rejections", []),
         })
         return data
 
@@ -280,6 +293,8 @@ class JevRun(ResearchRun):
         self.stage = f"loop {loop}: planning"
         self.log(f"Loop {loop}: planner {self.request.planner} is planning...")
         gaps = self._kb_gaps() if loop == 1 else []
+        if loop == 1:
+            self.open_gaps_seen = gaps[:30]
         if gaps:
             self.log(f"  Planner sees {len(gaps)} open gap(s) from the knowledge base.")
         result = await self._ask(planner_prompt(self.request.topic, self.request.feedback, gaps, findings, loop),
@@ -428,7 +443,7 @@ class JevRun(ResearchRun):
         self.stage = f"loop {loop}: auditing"
         self.log(f"Loop {loop}: auditor {self.request.auditor} is reviewing...")
         keys = [k for k in cited_keys(paper.output) if k in self.evidence]
-        result = await self._ask(audit_prompt(self.request.topic, self.aspects, paper.output, self._pack(keys or None)),
+        result = await self._ask(audit_prompt(self.request.topic, self.aspects, paper.output, self._pack(keys or None), self.open_gaps_seen),
                                  model=self.request.auditor, system=AUDITOR_SYSTEM, budget_share=0.2)
         try:
             audit = self._json(result)
@@ -453,7 +468,50 @@ class JevRun(ResearchRun):
         if self.passes_done:
             self.passes_done[-1]["gaps_found"] = [f.get("problem", "") for f in findings][:10]
         audit["verdict"] = verdict
+        # Gap answers count only from a passing audit; code re-checks every one of them.
+        self.gaps_closed, self.gap_rejections = self._gap_answers_for(verdict, audit.get("answered_gaps"))
+        if self.gaps_closed or self.gap_rejections:
+            self.log(f"  Gap answers: {len(self.gaps_closed)} verified, {len(self.gap_rejections)} rejected by code checks.")
         return audit
+
+    def _gap_answers_for(self, verdict: str, raw) -> Tuple[List[Dict], List[Dict]]:
+        """A failing audit closes nothing, whatever it claims."""
+        return self._verify_gap_answers(raw) if verdict == "PASS" else ([], [])
+
+    def _verify_gap_answers(self, raw) -> Tuple[List[Dict], List[Dict]]:
+        """The auditor proposes; code decides. A gap closes only if every rule below holds."""
+        closed: List[Dict] = []
+        rejected: List[Dict] = []
+        seen: set = set()
+        usable = {k for k in self.evidence if k not in self.off_topic}
+        for item in raw if isinstance(raw, list) else []:
+            if not isinstance(item, dict):
+                continue
+            gid = str(item.get("gap", "")).strip().upper()
+            answer = re.sub(r"\s+", " ", str(item.get("answer", ""))).strip()
+            keys = list(dict.fromkeys(str(k).strip() for k in item.get("keys") or [] if str(k).strip() in usable))
+            m = re.fullmatch(r"G(\d+)", gid)
+            index = int(m.group(1)) - 1 if m else -1
+            reason = ""
+            if not 0 <= index < len(self.open_gaps_seen):
+                reason = f"unknown gap id {gid or '(blank)'}"
+            elif index in seen:
+                reason = "gap answered twice"
+            elif not answer or len(answer) > 600:
+                reason = "answer missing or too long"
+            elif len(keys) < MIN_GAP_KEYS:
+                reason = f"needs at least {MIN_GAP_KEYS} distinct on-topic collected sources (got {len(keys)})"
+            elif all("secondary" in (self.evidence[k].kind or "").lower() for k in keys):
+                reason = "only secondary summaries cited; a primary source is required"
+            elif not check_numbers(f"{answer} [{', '.join(keys)}]", self.evidence).passed:
+                reason = "a figure in the answer is not in the cited sources"
+            text = self.open_gaps_seen[index] if 0 <= index < len(self.open_gaps_seen) else ""
+            if reason:
+                rejected.append({"gap": gid, "text": text, "reason": reason})
+                continue
+            seen.add(index)
+            closed.append({"gap": gid, "text": text, "answer": answer, "keys": keys})
+        return closed, rejected
 
     # ------------------------------------------------------------ loop
 
@@ -583,8 +641,10 @@ class JevRun(ResearchRun):
             result = kb.integrate_run(root, {
                 "run_id": self.run_id, "topic": self.request.topic, "date": time.strftime("%Y-%m-%d"),
                 "summary": (abstract.group(1).strip() if abstract else "")[:3000],
-                "evidence": [e.to_dict() for e in self.evidence.values() if e.key in set(cited_keys(paper.output)) | {k for n in self.notes for c in n["claims"] for k in c["keys"]}],
+                "evidence": [e.to_dict() for e in self.evidence.values() if e.key in set(cited_keys(paper.output)) | {k for n in self.notes for c in n["claims"] for k in c["keys"]}
+                             | {k for g in self.gaps_closed for k in g["keys"]}],
                 "notes": self.notes, "gaps": self.gaps, "conflicts": self.conflicts, "deliverables": files,
+                "answered_gaps": self.gaps_closed,
             })
             queue = Path(CONFIG.get("knowledge_base", {}).get("queue_md", "")) if CONFIG.get("knowledge_base", {}).get("queue_md") else None
             decisions = kb_rsi.improve(root, OUTPUT_DIR.parent / ".rsi" / "kb_ledger.jsonl", queue)
@@ -593,7 +653,8 @@ class JevRun(ResearchRun):
             self.kb_result = {"root": str(root), "created": result.get("created", []), "updated": result.get("updated", []),
                               "fitness_before": {k: v for k, v in before.items() if k != "details"}, "fitness_after": {k: v for k, v in after.items() if k != "details"},
                               "decisions": decisions}
-            detail = f"{len(result.get('created', []))} created, {len(result.get('updated', []))} updated; fitness {before.get('score', 0):.3f} → {after.get('score', 0):.3f}; {sum(1 for d in decisions if d['decision'] == 'PROMOTE')} promoted"
+            self.kb_result["gaps_closed"] = result.get("gaps_closed", 0)
+            detail = f"{len(result.get('created', []))} created, {len(result.get('updated', []))} updated; {result.get('gaps_closed', 0)} gap(s) closed; fitness {before.get('score', 0):.3f} → {after.get('score', 0):.3f}; {sum(1 for d in decisions if d['decision'] == 'PROMOTE')} promoted"
             self.graph.finish(node, True, detail)
             self.graph.gate(node, "Pages merged; fitness measured by code", str(root), True, detail)
             self.log(f"Knowledge base: {detail}.")

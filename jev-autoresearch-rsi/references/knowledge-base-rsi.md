@@ -41,7 +41,23 @@ open_gaps               / all gaps listed (open + ticked)    w .05
 - The same proportions at twice the size give the identical score.
 - `--kb-fitness` reports `totals` and `rates` alongside the raw counts.
 - Open gaps are measured as the share still open, not per concept. Otherwise a good merge, which removes a concept, would look worse.
-- Gaps close when someone ticks `- [x]` in `缺口/gaps.md`. Nothing closes them automatically, so the term stays at 1.0 until gaps are answered and ticked.
+- Gaps close by hand (tick `- [x]` in `缺口/gaps.md`) or automatically when a later run answers them; see below.
+
+## Auto-closing gaps (the model proposes, code decides)
+
+1. Loop 1's planner and every auditor see the topic's open gaps, numbered `G1…Gn` (at most 30).
+2. The auditor may return `"answered_gaps": [{"gap": "G#", "answer": "...", "keys": ["E#", "E#"]}]`.
+3. Code closes a gap only if **all** of these hold:
+   - the run's final audit verdict is PASS (after code overrides); a failing audit closes nothing
+   - the gap id exists, and each gap is answered once
+   - the answer is non-empty and at most 600 characters
+   - it cites at least **2 distinct collected, on-topic sources**
+   - at least one of them is primary; secondary summaries such as NotebookLM answers cannot close a gap alone
+   - every figure in the answer appears in the cited sources (the same NumericGrounding check as the paper)
+4. The gap line becomes `- [x]` with its text unchanged, so de-duplication still works. The answer goes on an indented line beneath it: `  - 已回答（run <id>，<date>）：<answer>（[[來源/…]]、…）`.
+5. Rejected answers and their reasons are kept in `run_report.json` → `gap_rejections`; verified ones in `gaps_closed`.
+
+If you disagree with an answer, untick it (`- [ ]`). Matching is by gap text, so a gap is never closed twice.
 
 ## Promotion rule
 

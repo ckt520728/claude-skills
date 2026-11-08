@@ -216,6 +216,51 @@ class TestRoles(unittest.TestCase):
         self.assertLessEqual(len(slug), 60)
         self.assertTrue(("-" + topic.lower().replace(" ", "-") + "-").startswith("-" + slug + "-"), slug)
 
+    def _gap_run(self):
+        with mock.patch.object(jev.JevRun, "__init__", lambda self, req: None):
+            run = jev.JevRun(None)
+        ev = {
+            "E1": Evidence(kind="PubMed", title="a", text="Cost rose 42% across 5 loops.", key="E1"),
+            "E2": Evidence(kind="arXiv preprint", title="b", text="Loop cost scales with depth.", key="E2"),
+            "E3": Evidence(kind="NotebookLM answer (secondary)", title="c", text="Summary says 42%.", key="E3"),
+            "E4": Evidence(kind="NotebookLM answer (secondary)", title="d", text="Another summary.", key="E4"),
+            "E5": Evidence(kind="PubMed", title="off", text="Unrelated 42%.", key="E5"),
+        }
+        run.evidence, run.off_topic = ev, {"E5"}
+        run.open_gaps_seen = ["How does cost scale with loops?", "Is memory causal?"]
+        return run
+
+    def test_gap_answers_are_verified_by_code(self):
+        run = self._gap_run()
+        raw = [
+            {"gap": "G1", "answer": "Cost rose 42% across 5 loops.", "keys": ["E1", "E2"]},       # valid
+            {"gap": "G1", "answer": "Duplicate.", "keys": ["E1", "E2"]},                            # answered twice
+            {"gap": "G2", "answer": "Memory is causal.", "keys": ["E1"]},                          # one source
+            {"gap": "G2", "answer": "Memory is causal.", "keys": ["E3", "E4"]},                    # secondary only
+            {"gap": "G2", "answer": "Memory is causal.", "keys": ["E1", "E5"]},                    # E5 off-topic -> one key
+            {"gap": "G2", "answer": "Memory raised accuracy 77%.", "keys": ["E1", "E2"]},          # figure not in sources
+            {"gap": "G9", "answer": "Whatever.", "keys": ["E1", "E2"]},                            # unknown id
+            "not a dict",
+        ]
+        closed, rejected = run._verify_gap_answers(raw)
+        self.assertEqual([(c["gap"], c["text"], c["keys"]) for c in closed], [("G1", "How does cost scale with loops?", ["E1", "E2"])])
+        reasons = [r["reason"] for r in rejected]
+        self.assertEqual(len(reasons), 6)
+        for fragment in ("answered twice", "at least 2", "secondary", "(got 1)", "figure", "unknown gap id G9"):
+            self.assertTrue(any(fragment in r for r in reasons), (fragment, reasons))
+
+    def test_failing_audit_closes_no_gap(self):
+        run = self._gap_run()
+        valid = [{"gap": "G1", "answer": "Cost rose 42% across 5 loops.", "keys": ["E1", "E2"]}]
+        self.assertEqual(run._gap_answers_for("FAIL", valid), ([], []))
+        self.assertEqual(len(run._gap_answers_for("PASS", valid)[0]), 1)
+
+    def test_gaps_shown_to_auditor_only_when_present(self):
+        with_gaps = jev.audit_prompt("T", [], "paper", "pack", ["Is memory causal?"])
+        self.assertIn("G1: Is memory causal?", with_gaps)
+        self.assertIn('"answered_gaps"', with_gaps)
+        self.assertNotIn("answered_gaps", jev.audit_prompt("T", [], "paper", "pack", []))
+
     def test_unknown_effort_is_an_error(self):
         with self.assertRaises(llm.ProviderError):
             llm.split_effort("gpt-sol@turbo")

@@ -114,6 +114,7 @@ On tools without subagents, see `AGENTS.md`.
   - the overall score rises,
   - and no other metric gets worse.
 - Every decision is appended to a SHA-256 ledger.
+- Open gaps close automatically when a later run's auditor proposes an answer and code verifies it: PASS audit, at least 2 sources with one primary, and grounded figures.
 - The engine edits only inside `<!-- autoresearch:begin/end -->` blocks.
 
 See `references/knowledge-base-rsi.md`.
