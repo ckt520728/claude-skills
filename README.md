@@ -2,6 +2,15 @@
 
 A collection of custom Claude Code skills.
 
+### agentic-platform-bridge
+
+Connect one agent workflow to Claude, ChatGPT (GPT-6 Astra) and Gemini (Gemini 4 Argon) through the subscription logins you already have, with no API keys. ChatGPT runs through the Codex CLI, Gemini through the Gemini CLI, and Claude through the Claude Agent SDK. Each CLI is a stateless subprocess, so a planner, an executor and an independent auditor can sit on three vendors.
+
+- Includes a stdlib-only script (`scripts/cli_bridge.py`: `--status` and `ask()`), a provider-type pattern for an existing LLM layer, and 24 measured pitfalls.
+- Tested on Windows: ChatGPT (`gpt-6-astra`) works through the Codex login at US$0 per call, with 8 offline tests for the provider type. Gemini 4 Argon returned HTTP 429 (free-tier quota 0), so the Gemini subscription is **not** confirmed. A subscription call has no cost, so a budget limit does not bind it.
+- Skill folder: `agentic-platform-bridge/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
+- Bundle: `agentic-platform-bridge.skill`
+- Session wrap-up: `2026-11-09_Agentic_Platform_Bridge_Lessons_and_Pitfalls.md`
 ### jev-autoresearch-rsi
 
 A custom autoresearch agent built on the Jev-Engineering two-phase workflow. A high-tier planner writes the plan, parallel medium-tier executors carry it out, and a high-tier auditor checks the result, preferably on a different provider. A failed audit sends the work back for a replan. The agent:
