@@ -6,12 +6,17 @@ description: |
     - a 15-slide PowerPoint deck
     - an interactive HTML deck
     - a zh-TW blog post
+  An optional Robin layer (Ghareeb et al., 2026, Nature), on by default, adds the following. Finch is not included.
+    - a Crow/Falcon split with a code-measured hallucination guard
+    - a counterbalanced pairwise (Bradley-Terry-Luce) hypothesis tournament
+    - opt-in parallel trajectories with a consensus filter
+    - a ReAct cascade guard and a claim ledger
   Each run merges into an Obsidian "Second Brain" wiki, and a knowledge-base RSI step measures and improves that wiki, keeping only changes that measurably help. A local dashboard (port 8090) shows the graph, the sources, the deliverables, the wiki and the RSI ledger.
   Portable:
     - Providers: Claude, OpenAI or Gemini (OpenAI-compatible), with model tiers set in project.json.
     - Tools: these instructions work in Claude Code, Codex, Gemini CLI, Antigravity or OpenCode.
     - OS: Windows, macOS or Linux.
-  Use when the user asks for an "autoresearch agent", "Jev planner/executor/auditor research loop", "research a topic and write paper + slides + blog and update my knowledge base", "知識庫 RSI", "自主研究代理", or "upgrade my RSI knowledge dashboard with a knowledge base".
+  Use when the user asks for an "autoresearch agent", "Jev planner/executor/auditor research loop", "research a topic and write paper + slides + blog and update my knowledge base", "知識庫 RSI", "自主研究代理", "Robin multi-agent workflow", "BTL tournament", "Crow/Falcon", or "upgrade my RSI knowledge dashboard with a knowledge base".
   Not for a single article (article-writer), a single deck (soil-deck-pipeline), or a metrics dashboard (dashboard-builder).
 ---
 
@@ -32,11 +37,12 @@ It extends `rsi-knowledge-dashboard` (same engine core and rules) with:
 ```
 plan (high) ─► collect (code: PubMed · arXiv · ClinicalTrials.gov · NotebookLM · PDFs)
    ▲             └─► notes swarm (medium × N, parallel; claims must cite [E#] keys and grounded numbers)
+   │                   └─► [Robin] falcon (high × K, hallucination guard) ─► hypotheses ─► BTL tournament (loop 1)
    │                   └─► draft + code checks + repair (medium)
    │                         └─► audit (high, other provider if available)
    └──── replan on FAIL ◄──────────┘         │ PASS (or loop limit)
                                              ▼
-        deliverables in parallel (paper APA 7 · PPTX · HTML deck · zh-TW blog) ─► citation lookup ─► KB merge ─► KB RSI
+        deliverables in parallel (paper APA 7 · PPTX · HTML deck · zh-TW blog) ─► citation lookup ─► [Robin QC + claim ledger] ─► KB merge ─► KB RSI
 ```
 
 Every run writes `graph.md`, `checks.md` and `progress.md` (Karpathy agent-graph format), plus `evidence.json`, `plan_loop*.json`, `audit_loop*.json` and `run_report.json`, into its own `outputs/runs/<run_id>/` folder.
@@ -54,6 +60,7 @@ Ask only what you cannot default.
 | Tier mapping | see `references/providers-and-tiers.md` | `tiers.high`, `tiers.medium` |
 | Loops, budget | 2 loops, US$5 hard cap | dashboard or `--loops --budget` |
 | Wiki location | `./knowledge_base` | `--kb-root` (point it into the Obsidian vault) |
+| Robin layer | on; 6 candidates; 1 trajectory; consensus 0.5 | `project.json` → `robin`, dashboard, `--no-robin --candidates --trajectories --consensus` |
 | Notebook | none | `--notebook <NotebookLM id>` |
 | Blog site/author | example.org / blank | `--blog-site --blog-author` |
 | Publishing | **only after explicit approval** | always |
@@ -106,7 +113,17 @@ python run_agent.py --topic "..." --loops 2 --budget 5 --planner claude:claude-o
 
 On tools without subagents, see `AGENTS.md`.
 
-### 6. Knowledge base and RSI
+### 6. Robin layer (optional, on by default)
+
+- Falcon may cite only the code-built citation library.
+- Code accepts a claim only if it cites an on-topic, identifier-verified entry and its figures are grounded. The hallucination rate is logged; above 2 % there is one respawn.
+- Hypotheses are ranked by a pairwise BTL tournament, with each pairing judged in both orders to cancel position bias. The top 3 go into the paper as hypotheses, never as findings.
+- Artifacts, the claim ledger and the QC checklist are in `outputs/runs/<id>/robin/`. A QC FAIL means NEEDS_REVIEW.
+- Finch (data analysis) is not implemented and shows as N/A.
+
+See `references/robin-layer.md`.
+
+### 7. Knowledge base and RSI
 
 - `--kb-fitness` measures the wiki: broken links, orphans, unsourced claims, duplicates, single-source concepts and open gaps. Each is a share of its own denominator (`normalised-v2`), so growth alone does not lower the score.
 - `--kb-improve` proposes changes (repair link, merge concepts, link orphan), tests each on a scratch copy, and promotes it only if:
@@ -119,7 +136,7 @@ On tools without subagents, see `AGENTS.md`.
 
 See `references/knowledge-base-rsi.md`.
 
-### 7. Publish (gated)
+### 8. Publish (gated)
 
 The run writes `blog_publish/`: the post, a homepage teach-card and a sitemap entry.
 1. Stage them in a **fresh clone**, fix anything you found when reading the outputs, check the post in a real browser, and commit locally.
@@ -147,6 +164,7 @@ See `references/publishing.md`.
 | File | Read when |
 |---|---|
 | `references/providers-and-tiers.md` | choosing models, effort suffix, prices, auditor on another provider |
+| `references/robin-layer.md` | Robin mapping, guard, BTL, consensus, cascade guard, settings, cost, lessons |
 | `references/knowledge-base-rsi.md` | wiki layout, fitness formula, promotion rule, Obsidian rules |
 | `references/publishing.md` | blog house style, staging, approval gate, deployment check |
 | `references/reading-outputs.md` | the checklist for step 6 of the ladder |

@@ -66,6 +66,17 @@ def fitness():
     return {"pages": 3, "broken_links": 1, "orphans": 0, "unsourced_claims": 0, "open_gaps": 2, "concepts": 1, "single_source_concepts": 1, "score": round(STATE["score"], 3), "details": {}}
 
 
+ROBIN = {  # canned fixture shaped like JevRun.rb; not real research data
+    "enabled": True, "status": "PROPOSAL_ONLY", "final_rate": 0.0, "library": {"entries": 15, "verified": 13, "on_topic_verified": 12},
+    "findings": [{"claim": "Fixture finding A", "evidence_ids": ["E1"]}, {"claim": "Fixture finding B", "evidence_ids": ["E2"]}],
+    "ranked": [{"rank": 1, "id": "H2", "statement": "Fixture hypothesis two", "test": "fixture test", "btl_score": 1.21, "win_rate": 0.875, "games": 4, "evidence_ids": ["E1", "E2"]},
+               {"rank": 2, "id": "H1", "statement": "Fixture hypothesis one", "test": "", "btl_score": 0.1, "win_rate": 0.5, "games": 4, "evidence_ids": ["E1"]},
+               {"rank": 3, "id": "H3", "statement": "Fixture hypothesis three", "test": "", "btl_score": -1.3, "win_rate": 0.125, "games": 4, "evidence_ids": ["E2"]}],
+    "tournament": {"ran": True, "matches": 6, "completed": 6, "note": ""}, "consensus": None, "cascades": [],
+    "qc": [{"item": "Hallucination rate ≤ 2 %", "verdict": "PASS", "evidence": "0.0%"}, {"item": "Finch data-analysis agent", "verdict": "N/A", "evidence": "no dataset input"}],
+}
+
+
 def old_report():
     return {
         "run_id": OLD_RUN, "status": "COMPLETED", "stage": "done", "request": {"topic": "Fixture topic: past run", "loops": 2, "budget_usd": 5, "planner": "opus", "executor": "sonnet", "auditor": "opus"},
@@ -74,6 +85,7 @@ def old_report():
         "deliverables": [{"kind": "paper", "files": {"html": "paper.html", "md": "paper.md"}, "verified": True}, {"kind": "deck", "files": {"pptx": "deck.pptx"}, "verified": False}],
         "graph": graph(["passed", "passed", "failed", "skipped"]),
         "audits": [{"loop": 1, "verdict": "REVISE", "score": 0.61, "findings": ["Claim 3 lacks a citation", "Figure 2 value mismatch"]}, {"loop": 2, "verdict": "PASS", "score": 0.91, "findings": []}],
+        "robin": ROBIN,
         "kb": {"created": ["主題/rsi-overview.md"], "updated": ["概念/recursive-self-improvement.md"], "fitness_before": {"score": 0.7, "pages": 2}, "fitness_after": {"score": 0.82, "pages": 3}, "decisions": ["PROMOTE repair_link x"]},
     }
 
@@ -125,6 +137,7 @@ class Handler(BaseHTTPRequestHandler):
                     "tiers": {"high": ["claude-opus-fixture", "gpt-high-fixture"], "medium": ["claude-sonnet-fixture", "gpt-medium-fixture"]},
                     "providers": [{"name": "claude-sdk", "type": "claude", "available": True, "detail": "fixture ok"}, {"name": "openai-compat", "type": "openai", "available": False, "detail": "no key (fixture)"}],
                     "kb_root": "fixture-kb",
+                    "robin": {"robin": True, "candidates": 6, "trajectories": 1, "consensus": 0.5, "trajectory_choices": [1, 3, 5, 8], "consensus_range": [0.5, 0.75], "min_candidates": 3},
                 })
             if p == "/api/runs":
                 runs = ([new_report()] if STATE["active"] or STATE["posts"] else []) + [old_report()]

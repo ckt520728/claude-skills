@@ -97,6 +97,14 @@
         .bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 6px; }
         .bar i { display: block; height: 100%; background: var(--ok); }
         @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+        fieldset.robinbox { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+        fieldset.robinbox legend { font-size: 0.84rem; font-weight: 700; color: var(--teal); padding: 0 6px; }
+        label.check { display: flex; align-items: center; gap: 8px; color: var(--text); margin-bottom: 10px; }
+        label.check input { width: auto; }
+        .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .stat { background: var(--row); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 150px; }
+        .stat b { display: block; font-size: 1.1rem; } .stat span { font-size: 0.76rem; color: var(--muted); }
+        .bar { height: 6px; background: var(--line); border-radius: 3px; min-width: 60px; } .bar i { display: block; height: 100%; background: var(--teal); border-radius: 3px; }
         @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 1.3rem; } .card { padding: 16px; } .row3, .row2 { grid-template-columns: minmax(0, 1fr); } .source { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
@@ -121,6 +129,16 @@
                     <div><label for="executor" data-t="executor"></label><select id="executor"></select></div>
                     <div><label for="auditor" data-t="auditor"></label><select id="auditor"></select></div>
                 </div>
+                <fieldset class="group robinbox">
+                    <legend data-t="robin_layer"></legend>
+                    <label class="check"><input type="checkbox" id="robin" checked> <span data-t="robin_on"></span></label>
+                    <div class="row3">
+                        <div><label for="candidates" data-t="candidates"></label><input type="number" id="candidates" min="3" max="10" step="1" value="6"></div>
+                        <div><label for="trajectories" data-t="trajectories"></label><select id="trajectories"><option value="1">1</option></select></div>
+                        <div><label for="consensus" data-t="consensus"></label><select id="consensus"><option value="0.5">0.50</option><option value="0.75">0.75</option></select></div>
+                    </div>
+                    <p class="note" data-t="robin_hint"></p>
+                </fieldset>
                 <div class="group"><label for="feedback" data-t="feedback"></label><textarea id="feedback" maxlength="4000"></textarea></div>
                 <div class="buttons">
                     <button type="submit" class="primary" id="run" disabled></button>
@@ -135,6 +153,12 @@
             <p class="note" id="progress" style="margin-bottom:10px" data-t="not_started"></p>
             <div class="scroll-x" id="graphBox"></div>
             <div class="legend" id="legend"></div>
+        </section>
+
+        <section class="card span2" aria-labelledby="h-robin">
+            <h2 id="h-robin" data-t="robin_panel"></h2>
+            <p class="intro" data-t="robin_intro"></p>
+            <div id="robinBox"></div>
         </section>
 
         <div class="stack">
@@ -212,6 +236,12 @@
                 cancelling: 'Cancelling. The run stops after the current step.', done_ok: 'Finished: all outputs passed the automated checks.', done_review: 'Finished. See the results and any flagged problems.',
                 RUNNING: 'Running', COMPLETED: 'All checks passed', NEEDS_REVIEW: 'Needs human review', FAILED: 'Failed', CANCELLED: 'Cancelled', LIVE: 'Live', FALLBACK: 'Fallback', SAVED: 'Saved', UNAVAILABLE: 'Unavailable',
                 pending: 'pending', running_s: 'running', passed: 'passed', failed: 'failed', skipped: 'skipped',
+                robin_layer: 'Robin layer (Ghareeb et al., 2026)', robin_on: 'Use Robin: Crow/Falcon guard + BTL hypothesis tournament', candidates: 'Hypothesis candidates (3-10)', trajectories: 'Falcon trajectories (1 = consensus off)', consensus: 'Consensus threshold',
+                robin_hint: 'Off reproduces the plain Jev graph. More candidates and trajectories cost more high-tier calls. Finch (data analysis) is not available: there is no dataset input.',
+                robin_panel: 'Robin layer (selected run)', robin_intro: 'Falcon may cite only the code-built citation library; a code guard measures the hallucination rate. Hypotheses are ranked by pairwise judging (Bradley-Terry-Luce), never by 1-10 scores.',
+                robin_off: 'The Robin layer was off for this run.', robin_none: 'No Robin data for this run.', r_status: 'Robin status', r_rate: 'Hallucination rate (target ≤ 2%)', r_library: 'Verified on-topic library entries', r_findings: 'Verified findings', r_consensus: 'Consensus kept / dropped', r_matches: 'Matches decided', r_bias: 'Judge chose first-shown (both orders played)',
+                r_rank: '#', r_hyp: 'Hypothesis', r_btl: 'BTL', r_win: 'Win rate', r_games: 'Games', r_keys: 'Keys', r_test: 'Test', r_ranked: 'Ranked hypotheses', r_qc: 'Robin QC', r_item: 'Item', r_verdict: 'Verdict', r_evidence: 'Evidence', r_files: 'Robin artifacts', r_cascades: 'Cascade guard stops',
+                PROPOSAL_ONLY: 'Proposal only', FAILED_REPRODUCIBILITY: 'Guard target missed', DATA_UNAVAILABLE: 'No verified data', PASS: 'PASS', FAIL: 'FAIL', 'N/A': 'N/A',
                 paper: 'Paper', deck: 'Slides', blog: 'Blog', infographic: 'Infographic', loops_word: 'loops', sources_word: 'sources', failed_n: 'failed checks', cites_n: 'citations to confirm', spent: 'spent', seconds: 's', dropped: 'dropped for privacy', attempts: 'attempts',
             },
             'zh-TW': {
@@ -235,10 +265,16 @@
                 cancelling: '取消中，目前步驟完成後會停止。', done_ok: '完成：所有成果皆通過自動查核。', done_review: '已結束，請查看成果與標示的問題。',
                 RUNNING: '進行中', COMPLETED: '全部通過查核', NEEDS_REVIEW: '需要人工審閱', FAILED: '失敗', CANCELLED: '已取消', LIVE: '即時', FALLBACK: '替代來源', SAVED: '已存檔', UNAVAILABLE: '無法使用',
                 pending: '等待中', running_s: '執行中', passed: '通過', failed: '失敗', skipped: '略過',
+                robin_layer: 'Robin 架構（Ghareeb 等，2026）', robin_on: '啟用 Robin：Crow/Falcon 幻覺防護 + BTL 假說錦標賽', candidates: '候選假說數 (3-10)', trajectories: 'Falcon 平行軌跡（1 = 不做共識）', consensus: '共識門檻',
+                robin_hint: '關閉時即為原本的 Jev 任務圖。候選假說與軌跡越多，高階模型呼叫越多。Finch（數據分析代理）不提供：目前沒有資料集輸入。',
+                robin_panel: 'Robin 架構（所選執行）', robin_intro: 'Falcon 只能引用由程式建立的引用庫；程式防護量測幻覺率。假說以兩兩比較（Bradley-Terry-Luce）排名，絕不使用 1-10 分評分。',
+                robin_off: '此次執行未啟用 Robin。', robin_none: '此次執行沒有 Robin 資料。', r_status: 'Robin 狀態', r_rate: '幻覺率（目標 ≤ 2%）', r_library: '已驗證且切題的引用', r_findings: '已驗證發現', r_consensus: '共識保留 / 排除', r_matches: '已判定對戰', r_bias: '評審選擇先出現者比例（雙向對戰已抵銷）',
+                r_rank: '#', r_hyp: '假說', r_btl: 'BTL', r_win: '勝率', r_games: '場次', r_keys: '證據', r_test: '檢驗方式', r_ranked: '排名假說', r_qc: 'Robin 品質檢查', r_item: '項目', r_verdict: '結論', r_evidence: '依據', r_files: 'Robin 產出檔案', r_cascades: '連鎖錯誤防護停止',
+                PROPOSAL_ONLY: '僅為提案', FAILED_REPRODUCIBILITY: '未達防護目標', DATA_UNAVAILABLE: '無已驗證資料', PASS: '通過', FAIL: '未通過', 'N/A': '不適用',
                 paper: '論文', deck: '簡報', blog: '部落格', infographic: '資訊圖表', loops_word: '次循環', sources_word: '筆證據', failed_n: '項未通過查核', cites_n: '筆引用待確認', spent: '已花費', seconds: '秒', dropped: '筆因隱私排除', attempts: '次嘗試',
             },
         };
-        const TONE = { COMPLETED: 'ok', LIVE: 'ok', NEEDS_REVIEW: 'warn', FALLBACK: 'warn', SAVED: 'warn', FAILED: 'bad', UNAVAILABLE: 'bad', CANCELLED: 'warn' };
+        const TONE = { PROPOSAL_ONLY: 'ok', PASS: 'ok', FAIL: 'bad', 'N/A': 'none', FAILED_REPRODUCIBILITY: 'bad', DATA_UNAVAILABLE: 'bad', COMPLETED: 'ok', LIVE: 'ok', NEEDS_REVIEW: 'warn', FALLBACK: 'warn', SAVED: 'warn', FAILED: 'bad', UNAVAILABLE: 'bad', CANCELLED: 'warn' };
         const NODE_COLOR = { pending: '#7c8ea6', running: '#4dd9cf', passed: '#34d399', failed: '#f87171', skipped: '#6b7280' };
         const TYPE_COLOR = { topic: '#4dd9cf', concept: '#a78bfa', source: '#fbbf24', gap: '#f87171', other: '#7c8ea6' };
         const SERVER = 'http://127.0.0.1:8090';
@@ -318,6 +354,15 @@
             fillSelect('planner', high, config.default_planner);
             fillSelect('executor', medium, config.default_executor);
             fillSelect('auditor', high, config.default_auditor);
+            const rb = config.robin;
+            if (rb) {
+                $('robin').checked = !!rb.robin;
+                fillSelect('trajectories', (rb.trajectory_choices || [1]).map(String), String(rb.trajectories));
+                $('candidates').min = rb.min_candidates || 3;
+                $('candidates').value = rb.candidates;
+                $('consensus').value = String(rb.consensus);
+            }
+            syncRobin();
             const providers = config.providers || [];
             if (!providers.length) $('providers').replaceChildren(empty('no_providers'));
             else $('providers').replaceChildren(...providers.map((p) => {
@@ -325,6 +370,90 @@
                 if (p.detail) chip.title = p.detail;
                 return chip;
             }));
+        }
+
+        // A setting that would change nothing is disabled, never silently ignored.
+        function syncRobin() {
+            const on = $('robin').checked;
+            $('candidates').disabled = !on;
+            $('trajectories').disabled = !on;
+            $('consensus').disabled = !on || $('trajectories').value === '1';
+        }
+        $('robin').addEventListener('change', syncRobin);
+        $('trajectories').addEventListener('change', syncRobin);
+
+        function robinBody() {
+            const body = { robin: $('robin').checked };
+            if (body.robin) {
+                body.candidates = Number($('candidates').value);
+                body.trajectories = Number($('trajectories').value);
+                body.consensus = Number($('consensus').value);
+            }
+            return body;
+        }
+
+        function showRobin(report) {
+            const rb = report.robin;
+            if (!rb) { $('robinBox').replaceChildren(empty('robin_none')); return; }
+            if (!rb.enabled) { $('robinBox').replaceChildren(empty('robin_off')); return; }
+            const parts = [];
+            const stats = el('div', 'stats');
+            const stat = (label, value, tone) => { const s = el('div', 'stat'); const b = el('b', tone || '', value); s.append(b, el('span', '', t(label))); return s; };
+            const rate = rb.final_rate;
+            const tour = rb.tournament || {};
+            stats.append(
+                stat('r_status', rb.status ? t(rb.status) : t('RUNNING'), TONE[rb.status] || ''),
+                stat('r_rate', typeof rate === 'number' ? `${(rate * 100).toFixed(1)}%` : '—', typeof rate === 'number' ? (rate <= 0.02 ? 'ok' : 'bad') : 'none'),
+                stat('r_library', `${(rb.library || {}).on_topic_verified ?? 0} / ${(rb.library || {}).entries ?? 0}`),
+                stat('r_findings', String((rb.findings || []).length)),
+                stat('r_matches', tour.matches ? `${tour.completed}/${tour.matches}` : '—', tour.matches ? (tour.ran ? 'ok' : 'bad') : 'none'));
+            if (typeof tour.position_a_share === 'number') stats.append(stat('r_bias', `${Math.round(tour.position_a_share * 100)}%`, Math.abs(tour.position_a_share - 0.5) > 0.25 ? 'warn' : ''));
+            if (rb.consensus) stats.append(stat('r_consensus', `${rb.consensus.included} / ${rb.consensus.excluded} (≥ ${rb.consensus.threshold})`));
+            parts.push(stats);
+            const ranked = rb.ranked || [];
+            if (ranked.length) {
+                parts.push(el('h3', '', t('r_ranked')));
+                const table = el('table'); const head = el('thead'); const hr = el('tr');
+                ['r_rank', 'r_hyp', 'r_btl', 'r_win', 'r_games', 'r_keys'].forEach((k) => hr.append(el('th', '', t(k))));
+                head.append(hr);
+                const body = el('tbody');
+                ranked.forEach((h) => {
+                    const row = el('tr');
+                    const hyp = el('td'); hyp.append(el('div', '', h.statement));
+                    if (h.test) hyp.append(el('div', 'none', `${t('r_test')}: ${h.test}`));
+                    const win = el('td');
+                    if (typeof h.win_rate === 'number') { const bar = el('div', 'bar'); const fill = el('i'); fill.style.width = `${Math.round(h.win_rate * 100)}%`; bar.append(fill); win.append(el('div', '', num(h.win_rate)), bar); } else win.textContent = '—';
+                    row.append(el('td', '', h.rank), hyp, el('td', '', num(h.btl_score)), win, el('td', '', h.games ?? 0), el('td', '', (h.evidence_ids || []).join(', ')));
+                    body.append(row);
+                });
+                table.append(head, body);
+                const wrap = el('div', 'scroll-x'); wrap.append(table); parts.push(wrap);
+            }
+            const qc = rb.qc || [];
+            if (qc.length) {
+                parts.push(el('h3', '', t('r_qc')));
+                const table = el('table'); const head = el('thead'); const hr = el('tr');
+                ['r_item', 'r_verdict', 'r_evidence'].forEach((k) => hr.append(el('th', '', t(k))));
+                head.append(hr);
+                const body = el('tbody');
+                qc.forEach((q) => { const row = el('tr'); const v = el('td'); v.append(pill(q.verdict)); row.append(el('td', '', q.item), v, el('td', '', q.evidence)); body.append(row); });
+                table.append(head, body);
+                const wrap = el('div', 'scroll-x'); wrap.append(table); parts.push(wrap);
+            }
+            if ((rb.cascades || []).length) {
+                parts.push(el('h3', '', `${t('r_cascades')} (${rb.cascades.length})`));
+                const ul = el('ul', 'findings'); rb.cascades.forEach((c) => ul.append(el('li', '', `${c.node}: ${c.error} → ${c.diagnosis}`))); parts.push(ul);
+            }
+            const files = ['citation_library.json', 'evidence_report.json', 'hallucination_rate_log.jsonl', 'seed_ideas.json', 'ranked_candidates.json', 'tournament.json', 'consensus_findings.json', 'claim_ledger.csv', 'robin_qc.md']
+                .filter((f) => f !== 'consensus_findings.json' || rb.consensus)
+                .filter((f) => rb.status || !['claim_ledger.csv', 'robin_qc.md'].includes(f));
+            if (rb.status) {
+                parts.push(el('h3', '', t('r_files')));
+                const row = el('div', 'actions'); row.style.flexWrap = 'wrap'; row.style.gap = '8px';
+                files.forEach((f) => { const a = el('a', 'file', f); a.href = `outputs/runs/${encodeURIComponent(report.run_id)}/robin/${encodeURIComponent(f)}`; a.target = '_blank'; a.rel = 'noopener'; row.append(a); });
+                parts.push(row);
+            }
+            $('robinBox').replaceChildren(...parts);
         }
 
         // ------------------------------------------------------------------ graph (inline SVG DAG)
@@ -480,6 +609,7 @@
             const req = report.request || {};
             $('progress').textContent = `${t(report.status)} · ${report.stage || ''} · ${t('spent')} US$${num(report.spent_usd)} / ${req.budget_usd ?? '—'} · ${report.elapsed_seconds ?? 0}${t('seconds')}`;
             drawGraph(report.graph);
+            showRobin(report);
             showSources(report);
             showAudits(report);
             showDeliverables(report);
@@ -550,7 +680,7 @@
             say('');
             setRunning(true);
             try {
-                const data = await post('api/research', { topic: $('topic').value, loops: Number($('loops').value), budget_usd: Number($('budget').value), feedback: $('feedback').value, planner: $('planner').value, executor: $('executor').value, auditor: $('auditor').value });
+                const data = await post('api/research', { topic: $('topic').value, loops: Number($('loops').value), budget_usd: Number($('budget').value), feedback: $('feedback').value, planner: $('planner').value, executor: $('executor').value, auditor: $('auditor').value, ...robinBody() });
                 await watch(data.run_id);
             } catch (err) {
                 setRunning(false);
@@ -828,6 +958,7 @@
             applyLanguage();
             sizeCanvas();
             $('graphBox').replaceChildren(empty('no_graph'));
+            $('robinBox').replaceChildren(empty('robin_none'));
             $('sources').replaceChildren(empty('no_sources'));
             $('audits').replaceChildren(empty('no_audits'));
             $('deliverables').replaceChildren(empty('no_deliv'));

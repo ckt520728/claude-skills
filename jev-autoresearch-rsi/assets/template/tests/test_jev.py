@@ -30,6 +30,20 @@ NOTES = json.dumps({"notes": [
     "off_topic": ["E3"]})
 
 
+GOOD_PAPER_H = GOOD_PAPER.replace("## Limitations", "### Hypotheses for future work\nMemory may drive gains [E1].\n## Limitations", 1)
+FALCON = json.dumps({"claims": [{"claim": "Survival was 63.6% in one trial", "evidence_ids": ["E1"], "claim_type": "literature"},
+                                {"claim": "Another study reported an AUC of 0.89", "evidence_ids": ["E2"], "claim_type": "literature"}]})
+HYPS = json.dumps({"hypotheses": [{"id": f"H{i}", "statement": s, "rationale": "Claims point there [E1]", "evidence_ids": ["E1", "E2"], "test": "A trial"}
+                                  for i, s in enumerate(["Beta loops help", "Alpha memory drives gains", "Delta tools matter", "Gamma critics reduce error"], 1)]})
+
+
+def judge(prompt):
+    """Deterministic, transitive judge: the alphabetically first statement wins."""
+    import re as _re
+    a, b = _re.findall(r"Statement: (.*)", prompt)[:2]
+    return json.dumps({"winner": "A" if a < b else "B", "reason": "sharper"})
+
+
 def audit(verdict):
     return json.dumps({"verdict": verdict, "score": 0.8 if verdict == "PASS" else 0.4,
                        "findings": [] if verdict == "PASS" else [{"severity": "high", "where": "Results", "problem": "Missing comparison", "evidence": "E2", "fix": "Compare"}],
@@ -37,6 +51,8 @@ def audit(verdict):
 
 
 class Script(llm.Conversation):
+    falcon = FALCON
+    judge = staticmethod(judge)
     audits = []
     prompts = []
     models = []
@@ -52,6 +68,14 @@ class Script(llm.Conversation):
         Script.models.append((self.model, prompt[:40]))
         if "PAPER UNDER AUDIT" in prompt:
             answer = Script.audits.pop(0) if Script.audits else audit("PASS")
+        elif "CITATION LIBRARY" in prompt:
+            answer = Script.falcon
+        elif "VERIFIED CLAIMS" in prompt:
+            answer = HYPS
+        elif "CANDIDATE A" in prompt:
+            answer = Script.judge(prompt)
+        elif "subsection titled '### Hypotheses for future work'" in prompt:
+            answer = GOOD_PAPER_H
         elif '"aspects"' in prompt:
             answer = PLAN
         elif "Use 2-6 concepts" in prompt:
@@ -72,7 +96,7 @@ FOUND = [Evidence("PubMed", "Trial One", "Survival was 63.6% with HR 0.24 in 697
 
 class TestJevRun(unittest.TestCase):
 
-    def run_graph(self, loops=2, audits=(), budget=5.0):
+    def run_graph(self, loops=2, audits=(), budget=5.0, **robin_kw):
         tmp = Path(tempfile.mkdtemp())
         Script.audits, Script.prompts, Script.models = list(audits), [], []
 
@@ -90,7 +114,7 @@ class TestJevRun(unittest.TestCase):
                 mock.patch.object(llm, "conversation_factory", lambda s, m, b: Script(s, m, b)), \
                 mock.patch.object(llm, "budget_problem", lambda models=None: None):
             (tmp / "outputs").mkdir()
-            run = jev.JevRun(jev.JevRequest("Agentic autoresearch", loops, "", budget, "", "claude:claude-opus-5-5", "claude:claude-sonnet-5-5", "claude:claude-opus-5-5"))
+            run = jev.JevRun(jev.JevRequest("Agentic autoresearch", loops, "", budget, "", "claude:claude-opus-5-5", "claude:claude-sonnet-5-5", "claude:claude-opus-5-5", **robin_kw))
             report = asyncio.run(run.execute())
         return run, report, tmp
 

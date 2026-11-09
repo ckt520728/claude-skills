@@ -168,6 +168,21 @@ def check_numbers(text: str, evidence: Dict[str, Evidence], min_score: float = 0
     return Check("NumericGrounding", True, round(score, 3), f"{supported} of {total} figures found in the evidence they cite.")
 
 
+def check_claim_numbers(text: str, keys: List[str], evidence: Dict[str, Evidence]) -> Check:
+    """
+    Ground a model claim that carries its keys in a separate field. The keys are attached to *every* sentence,
+    because check_numbers needs a citation beside each figure. Appending them once at the end made figures in an
+    earlier sentence look uncited (two faithful claims were rejected in run 20261109-091620-b8f1c4).
+    """
+    cite = f" [{', '.join(keys)}]"
+    plain = re.sub(r"\[E\d+(?:\s*,\s*E\d+)*\]", "", text)
+    return check_numbers("\n".join(u + cite for u in _units(plain)), evidence)
+
+
+# Labels only this engine produces. Topic words such as "pairwise tournament" stay allowed: a review may discuss them.
+INTERNAL_LABELS = re.compile(r"(?i:Falcon[- ](?:verified|checked|findings?)|Crow swarm)|VERIFIED FINDINGS|RANKED HYPOTHESES")
+
+
 def check_clean(text: str) -> Check:
     hits = phi_hits(text)
     if hits:
@@ -182,6 +197,9 @@ def check_clean(text: str) -> Check:
     placeholders = [r.search(text).group(0) for r in PLACEHOLDERS if r.search(text)]
     if placeholders:
         return Check("CleanText", False, 0.5, f"Remove placeholders: {placeholders[:3]}")
+    internal = sorted({m.group(0) for m in INTERNAL_LABELS.finditer(text)})
+    if internal:
+        return Check("CleanText", False, 0.6, f"Remove internal workflow labels; readers cannot see them: {internal[:3]}. Describe the sources instead.")
     return Check("CleanText", True, 1.0, "No known identifiers, raw LaTeX, wrong terms or placeholders.")
 
 

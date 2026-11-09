@@ -23,6 +23,10 @@ def main() -> int:
     parser.add_argument("--auditor", default="", choices=[""] + refs)
     parser.add_argument("--budget", type=float, default=CONFIG.get("default_budget_usd", 5), help="Hard spending limit in USD")
     parser.add_argument("--feedback", default="")
+    parser.add_argument("--no-robin", action="store_true", help="Turn the Robin layer off (reproduces the plain Jev graph)")
+    parser.add_argument("--candidates", type=int, default=None, help="Hypotheses entering the BTL tournament (3-10)")
+    parser.add_argument("--trajectories", type=int, default=None, help="Parallel Falcon trajectories: 1 (off), 3, 5 or 8")
+    parser.add_argument("--consensus", type=float, default=None, help="Share of trajectories that must agree (0.5-0.75)")
     parser.add_argument("--check", action="store_true", help="Check dependencies, providers and the knowledge base folder; spends nothing")
     parser.add_argument("--models", metavar="PROVIDER", help="List model ids reported by an OpenAI-compatible provider (openai, gemini)")
     parser.add_argument("--kb-fitness", action="store_true", help="Measure the knowledge base and exit")
@@ -71,9 +75,16 @@ def main() -> int:
 
     import anyio
 
+    from knowledge_agent.app import robin_settings
     from knowledge_agent.jev import JevRequest, JevRun
 
-    request = JevRequest(args.topic, args.loops, args.executor, args.budget, args.feedback, args.planner, args.executor, args.auditor)
+    wanted = {k: v for k, v in (("candidates", args.candidates), ("trajectories", args.trajectories), ("consensus", args.consensus)) if v is not None}
+    if args.no_robin:
+        wanted["robin"] = False
+    settings, problem = robin_settings(wanted)
+    if problem:
+        parser.error(problem)
+    request = JevRequest(args.topic, args.loops, args.executor, args.budget, args.feedback, args.planner, args.executor, args.auditor, **settings)
     run = JevRun(request, on_log=print)
     report = anyio.run(run.execute)
     print(json.dumps({k: report[k] for k in ("run_id", "status", "spent_usd", "evidence_count", "citation_problems", "roles")}, ensure_ascii=False, indent=1))

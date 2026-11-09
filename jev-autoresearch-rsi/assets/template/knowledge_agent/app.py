@@ -53,7 +53,39 @@ def _parse_request(data):
         if value not in known:
             return None, f"Unknown {role} model."
         chosen[role] = value
-    return JevRequest(topic, loops, chosen["executor"], budget, feedback, chosen["planner"], chosen["executor"], chosen["auditor"]), None
+    settings, problem = robin_settings(data)
+    if problem:
+        return None, problem
+    return JevRequest(topic, loops, chosen["executor"], budget, feedback, chosen["planner"], chosen["executor"], chosen["auditor"], **settings), None
+
+
+def robin_defaults():
+    cfg = CONFIG.get("robin", {})
+    return {"robin": bool(cfg.get("enabled", True)), "candidates": int(cfg.get("candidates", 6)),
+            "trajectories": int(cfg.get("trajectories", 1)), "consensus": float(cfg.get("consensus", 0.5))}
+
+
+def robin_settings(data):
+    """Robin layer settings (ADR 0002). Each one changes the graph; out-of-range values are refused, not clamped."""
+    from . import robin
+    d = robin_defaults()
+    try:
+        on = data.get("robin", d["robin"])
+        if not isinstance(on, bool):
+            return None, "Robin must be true or false."
+        candidates = int(data.get("candidates", d["candidates"]))
+        trajectories = int(data.get("trajectories", d["trajectories"]))
+        consensus = float(data.get("consensus", d["consensus"]))
+    except (TypeError, ValueError):
+        return None, "Robin settings must be numbers."
+    if not robin.MIN_CANDIDATES <= candidates <= 10:
+        return None, f"Hypothesis candidates must be {robin.MIN_CANDIDATES} to 10."
+    if trajectories not in robin.TRAJECTORY_CHOICES:
+        return None, f"Trajectories must be one of {', '.join(map(str, robin.TRAJECTORY_CHOICES))}."
+    low, high = robin.CONSENSUS_RANGE
+    if not low <= consensus <= high:
+        return None, f"The consensus threshold must be between {low} and {high}."
+    return {"robin": on, "candidates": candidates, "trajectories": trajectories, "consensus": consensus}, None
 
 
 def create_app() -> Flask:
@@ -106,6 +138,8 @@ def create_app() -> Flask:
             "default_planner": roles["planner"], "default_executor": roles["executor"], "default_auditor": roles["auditor"],
             "providers": [{k: v for k, v in row.items() if k != "models"} for row in llm.provider_status()],
             "kb_root": str(_kb().kb_root()),
+            "robin": {**robin_defaults(), "trajectory_choices": list(_robin().TRAJECTORY_CHOICES), "consensus_range": list(_robin().CONSENSUS_RANGE),
+                      "min_candidates": _robin().MIN_CANDIDATES},
         })
 
     @app.route("/api/research", methods=["POST"])
@@ -219,3 +253,8 @@ def _kb():
 def _rsi():
     from . import kb_rsi
     return kb_rsi
+
+
+def _robin():
+    from . import robin
+    return robin

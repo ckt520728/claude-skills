@@ -120,6 +120,16 @@ def run(url, fake, shot):
             check("deliverables show verified and needs-review badges", "verified" in page.inner_text("#deliverables") and "needs review" in page.inner_text("#deliverables"))
             check("deliverable links point at /outputs/runs/", page.locator("#deliverables a.file").first.get_attribute("href").startswith("outputs/runs/"))
             check("per-run KB block shows fitness before to after", "→" in page.inner_text("#runKb"))
+            check("Robin panel ranks 3 hypotheses with BTL and win rate", page.locator("#robinBox tbody tr").count() >= 3 and "Fixture hypothesis two" in page.inner_text("#robinBox"))
+            check("Robin panel shows status, rate and Finch as N/A (never PASS)", all(x in page.inner_text("#robinBox") for x in ("Proposal only", "0.0%", "N/A")))
+            # Robin settings: a setting that would change nothing is disabled
+            check("consensus is disabled while trajectories = 1", page.is_disabled("#consensus"))
+            page.select_option("#trajectories", "3")
+            check("consensus is enabled when trajectories > 1", page.is_enabled("#consensus"))
+            page.uncheck("#robin")
+            check("turning Robin off disables its settings", page.is_disabled("#candidates") and page.is_disabled("#trajectories") and page.is_disabled("#consensus"))
+            page.check("#robin")
+            page.select_option("#consensus", "0.75")
 
         if fake:
             # Start: POST body and live graph
@@ -130,6 +140,7 @@ def run(url, fake, shot):
             body = json.loads(posts[0]) if posts else {}
             check(f"POST body has topic/loops/budget_usd/planner/executor/auditor {sorted(body)}", {"topic", "loops", "budget_usd", "planner", "executor", "auditor"} <= set(body))
             check("POST values are typed correctly", body.get("loops") == 3 and body.get("budget_usd") == 2.5 and body.get("topic") == "A valid test topic" and body.get("planner") == "claude-opus-fixture" and body.get("executor") == "claude-sonnet-fixture")
+            check("POST carries typed Robin settings", body.get("robin") is True and body.get("candidates") == 6 and body.get("trajectories") == 3 and body.get("consensus") == 0.75)
             page.wait_for_function("document.querySelector('svg.graph g.node.running') !== null", timeout=10000)
             check("live graph shows a running node", page.locator("svg.graph g.node.running").count() == 1)
             check("graph nodes show tier and attempts", "high" in page.inner_text("#graphBox") and "attempts" in page.inner_text("#graphBox"))

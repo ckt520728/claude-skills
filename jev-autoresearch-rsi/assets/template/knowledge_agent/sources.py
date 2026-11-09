@@ -86,19 +86,28 @@ class SourceStatus:
     detail: str = ""
 
 
-def _get(url: str, params: Optional[Dict] = None, retries: int = 2) -> requests.Response:
+def _get(url: str, params: Optional[Dict] = None, retries: int = 2, backoff: float = 1.5) -> requests.Response:
+    """GET with retries on 5xx/429. A Retry-After header (seconds, capped at 30) wins over the backoff schedule."""
     last: Optional[Exception] = None
     for attempt in range(retries):
+        wait = backoff * (2 ** attempt)
         try:
             resp = requests.get(url, params=params, headers=USER_AGENT, timeout=TIMEOUT)
             if resp.status_code < 500 and resp.status_code != 429:
                 resp.raise_for_status()
                 return resp
             last = RuntimeError(f"HTTP {resp.status_code}")
+            after = str(getattr(resp, "headers", {}).get("Retry-After", "")).strip()
+            if after.isdigit():
+                wait = min(30.0, float(after))
         except requests.RequestException as e:
             last = e
-        time.sleep(1.5 * (attempt + 1))
+        if attempt < retries - 1:
+            time.sleep(wait)
     raise RuntimeError(str(last))
+
+
+ARXIV_PAUSE = 3.0  # arXiv API terms ask for about 3 s between calls; a run that ignored this got HTTP 429 (20261109-090308-42fd8f)
 
 
 def _strip_tags(text: str) -> str:
@@ -218,9 +227,12 @@ def search_arxiv(queries: Iterable[str], per_query: int) -> Tuple[List[Evidence]
     results: List[Evidence] = []
     ns = {"a": "http://www.w3.org/2005/Atom"}
     errors = []
-    for query in queries:
+    for n, query in enumerate(queries):
+        if n:
+            time.sleep(ARXIV_PAUSE)
         try:
-            root = ET.fromstring(_get(ARXIV_API_BASE, {"search_query": " AND ".join(f"all:{w}" for w in re.findall(r"[\w-]+", query)[:6]), "max_results": per_query, "sortBy": "relevance"}).content)
+            root = ET.fromstring(_get(ARXIV_API_BASE, {"search_query": " AND ".join(f"all:{w}" for w in re.findall(r"[\w-]+", query)[:6]), "max_results": per_query, "sortBy": "relevance"},
+                                      retries=4, backoff=5.0).content)
         except Exception as e:
             errors.append(str(e))
             continue

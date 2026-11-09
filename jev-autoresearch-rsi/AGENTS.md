@@ -33,6 +33,13 @@ On a machine without uv: `python -m venv .venv`, then `pip install -r requiremen
 | Gemini CLI / Antigravity | `gemini-4-argon` with the role file as system prompt | `gemini-3.8-flash`, one per TaskSpec |
 | OpenCode | an agent profile per role | run in parallel per TaskSpec |
 
+With the Robin layer on (the default), the engine also runs these itself:
+- Falcon synthesis with the hallucination guard
+- hypothesis generation and the counterbalanced BTL tournament (the judge is the auditor model)
+- Robin QC
+
+No extra agent setup is needed. See `references/robin-layer.md`.
+
 Rules that keep it a Jev workflow on any tool:
 - The planner outputs JSON only: status, confidence, queries and TaskSpecs. Below 0.85 confidence it asks the user instead of guessing.
 - Each executor gets exactly one TaskSpec and produces only its declared outputs.

@@ -29,6 +29,11 @@
 | PASS with a high finding | The auditor said PASS, yet listed a high-severity finding | Code forces FAIL when any finding is high or any check fails |
 | Sanitizer bypass | `&#x6A;avascript:` got through the URL filter | Decode entities, then check against a scheme allow-list |
 | KB edits outside markers | A link repair rewrote text the user had written | Restrict rewrites to managed blocks, with a test |
+| BTL judge prefers position A | A Haiku judge picked the first-shown candidate in 7 of 8 matches; randomising sides does not remove that | Judge every pairing in both orders and average the two verdicts; report `position_a_share`; regression test with an always-A judge |
+| A 0 % hallucination rate looks like a passing guard | Neither live run produced a bad claim, so the guard never fired | Prove the guard offline (a hallucinating Falcon is respawned once, then FAILED_REPRODUCIBILITY), never from a clean live run |
+| Guard rejected faithful multi-sentence claims | Figures were checked for a citation in the same sentence, but the keys were appended once at the end | `check_claim_numbers` attaches the keys to every sentence (regression test from the live claims, mutation-checked) |
+| Internal label leaked into the paper | The writer echoed "Falcon-verified findings" from the prompt heading | Neutral brief wording, plus CleanText fails on engine-only labels |
+| arXiv HTTP 429 starved Falcon | After several runs in an hour, arXiv rate-limited both loops. PubMed returned only off-topic items, and NotebookLM answers have no identifier, so Falcon had nothing verified to cite (DATA_UNAVAILABLE) | Space arXiv calls by 3 s; retry 429 with backoff and honour Retry-After (test). If a source is UNAVAILABLE, read the run as "Robin not exercised", not as a Robin failure |
 | Fitness falls as the wiki grows | Absolute counts: 0.906 → 0.879 while quality held | Fixed in `normalised-v2`: each defect is a share of its own denominator (0.886 on the same wiki) |
 
 ## Deliverables (found only by reading them)

@@ -85,6 +85,13 @@
   },
   "_tiers_note": "Ids from run_agent.py --models on 2026-11-08. '@high'/'@medium' sets reasoning_effort. Prices are standard API list prices (USD per 1M tokens) from developers.openai.com/api/docs/pricing and ai.google.dev/gemini-api/docs/pricing; Gemini uses the post-introductory rates (Argon from 2026-12-01, 3.8 Flash from 2027-01-01) so the budget over- rather than under-estimates. Prompts over 272K tokens on OpenAI cost more.",
   "default_loops": 2,
+  "robin": {
+    "enabled": true,
+    "candidates": 6,
+    "trajectories": 1,
+    "consensus": 0.5
+  },
+  "_robin_note": "Robin layer (references/robin-layer.md): Crow/Falcon hallucination guard, counterbalanced BTL hypothesis tournament, opt-in parallel trajectories with consensus. Finch is not implemented (no dataset input).",
   "blog_language": "zh-TW",
   "knowledge_base": {
     "root": "",

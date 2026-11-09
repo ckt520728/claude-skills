@@ -342,6 +342,14 @@ def render_topic(state: dict, ctx: Ctx) -> str:
     lines += [f"- [[{SOURCE_DIR}/{s}]] — {one_line(titles.get(s, ''))}".rstrip(" —") for s in state.get("sources", [])]
     lines += ["", "## 執行紀錄"] + [f"- {r.get('date', '')} run {r.get('run_id', '')}" for r in runs]
     lines += ["", "## 待補缺口"] + [f"- {g}" for g in state.get("gaps", [])]
+    hyp = state.get("hypotheses") or {}
+    if hyp.get("items"):
+        lines += ["", "## 排名假說（BTL 兩兩比較錦標賽）", f"run {hyp.get('run_id', '')}（{hyp.get('date', '')}）。這些是待檢驗的假說，不是研究結果。"]
+        for h in hyp["items"]:
+            cites = "、".join(f"[[{SOURCE_DIR}/{s}]]" for s in h.get("sources", []))
+            score = f"BTL {h['btl_score']}" if h.get("btl_score") is not None else "未比賽"
+            lines.append(f"{h.get('rank', '-')}. {h['statement']}（{score}" + (f"；{cites}" if cites else "") + "）"
+                         + (f"\n   - 檢驗方式：{h['test']}" if h.get("test") else ""))
     if state.get("conflicts"):
         lines += ["", "## 證據衝突"]
         for c in state["conflicts"]:
@@ -607,6 +615,11 @@ def integrate_run(root: Path, run: dict) -> dict:
         have = {(d["run_id"], d["label"]) for d in dl}
         dl += [{"run_id": run_id, "label": str(k), "path": str(v)} for k, v in (run.get("deliverables") or {}).items() if (run_id, str(k)) not in have]
         st["deliverables"] = dl
+        hyps = [h for h in (run.get("hypotheses") or []) if isinstance(h, dict) and one_line(h.get("statement", ""))]
+        if hyps:  # the latest tournament replaces the previous ranking; it is a per-run proposal, not accumulated knowledge
+            st["hypotheses"] = {"run_id": run_id, "date": date, "items": [
+                {"rank": h.get("rank"), "statement": one_line(h["statement"]), "test": one_line(h.get("test", "")),
+                 "btl_score": h.get("btl_score"), "sources": keys_to_sids(h.get("keys") or [])} for h in hyps]}
         return st
 
     _write_state_page(root, f"{TOPIC_DIR}/{topic_stem}", "topic", topic, date, mutate_topic, lambda st: render_topic(st, ctx), tracker,

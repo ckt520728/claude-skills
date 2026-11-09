@@ -9,6 +9,7 @@ Graph files follow the Karpathy agent-graph format: graph.md, checks.md, progres
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import time
@@ -18,8 +19,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import anyio
 
-from . import llm, render
-from .checks import Check, check_numbers, cited_keys, extract_json
+from . import llm, render, robin
+from .checks import Check, check_claim_numbers, check_numbers, cited_keys, extract_json
 from .config import CONFIG, LANGUAGE_NAME, OUTPUT_DIR
 from .pipeline import AskResult, BudgetError, ResearchRequest, ResearchRun, RunCancelled, _specs
 from .sources import Evidence
@@ -105,6 +106,10 @@ class JevRequest(ResearchRequest):
     planner: str = ""
     executor: str = ""
     auditor: str = ""
+    robin: bool = True          # Robin layer: Crow/Falcon guard, BTL hypothesis tournament, consensus (ADR 0002)
+    candidates: int = 6         # hypotheses entering the tournament (>= 3)
+    trajectories: int = 1       # parallel Falcon trajectories; 1 = consensus off
+    consensus: float = 0.5      # share of trajectories that must agree on a finding
 
 
 def default_roles() -> Dict[str, str]:
@@ -166,7 +171,8 @@ def notes_prompt(topic: str, pack: str) -> str:
     )
 
 
-def audit_prompt(topic: str, aspects: List[Dict], paper: str, pack: str, open_gaps: Optional[List[str]] = None) -> str:
+def audit_prompt(topic: str, aspects: List[Dict], paper: str, pack: str, open_gaps: Optional[List[str]] = None,
+                 hypotheses: Optional[List[str]] = None) -> str:
     plan = "\n".join(f"- {a.get('task_id', '')}: {a.get('objective', '')} (acceptance: {a.get('acceptance', '')})" for a in aspects) or "- (no aspects planned)"
     gap_block, gap_schema, gap_rule = "", "", ""
     if open_gaps:
@@ -174,12 +180,17 @@ def audit_prompt(topic: str, aspects: List[Dict], paper: str, pack: str, open_ga
         gap_schema = ', "answered_gaps": [{"gap": "G#", "answer": "one sentence; copy any figure exactly", "keys": ["E#", "E#"]}]'
         gap_rule = (" List a gap in answered_gaps only if the EVIDENCE above directly answers the whole question; cite at least two "
                     "independent keys, at least one of them a primary study rather than a secondary summary. Leave it empty otherwise.")
+    hyp_block, hyp_rule = "", ""
+    if hypotheses:
+        hyp_block = "RANKED HYPOTHESES (proposals from a pairwise tournament, not findings):\n" + "\n".join(f"- {h}" for h in hypotheses) + "\n\n"
+        hyp_rule = (" Raise a high-severity finding if the paper states any ranked hypothesis as an established result; "
+                    "a claim may keep or lose strength, never gain it.")
     return (
-        f"Topic: {topic}\n\nPLANNED ASPECTS:\n{plan}\n\n{gap_block}PAPER UNDER AUDIT:\n{paper}\n\nEVIDENCE:\n{pack}\n\n"
+        f"Topic: {topic}\n\nPLANNED ASPECTS:\n{plan}\n\n{gap_block}{hyp_block}PAPER UNDER AUDIT:\n{paper}\n\nEVIDENCE:\n{pack}\n\n"
         'Return only JSON: {"verdict": "PASS" | "FAIL", "score": 0..1, "findings": [{"severity": "high|medium|low", "where": "section", '
         '"problem": "...", "evidence": "key or quote", "fix": "..."}], "new_queries": {"pubmed": [], "arxiv": [], "trials": []}, '
         '"gaps": ["what is still unknown or under-evidenced, phrased as a research question"]' + gap_schema + '}. '
-        "FAIL if any high-severity problem exists." + gap_rule
+        "FAIL if any high-severity problem exists." + gap_rule + hyp_rule
     )
 
 
@@ -210,7 +221,17 @@ class JevRun(ResearchRun):
         self.open_gaps_seen: List[str] = []
         self.gaps_closed: List[Dict] = []
         self.gap_rejections: List[Dict] = []
+        self.rb: Dict = {"enabled": bool(getattr(request, "robin", False)), "findings": [], "rejected": [], "rates": [], "final_rate": None,
+                         "library": {"entries": 0, "verified": 0, "on_topic_verified": 0}, "hypotheses": [], "hypothesis_rejections": [],
+                         "ranked": [], "tournament": {"ran": False, "matches": 0, "completed": 0, "note": ""}, "consensus": None,
+                         "cascades": [], "qc": [], "status": "", "finch": "N/A: no dataset input; no analysis code is executed (ADR 0002)"}
         super().__init__(request, on_log)
+        if self.rb["enabled"]:
+            robin.check_threshold(request.consensus)
+            if request.trajectories not in robin.TRAJECTORY_CHOICES or request.candidates < robin.MIN_CANDIDATES:
+                raise ValueError("Robin settings out of range")
+            self.rdir = self.dir / "robin"
+            self.rdir.mkdir(exist_ok=True)
 
     # ------------------------------------------------------------ records
 
@@ -223,6 +244,7 @@ class JevRun(ResearchRun):
             "notes_count": len(getattr(self, "notes", [])), "dropped_claims": getattr(self, "dropped_claims", 0), "gaps": getattr(self, "gaps", []),
             "plan_status": getattr(self, "plan_status", []), "off_topic": sorted(getattr(self, "off_topic", set())),
             "gaps_closed": getattr(self, "gaps_closed", []), "gap_rejections": getattr(self, "gap_rejections", []),
+            "robin": getattr(self, "rb", {"enabled": False}),
         })
         return data
 
@@ -348,7 +370,7 @@ class JevRun(ResearchRun):
                 if not keys or not text:
                     self.dropped_claims += 1
                     continue
-                grounded = check_numbers(f"{text} [{', '.join(keys)}]", self.evidence)
+                grounded = check_claim_numbers(text, keys, self.evidence)
                 if not grounded.passed:
                     self.dropped_claims += 1
                     continue
@@ -362,7 +384,8 @@ class JevRun(ResearchRun):
     async def _notes_node(self, loop: int, new_keys: List[str], after: List[str]) -> None:
         node = f"notes{loop}"
         batches = [new_keys[i:i + NOTE_BATCH] for i in range(0, len(new_keys), NOTE_BATCH)][:MAX_NOTE_WORKERS]
-        self.graph.add(node, f"Executor swarm: wiki notes ×{len(batches)} (loop {loop})", "medium", after, self.request.executor)
+        label = "Crow swarm: screen + wiki notes" if self.rb["enabled"] else "Executor swarm: wiki notes"
+        self.graph.add(node, f"{label} ×{len(batches)} (loop {loop})", "medium", after, self.request.executor)
         if not batches:
             self.graph.finish(node, True, "No new evidence to take notes on", status="skipped")
             return
@@ -414,6 +437,7 @@ class JevRun(ResearchRun):
         spec = _specs()["paper"].format(topic=self.request.topic)
         if self.aspects:
             spec += "\nThe review must cover these planned aspects:\n" + "\n".join(f"- {a.get('objective', '')}" for a in self.aspects)
+        spec += self._robin_brief()
         feedback = f"\n\nAct on this feedback: {self.request.feedback}" if self.request.feedback else ""
         if loop == 1 or not best.output:
             prompt = f"{spec}{feedback}\n\nEVIDENCE:\n{self._pack()}"
@@ -443,7 +467,8 @@ class JevRun(ResearchRun):
         self.stage = f"loop {loop}: auditing"
         self.log(f"Loop {loop}: auditor {self.request.auditor} is reviewing...")
         keys = [k for k in cited_keys(paper.output) if k in self.evidence]
-        result = await self._ask(audit_prompt(self.request.topic, self.aspects, paper.output, self._pack(keys or None), self.open_gaps_seen),
+        hypotheses = [h["statement"] for h in self.rb["ranked"][:3]] if self.rb["enabled"] else []
+        result = await self._ask(audit_prompt(self.request.topic, self.aspects, paper.output, self._pack(keys or None), self.open_gaps_seen, hypotheses),
                                  model=self.request.auditor, system=AUDITOR_SYSTEM, budget_share=0.2)
         try:
             audit = self._json(result)
@@ -503,7 +528,7 @@ class JevRun(ResearchRun):
                 reason = f"needs at least {MIN_GAP_KEYS} distinct on-topic collected sources (got {len(keys)})"
             elif all("secondary" in (self.evidence[k].kind or "").lower() for k in keys):
                 reason = "only secondary summaries cited; a primary source is required"
-            elif not check_numbers(f"{answer} [{', '.join(keys)}]", self.evidence).passed:
+            elif not check_claim_numbers(answer, keys, self.evidence).passed:
                 reason = "a figure in the answer is not in the cited sources"
             text = self.open_gaps_seen[index] if 0 <= index < len(self.open_gaps_seen) else ""
             if reason:
@@ -512,6 +537,298 @@ class JevRun(ResearchRun):
             seen.add(index)
             closed.append({"gap": gid, "text": text, "answer": answer, "keys": keys})
         return closed, rejected
+
+    # ------------------------------------------------------------ Robin layer (ADR 0002)
+
+    def _rwrite(self, name: str, data) -> None:
+        text = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False, indent=1)
+        (self.rdir / name).write_text(text, encoding="utf-8")
+
+    def _rappend(self, name: str, row: Dict) -> None:
+        with open(self.rdir / name, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    async def _react_json(self, label: str, prompt: str, model: str, system: str, share: float, validate: Callable[[Dict], str]) -> Dict:
+        """
+        ReAct self-healing for a JSON step: the parse/validation error goes back into the same conversation.
+        Stops at REACT_MAX_ITERATIONS or when the cascade guard sees the same error 3 times in a row.
+        Returns {"data", "ok", "errors", "cascade"}; data is the last parseable object even when not ok (Robin's PARTIAL).
+        """
+        self._guard()
+        errors: List[str] = []
+        last: Optional[Dict] = None
+        async with llm.open_conversation(system, model, max(0.01, self._remaining() * share)) as chat:
+            turn = prompt
+            for _ in range(robin.REACT_MAX_ITERATIONS):
+                self._guard()
+                try:
+                    reply = await chat.send(turn)
+                except llm.ProviderError as e:  # not self-healable by rewording
+                    errors.append(f"provider error: {str(e)[:200]}")
+                    return {"data": last, "ok": False, "errors": errors, "cascade": False}
+                self.spent += reply.cost_usd
+                try:
+                    data = json.loads(extract_json(reply.text))
+                    if not isinstance(data, dict):
+                        raise ValueError("expected a JSON object")
+                    last = data
+                    problem = validate(data)
+                except ValueError as e:
+                    problem = f"invalid JSON: {str(e)[:160]}"
+                if not problem:
+                    return {"data": last, "ok": True, "errors": errors, "cascade": False}
+                errors.append(problem)
+                if robin.is_cascade(errors):
+                    row = {"node": label, "iterations": len(errors), "error": problem[:300], "diagnosis": robin.diagnose(problem), "time": time.time()}
+                    self.rb["cascades"].append(row)
+                    self._rappend("react_cascade_log.jsonl", row)
+                    self.log(f"  Cascade guard stopped {label}: {problem[:100]}")
+                    return {"data": last, "ok": False, "errors": errors, "cascade": True}
+                turn = f"Your last answer could not be used: {problem}\nReply with the corrected JSON object only."
+        return {"data": last, "ok": False, "errors": errors, "cascade": False}
+
+    async def _falcon_node(self, loop: int, after: List[str]) -> None:
+        """Crow -> Falcon: a code-built citation library, K guarded syntheses from it, consensus when K > 1."""
+        node, k = f"falcon{loop}", self.request.trajectories
+        self.graph.add(node, f"Falcon synthesis ×{k} + hallucination guard (loop {loop})", "high", after, self.request.planner)
+        self.graph.start(node)
+        self.stage = f"loop {loop}: Falcon synthesis"
+        library = robin.citation_library(self.evidence, self.off_topic)
+        self._rwrite("citation_library.json", library)
+        usable = {r["citation_id"] for r in library if r["on_topic"]}
+        verified = {r["citation_id"] for r in library if r["on_topic"] and r["verified"]}
+        self.rb["library"] = {"entries": len(library), "verified": sum(r["verified"] for r in library), "on_topic_verified": len(verified)}
+        if not verified:
+            self.rb["findings"], self.rb["rejected"], self.rb["final_rate"] = [], [], None
+            detail = "No on-topic, identifier-verified entry in the citation library; Falcon not run"
+            self.graph.finish(node, False, detail)
+            self.graph.gate(node, "Citation library has a verified on-topic entry", "robin/citation_library.json", False, detail)
+            self.log(f"  {detail}.")
+            return
+        self.log(f"Loop {loop}: Falcon ({self.request.planner}) synthesising from {len(usable)} library entries, {k} trajectory(ies)...")
+        pack = self._pack(sorted(usable, key=lambda key: int(key[1:])))
+        outcomes: List[Dict] = [{} for _ in range(k)]
+        share = 0.12 / k
+        has_claims = lambda d: "" if isinstance(d.get("claims"), list) and d["claims"] else "missing key 'claims' (a non-empty list)"
+
+        async def trajectory(t: int) -> None:
+            try:
+                rejected_before: Optional[List[Dict]] = None
+                for attempt in (1, 2):  # handoff repair: at most one respawn
+                    res = await self._react_json(f"{node}.t{t + 1}", robin.falcon_prompt(self.request.topic, pack, rejected_before),
+                                                 self.request.planner, robin.FALCON_SYSTEM, share, has_claims)
+                    acc, rej, stats = robin.guard_claims((res["data"] or {}).get("claims"), self.evidence, usable, verified)
+                    self._rappend("hallucination_rate_log.jsonl", {"node": node, "trajectory": t + 1, "attempt": attempt, **stats})
+                    outcomes[t] = {"accepted": acc, "rejected": rej, "stats": stats, "attempts": attempt, "react_errors": res["errors"]}
+                    if stats["hallucination_rate"] <= robin.HALLUCINATION_TARGET or not stats["total_claims"]:
+                        break
+                    rejected_before = rej
+            except RunCancelled:
+                outcomes[t] = {"error": "cancelled"}
+            except Exception as e:  # one trajectory failing must not cancel its siblings
+                outcomes[t] = {"error": str(e)[:160]}
+
+        async with anyio.create_task_group() as group:
+            for t in range(k):
+                group.start_soon(trajectory, t)
+        if self.cancel_event.is_set():
+            raise RunCancelled()
+        good = [o for o in outcomes if "accepted" in o]
+        total = sum(o["stats"]["total_claims"] for o in good)
+        bad = sum(o["stats"]["unverified_claims"] for o in good)
+        rate = round(bad / total, 4) if total else None
+        if k > 1:
+            cons = robin.consensus([o["accepted"] for o in outcomes if "accepted" in o] + [[] for o in outcomes if "accepted" not in o], self.request.consensus)
+            findings = cons["included"]
+            self._rwrite("consensus_findings.json", {"included": cons["included"], "excluded": cons["excluded"], "threshold": cons["threshold"], "trajectories": k})
+            self._rwrite("trajectory_agreement_matrix.json", cons["matrix"])
+            self.rb["consensus"] = {"threshold": cons["threshold"], "trajectories": k, "included": len(cons["included"]), "excluded": len(cons["excluded"])}
+        else:
+            findings = good[0]["accepted"] if good else []
+        self.rb["findings"] = findings
+        self.rb["rejected"] = [r for o in good for r in o["rejected"]]
+        self.rb["final_rate"] = rate
+        self.rb["rates"].append({"loop": loop, "total_claims": total, "unverified_claims": bad, "hallucination_rate": rate})
+        self._rwrite("evidence_report.json", {"loop": loop, "findings": findings, "hallucination_rate": rate,
+                                              "trajectories": [{k2: v for k2, v in o.items()} for o in outcomes]})
+        ok = bool(findings) and rate is not None and rate <= robin.HALLUCINATION_TARGET
+        detail = (f"{len(good)}/{k} trajectory(ies) usable; {len(findings)} verified finding(s); "
+                  f"hallucination rate {'n/a' if rate is None else f'{rate:.1%}'} (target ≤ {robin.HALLUCINATION_TARGET:.0%})"
+                  + (f"; consensus kept {self.rb['consensus']['included']}, dropped {self.rb['consensus']['excluded']}" if k > 1 else ""))
+        self.graph.finish(node, ok, detail)
+        self.graph.gate(node, "Hallucination rate ≤ 2 % after at most one respawn (Robin metric 10)", "robin/evidence_report.json", ok, detail)
+        self.log(f"  {detail}.")
+
+    async def _hypotheses_node(self, after: List[str]) -> None:
+        node = "hypotheses1"
+        n = self.request.candidates
+        self.graph.add(node, f"Hypothesis generation ×{n}", "high", after, self.request.planner)
+        findings = self.rb["findings"]
+        if not findings:
+            self.graph.finish(node, False, "No verified findings to build hypotheses on", status="skipped")
+            self.rb["tournament"]["note"] = "not run: no verified findings"
+            return
+        self.graph.start(node)
+        self.stage = "loop 1: hypothesis generation"
+        self.log(f"Loop 1: {self.request.planner} proposing {n} hypotheses from {len(findings)} verified finding(s)...")
+        usable = {k for f in findings for k in f["evidence_ids"]} | {k for k in self.evidence if k not in self.off_topic}
+
+        def enough(d: Dict) -> str:
+            kept, rejected = robin.validate_hypotheses(d.get("hypotheses"), self.evidence, usable)
+            if len(kept) >= robin.MIN_CANDIDATES:
+                return ""
+            why = "; ".join(sorted({r["reason"] for r in rejected}))[:200]
+            return f"only {len(kept)} usable hypotheses; need at least {robin.MIN_CANDIDATES}" + (f" (rejected: {why})" if why else "")
+
+        res = await self._react_json(node, robin.hypotheses_prompt(self.request.topic, findings, n), self.request.planner, robin.HYPOTHESIS_SYSTEM, 0.06, enough)
+        kept, rejected = robin.validate_hypotheses((res["data"] or {}).get("hypotheses"), self.evidence, usable)
+        self.rb["hypotheses"], self.rb["hypothesis_rejections"] = kept, rejected
+        self._rwrite("seed_ideas.json", {"hypotheses": kept, "rejected": rejected})
+        ok = len(kept) >= robin.MIN_CANDIDATES
+        detail = f"{len(kept)} usable, {len(rejected)} rejected by code" + ("" if ok else f"; fewer than {robin.MIN_CANDIDATES}, so no tournament (direct selection)")
+        self.graph.finish(node, ok, detail)
+        self.graph.gate(node, f"≥ {robin.MIN_CANDIDATES} hypotheses citing on-topic keys with grounded figures", "robin/seed_ideas.json", ok, detail)
+        self.log(f"  {detail}.")
+
+    def _judge_context(self, keys: List[str]) -> str:
+        lines = []
+        for key in keys:
+            e = self.evidence.get(key)
+            if not e:
+                continue
+            lines.append(f"[{key}] {e.citation()[:220]}")
+            lines += [f"    - {f['claim'][:220]}" for f in self.rb["findings"] if key in f["evidence_ids"]][:2]
+        return "\n".join(lines) or "(none)"
+
+    async def _tournament_node(self, after: List[str]) -> None:
+        node = "tournament1"
+        cands = self.rb["hypotheses"]
+        self.graph.add(node, "BTL pairwise tournament", "high", after, self.request.auditor)
+        if len(cands) < robin.MIN_CANDIDATES:
+            self.rb["ranked"] = [{**h, "rank": i, "btl_score": None, "win_rate": None, "games": 0} for i, h in enumerate(cands, 1)]
+            self.rb["tournament"]["note"] = self.rb["tournament"]["note"] or f"not run: {len(cands)} candidate(s) < {robin.MIN_CANDIDATES} (pitfall 51)"
+            self.graph.finish(node, False, self.rb["tournament"]["note"], status="skipped")
+            return
+        # Pitfall 54: lint the template (not the candidates, whose text may legitimately mention scores).
+        blank = {"statement": "", "rationale": "", "test": "", "evidence_ids": []}
+        lint = robin.lint_judge(robin.JUDGE_SYSTEM + robin.judge_prompt("", blank, blank, ""))
+        if lint:
+            raise RuntimeError(f"BTL judge prompt contains absolute-scale wording: {lint}")
+        self.graph.start(node)
+        self.stage = "loop 1: BTL tournament"
+        seed = int(hashlib.sha256(self.run_id.encode()).hexdigest()[:8], 16)
+        pairings = robin.schedule_pairings(len(cands), robin.PAIRINGS_PER_CANDIDATE, seed)
+        # Counterbalanced: every pairing is judged in both orders, so a judge that prefers a position cannot move the ranking.
+        # (Found in live run 20261109-084205-30511d: the judge picked "A" in 7 of 8 matches.)
+        pairs = [p for i, j in pairings for p in ((i, j), (j, i))]
+        self.log(f"Loop 1: judge {self.request.auditor} playing {len(pairings)} pairings × 2 orders among {len(cands)} hypotheses...")
+        matches: List[Dict] = [{} for _ in pairs]
+        limiter = anyio.CapacityLimiter(4)
+        share = 0.10 / len(pairs)
+        valid = lambda d: "" if str(d.get("winner", "")).strip().upper() in ("A", "B", "TIE") else "missing key 'winner' (A, B or tie)"
+
+        async def play(m: int, i: int, j: int) -> None:
+            a, b = cands[i], cands[j]
+            async with limiter:
+                try:
+                    res = await self._react_json(f"{node}.m{m + 1}", robin.judge_prompt(self.request.topic, a, b, self._judge_context(list(dict.fromkeys(a["evidence_ids"] + b["evidence_ids"])))),
+                                                 self.request.auditor, robin.JUDGE_SYSTEM, share, valid)
+                except RunCancelled:
+                    matches[m] = {"match": m + 1, "a": a["id"], "b": b["id"], "error": "cancelled"}
+                    return
+                except Exception as e:
+                    matches[m] = {"match": m + 1, "a": a["id"], "b": b["id"], "error": str(e)[:160]}
+                    return
+            if not res["ok"]:
+                matches[m] = {"match": m + 1, "a": a["id"], "b": b["id"], "error": (res["errors"] or ["no result"])[-1][:160]}
+                return
+            winner = str(res["data"]["winner"]).strip().upper()
+            matches[m] = {"match": m + 1, "a": a["id"], "b": b["id"], "i": i, "j": j, "winner": winner, "reason": str(res["data"].get("reason", ""))[:300]}
+
+        async with anyio.create_task_group() as group:
+            for m, (i, j) in enumerate(pairs):
+                group.start_soon(play, m, i, j)
+        if self.cancel_event.is_set():
+            raise RunCancelled()
+        decided = [x for x in matches if "winner" in x]
+        results = robin.counterbalance([((x["match"] - 1) // 2, x["i"], x["j"], {"A": 1.0, "B": 0.0, "TIE": 0.5}[x["winner"]]) for x in decided])
+        if results:
+            ranked = robin.rank_candidates(cands, results)
+        else:
+            ranked = [{**h, "rank": i, "btl_score": None, "win_rate": None, "games": 0} for i, h in enumerate(cands, 1)]
+        self.rb["ranked"] = ranked
+        self.rb["tournament"] = {"ran": bool(results), "pairings": len(pairings), "matches": len(pairs), "completed": len(decided), "seed": seed, "lint": "clean",
+                                 "position_a_share": robin.position_a_share([x["winner"] for x in decided]),
+                                 "note": "" if results else "every match failed; generator order kept"}
+        self._rwrite("ranked_candidates.json", ranked)
+        self._rwrite("tournament.json", {"seed": seed, "pairings_per_candidate": robin.PAIRINGS_PER_CANDIDATE, "judge": self.request.auditor,
+                                         "matches": [{k2: v for k2, v in x.items() if k2 not in ("i", "j")} for x in matches]})
+        ok = bool(results) and all(h["btl_score"] is not None for h in ranked)
+        top = ranked[0] if ranked else {}
+        bias = self.rb["tournament"]["position_a_share"]
+        detail = (f"{len(decided)}/{len(pairs)} games decided ({len(pairings)} pairings, both orders); "
+                  f"judge picked A in {'n/a' if bias is None else f'{bias:.0%}'} of decisive games; #1 {top.get('id', '-')} (BTL {top.get('btl_score')}, win rate {top.get('win_rate')})")
+        self.graph.finish(node, ok, detail)
+        self.graph.gate(node, "BTL ran with N ≥ 3; ranked_candidates has btl_score; judge prompt lint clean", "robin/ranked_candidates.json", ok, detail)
+        self.log(f"  {detail}.")
+
+    def _robin_brief(self) -> str:
+        """What the writer gets from the Robin layer: verified findings and the top hypotheses, labelled as such."""
+        if not self.rb["enabled"]:
+            return ""
+        text = ""
+        if self.rb["findings"]:
+            text += ("\n\nPre-checked claims (each already matched to its sources; build Results on these first). They are a working aid: "
+                     "cite their keys, but never mention this list, any checking step or any internal workflow name in the text:\n"
+                     + "\n".join(f"- {f['claim']} [{', '.join(f['evidence_ids'])}]" for f in self.rb["findings"][:20]))
+        top = self.rb["ranked"][:3]
+        if top:
+            text += ("\n\nCandidate hypotheses, strongest first. In Discussion, add a subsection titled "
+                     "'### Hypotheses for future work' that presents these as hypotheses, never as findings, each with its keys "
+                     "and how it could be tested. Do not describe how they were ranked:\n" + "\n".join(f"{h['rank']}. {h['statement']} [{', '.join(h['evidence_ids'])}] — test: {h['test']}" for h in top))
+        return text
+
+    def _robin_finish(self, paper: AskResult) -> None:
+        """Claim ledger, QC checklist and Robin status, all decided by code from what actually happened."""
+        if not self.rb["enabled"]:
+            return
+        rows = robin.ledger_rows(self.rb["findings"], self.rb["rejected"], self.rb["ranked"])
+        self._rwrite("claim_ledger.csv", robin.ledger_csv(rows))
+        problems = robin.ledger_problems(rows, set(self.evidence))
+        rate = self.rb["final_rate"]
+        k = self.request.trajectories
+        top = self.rb["ranked"][:3]
+        cascade_file = self.rdir / "react_cascade_log.jsonl"
+        annotated = all(c.get("diagnosis") for c in self.rb["cascades"])
+        qc = [
+            ("Citation library has identifier-verified on-topic entries", "PASS" if self.rb["library"]["on_topic_verified"] else "FAIL",
+             f"{self.rb['library']['on_topic_verified']} of {self.rb['library']['entries']}"),
+            ("Hallucination rate ≤ 2 %", "PASS" if rate is not None and rate <= robin.HALLUCINATION_TARGET else "FAIL",
+             "not measured" if rate is None else f"{rate:.1%}"),
+            (f"BTL ran with N ≥ {robin.MIN_CANDIDATES} and btl_score present", "PASS" if self.rb["tournament"].get("ran") else "FAIL",
+             self.rb["tournament"].get("note") or f"{self.rb['tournament'].get('completed')}/{self.rb['tournament'].get('matches')} matches"),
+            ("BTL judged both orders of every pairing (position bias cancels)", "PASS" if self.rb["tournament"].get("ran") else "N/A",
+             f"judge picked the first-shown candidate in {self.rb['tournament'].get('position_a_share')} of decisive games (0.5 = no preference)"),
+            ("Judge prompt has no absolute-scale wording", "PASS" if self.rb["tournament"].get("lint") == "clean" else "N/A", "linted before the first match" if self.rb["tournament"].get("lint") else "tournament not run"),
+            ("consensus_findings.json exists when trajectories > 1", ("PASS" if (self.rdir / "consensus_findings.json").exists() else "FAIL") if k > 1 else "N/A", f"K = {k}"),
+            ("react_cascade_log.jsonl empty or annotated", "PASS" if annotated else "FAIL", f"{len(self.rb['cascades'])} cascade(s)" + ("" if cascade_file.exists() else ", file absent")),
+            ("Claim ledger: allowed claim types, collected keys, artifact paths", "PASS" if not problems else "FAIL", "; ".join(problems[:3]) or f"{len(rows)} row(s)"),
+            ("Paper presents top hypotheses under 'Hypotheses for future work'", ("PASS" if re.search(r"^#+\s*Hypotheses for future work", paper.output or "", re.M | re.I) else "FAIL") if top else "N/A",
+             f"{len(top)} hypothesis(es) handed to the writer"),
+            ("Finch data-analysis agent", "N/A", self.rb["finch"]),
+        ]
+        self.rb["qc"] = [{"item": a, "verdict": b, "evidence": c} for a, b, c in qc]
+        self.rb["status"] = robin.robin_status(len(self.rb["findings"]), rate if rate is not None else 1.0)
+        self._rwrite("robin_qc.md", f"# Robin QC\n\nRun `{self.run_id}` · robin_status **{self.rb['status']}**\n\n| Item | Verdict | Evidence |\n|---|---|---|\n"
+                     + "\n".join(f"| {q['item']} | {q['verdict']} | {str(q['evidence']).replace('|', '/')} |" for q in self.rb["qc"]) + "\n")
+        self.graph.add("robinqc", "Robin QC + claim ledger", "code", ["deliver"])
+        self.graph.start("robinqc")
+        failed = [q["item"] for q in self.rb["qc"] if q["verdict"] == "FAIL"]
+        self.graph.finish("robinqc", not failed, f"{self.rb['status']}; {len(failed)} QC item(s) failing")
+        for q in self.rb["qc"]:
+            if q["verdict"] != "N/A":
+                self.graph.gate("robinqc", q["item"], "robin/robin_qc.md", q["verdict"] == "PASS", str(q["evidence"]))
+        self.log(f"Robin: {self.rb['status']}; QC {len(self.rb['qc']) - len(failed)}/{len(self.rb['qc'])} not failing.")
 
     # ------------------------------------------------------------ loop
 
@@ -530,7 +847,15 @@ class JevRun(ResearchRun):
             new_keys = [k for k in self.evidence if k not in before]
             self._new_count = len(new_keys)
             await self._notes_node(loop, new_keys, [f"collect{loop}"])
-            best = await self._draft_node(loop, best, findings, [f"collect{loop}"] + ([f"audit{loop - 1}"] if loop > 1 else []))
+            draft_after = [f"collect{loop}"] + ([f"audit{loop - 1}"] if loop > 1 else [])
+            if self.rb["enabled"]:
+                await self._falcon_node(loop, [f"notes{loop}"])
+                draft_after.append(f"falcon{loop}")
+                if loop == 1:
+                    await self._hypotheses_node(["falcon1"])
+                    await self._tournament_node(["hypotheses1"])
+                    draft_after.append("tournament1")
+            best = await self._draft_node(loop, best, findings, draft_after)
             if not best.output:
                 raise RuntimeError(best.error or "No draft was produced.")
             audit = await self._audit_node(loop, best, [f"draft{loop}", f"notes{loop}"])
@@ -642,9 +967,11 @@ class JevRun(ResearchRun):
                 "run_id": self.run_id, "topic": self.request.topic, "date": time.strftime("%Y-%m-%d"),
                 "summary": (abstract.group(1).strip() if abstract else "")[:3000],
                 "evidence": [e.to_dict() for e in self.evidence.values() if e.key in set(cited_keys(paper.output)) | {k for n in self.notes for c in n["claims"] for k in c["keys"]}
-                             | {k for g in self.gaps_closed for k in g["keys"]}],
+                             | {k for g in self.gaps_closed for k in g["keys"]} | {k for h in self.rb["ranked"][:5] for k in h["evidence_ids"]}],
                 "notes": self.notes, "gaps": self.gaps, "conflicts": self.conflicts, "deliverables": files,
                 "answered_gaps": self.gaps_closed,
+                "hypotheses": [{"rank": h["rank"], "statement": h["statement"], "test": h.get("test", ""), "btl_score": h.get("btl_score"), "keys": h["evidence_ids"]}
+                               for h in self.rb["ranked"][:5]] if self.rb["enabled"] else [],
             })
             queue = Path(CONFIG.get("knowledge_base", {}).get("queue_md", "")) if CONFIG.get("knowledge_base", {}).get("queue_md") else None
             decisions = kb_rsi.improve(root, OUTPUT_DIR.parent / ".rsi" / "kb_ledger.jsonl", queue)
@@ -681,10 +1008,12 @@ class JevRun(ResearchRun):
             self._verify_citations([paper.output] + self._texts)
             self.graph.finish("cite", not self.citation_problems, f"{len(self.citation_problems)} problem(s)")
             self.graph.gate("cite", "Cited identifiers resolve with matching titles", "evidence.json", not self.citation_problems, "; ".join(self.citation_problems[:3]) or "all resolved")
+            self._robin_finish(paper)
             self._kb_node(paper)
             wanted = 1 + len(CONFIG.get("deliverables", ["deck", "blog"]))
             complete = len(self.deliverables) == wanted and all(d["verified"] for d in self.deliverables)
-            self.status = "COMPLETED" if complete and not self.citation_problems and "error" not in self.kb_result else "NEEDS_REVIEW"
+            robin_ok = not self.rb["enabled"] or not any(q["verdict"] == "FAIL" for q in self.rb["qc"])
+            self.status = "COMPLETED" if complete and robin_ok and not self.citation_problems and "error" not in self.kb_result else "NEEDS_REVIEW"
         except RunCancelled:
             self.status = "CANCELLED"
             self.log("Run cancelled.")

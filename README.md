@@ -34,8 +34,13 @@ It extends `rsi-knowledge-dashboard` with:
 - **A Jev graph** with a live view in the dashboard, plus `graph.md` / `checks.md` / `progress.md` per run.
 - **Wiki and RSI panels:** a wiki browser, a concept map, gaps, fitness and the RSI ledger.
 - **A house-style blog publisher** with a staging guide and an approval gate before any push.
+- **A Robin layer** (Ghareeb et al., 2026, *Nature*), on by default. Finch is not included (no dataset input). See `references/robin-layer.md`.
+  - Crow/Falcon split with a code-measured hallucination guard (≤ 2 %, one respawn)
+  - counterbalanced pairwise Bradley-Terry-Luce hypothesis tournament
+  - opt-in parallel trajectories with a consensus filter
+  - ReAct cascade guard, claim ledger and QC
 
-Tested on Windows. The full demo run (Opus planner, Sonnet executor, gpt-6-astra auditor, 2 loops) completed for US$1.46: every source answered LIVE, there were 0 citation problems, and 36 wiki pages were created. 167 offline tests pass, both in the original project and in a freshly scaffolded one with blank config. `AGENTS.md` maps the workflow to Codex, Gemini CLI, Antigravity and OpenCode. `gemini-4-argon` was not live-tested (HTTP 429, quota). macOS and Linux have not been run yet.
+Tested on Windows. The full demo run (Opus planner, Sonnet executor, gpt-6-astra auditor, 2 loops) completed for US$1.46: every source answered LIVE, there were 0 citation problems, and 36 wiki pages were created. 207 offline tests pass (after the Robin upgrade on 2026-11-09), both in the original project and in a freshly scaffolded one with blank config. `AGENTS.md` maps the workflow to Codex, Gemini CLI, Antigravity and OpenCode. `gemini-4-argon` was not live-tested (HTTP 429, quota). macOS and Linux have not been run yet.
 
 - Skill folder: `jev-autoresearch-rsi/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
 - Bundle: `jev-autoresearch-rsi.skill`
