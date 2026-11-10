@@ -2,6 +2,17 @@
 
 A collection of custom Claude Code skills.
 
+### stat-sim-explainer
+
+Builds a single-file interactive HTML page that teaches statistics or causal-inference concepts with live, seeded Monte Carlo simulations and theme-aware SVG charts. Each concept is a card: a plain explanation and a formula beside a simulation with sliders that move the method from "works" to "fails".
+
+- Includes a working template (seeded RNG, stats helpers, solver, histogram / dot-interval / line chart helpers), a headless node harness (`scripts/test_sims.mjs`), verified simulation recipes and 14 measured pitfalls.
+- Worked example: covariates in causal inference (blocking, rerandomization, Lin 2013 vs ANCOVA, PS/IPW/AIPW, DAG collider/mediator/M-bias, DML, E-value, Rosenbaum Γ), with every claim checked numerically.
+- Tested on Windows with node 26. The R snippets in the source notes were not run (no R installed).
+- Skill folder: `stat-sim-explainer/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
+- Bundle: `stat-sim-explainer.skill`
+- Session wrap-up: `2026-11-11_Stat_Sim_Explainer_Lessons_and_Pitfalls.md`
+
 ### agentic-platform-bridge
 
 Connect one agent workflow to Claude, ChatGPT (GPT-6 Astra) and Gemini (Gemini 4 Argon) through the subscription logins you already have, with no API keys. ChatGPT runs through the Codex CLI, Gemini through the Gemini CLI, and Claude through the Claude Agent SDK. Each CLI is a stateless subprocess, so a planner, an executor and an independent auditor can sit on three vendors.

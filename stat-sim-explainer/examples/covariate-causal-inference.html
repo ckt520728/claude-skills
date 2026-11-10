@@ -1,0 +1,646 @@
+<title>Covariates in Causal Inference</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a lab notebook. Left-aligned reading column, each method is an "experiment card" with a live simulation beside its explanation. */
+:root{
+  --bg:#F5F6F8; --surface:#FFFFFF; --fg:#18202E; --muted:#5A6476; --line:#D9DEE6;
+  --accent:#2C55C9;            /* ink blue: headings, links, design-stage */
+  --treat:#2C55C9;             /* treatment / estimator A */
+  --ctrl:#C8671E;              /* control / estimator B */
+  --third:#2E8B6E;             /* third estimator */
+  --bad:#B3322E; --good:#2E8B6E; --chip:#E8EDF8;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151C; --surface:#181E28; --fg:#E6EAF1; --muted:#9AA4B5; --line:#2C3544;
+  --accent:#7FA2FF; --treat:#7FA2FF; --ctrl:#F0A060; --third:#5FCFA8; --bad:#F07A72; --good:#5FCFA8; --chip:#222C3D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151C; --surface:#181E28; --fg:#E6EAF1; --muted:#9AA4B5; --line:#2C3544;
+  --accent:#7FA2FF; --treat:#7FA2FF; --ctrl:#F0A060; --third:#5FCFA8; --bad:#F07A72; --good:#5FCFA8; --chip:#222C3D; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);font-weight:650;line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(30px,5vw,46px);letter-spacing:-.01em}
+h2{font-size:clamp(23px,3.2vw,30px);margin-top:8px}
+h3{font-size:19px}
+p{margin:0;max-width:68ch}
+.lede{font-size:18px;color:var(--muted);max-width:64ch}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.zh{color:var(--muted);font-weight:400}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+header{display:grid;gap:14px;margin-bottom:36px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+nav.toc a{font-size:13px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--fg);text-decoration:none;background:var(--surface)}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);color:var(--accent)}
+section{display:grid;gap:18px;padding-block:34px;border-top:1px solid var(--line)}
+.stage{display:inline-flex;gap:6px;align-items:center;font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--chip);color:var(--accent);width:max-content}
+.stage.an{color:var(--ctrl)}
+.stage.obs{color:var(--third)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:14px}
+th,td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.exp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px;align-items:start}
+@media (max-width:820px){.exp{grid-template-columns:1fr}}
+.exp>div{min-width:0;display:grid;gap:12px}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end}
+.controls label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.controls input[type=range]{width:150px;accent-color:var(--accent)}
+.controls input[type=number]{width:90px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-family:var(--f-mono)}
+.controls select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.val{font-family:var(--f-mono);color:var(--fg)}
+button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--surface);cursor:pointer}
+button.ghost{background:transparent;color:var(--accent)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:2px}
+.stat b{font-family:var(--f-mono);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:12px}
+.note{font-size:14px;color:var(--muted)}
+.formula{font-family:var(--f-mono);font-size:13.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;white-space:pre}
+ul.tight{margin:0;padding-left:20px;display:grid;gap:4px;max-width:68ch}
+.callout{border-left:3px solid var(--ctrl);padding:8px 14px;background:var(--surface);border-radius:0 8px 8px 0;font-size:15px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.flow div{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface);display:grid;gap:4px;font-size:14px}
+.flow b{font-family:var(--f-display);font-size:16px}
+.refs{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Statistics learning · 2026 · covariates &amp; causality</span>
+  <h1>Covariates in Causal Inference <span class="zh">因果推論中的共變量</span></h1>
+  <p class="lede">A covariate (<span class="mono">X</span>) does two different jobs. In a randomized experiment it buys <strong>precision</strong>: smaller variance, more power. In an observational study it buys <strong>identification</strong>: adjusting for the right <span class="mono">X</span> removes confounding bias. Each strategy below is paired with a live simulation you can rerun.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#map">Strategy map</a><a href="#blocking">Blocking</a><a href="#rem">Rerandomization</a><a href="#lin">Lin (2013) regression</a><a href="#obs">PS · IPW · AIPW</a><a href="#dag">What not to adjust</a><a href="#dml">High-dim DML</a><a href="#sens">Sensitivity</a><a href="#guide">Decision guide</a>
+  </nav>
+</header>
+
+<section id="map">
+  <span class="eyebrow">The core idea · design ↔ analysis duality</span>
+  <h2>Control covariates by design, or adjust for them in analysis</h2>
+  <p>The same covariate can be handled before treatment is assigned (you control the assignment mechanism) or after the data come in (you model the outcome). Modern theory shows the two are close substitutes, and the strongest practice uses both.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Covariate type</th><th>Design stage <span class="zh">設計階段</span></th><th>Analysis stage <span class="zh">分析階段</span></th><th>Goal</th></tr></thead>
+    <tbody>
+      <tr><td>Discrete (sex, site, disease subtype)</td><td>Blocking / stratified randomization (SRE)</td><td>Post-stratification</td><td>Remove between-stratum variance</td></tr>
+      <tr><td>Continuous or many covariates</td><td>Rerandomization by Mahalanobis distance (ReM)</td><td>Lin (2013) fully interacted OLS + robust SE</td><td>Prevent chance imbalance; minimize variance</td></tr>
+      <tr><td>No randomization (observational)</td><td>Matching on propensity score; overlap trimming</td><td>IPW; doubly robust AIPW</td><td>Meet ignorability + overlap; remove confounding</td></tr>
+      <tr><td>High-dimensional (<span class="mono">p ≫ n</span>)</td><td>Pre-registration of the covariate set</td><td>Double machine learning (orthogonal score + cross-fitting)</td><td>Keep √n inference despite regularization</td></tr>
+      <tr><td>Unmeasured (<span class="mono">U</span>)</td><td>Design for robustness (matching, natural experiments)</td><td>Sensitivity analysis: Rosenbaum Γ, E-value</td><td>Quantify how much hidden bias would overturn the result</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ BLOCKING ============ -->
+<section id="blocking">
+  <span class="stage">Design stage · discrete covariate</span>
+  <h2>Blocking (stratified randomization) <span class="zh">區組 / 分層隨機化</span></h2>
+  <div class="exp">
+    <div>
+      <p>Split units into blocks by a prognostic covariate (here, sex) and randomize <em>within</em> each block. Treatment proportions are then fixed in every block, so the block effect can no longer leak into the treatment–control difference by chance.</p>
+      <ul class="tight">
+        <li>Unbiased for the ATE, like complete randomization (CRE).</li>
+        <li>The variance lost is the between-block part. The more the covariate predicts the outcome, the bigger the gain.</li>
+        <li>Analyze as blocked: weight block-specific differences by block size.</li>
+      </ul>
+      <p class="note">Simulation: <span class="mono">n = 80</span>, half male. <span class="mono">Y(0) = 10 + δ·male + N(0,1)</span>, constant effect τ = 2. Same finite population, re-randomized many times.</p>
+    </div>
+    <div class="lab">
+      <div class="controls">
+        <label for="blk-delta">Covariate strength δ <span class="val" id="blk-delta-v">6</span><input type="range" id="blk-delta" min="0" max="10" step="1" value="6"></label>
+        <button id="blk-run">Rerun 3,000 randomizations</button>
+      </div>
+      <div class="legend"><span><i class="sw" style="background:var(--ctrl)"></i>Complete randomization</span><span><i class="sw" style="background:var(--treat)"></i>Blocked on sex</span></div>
+      <div id="blk-chart"></div>
+      <div class="stats" id="blk-stats"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REM ============ -->
+<section id="rem">
+  <span class="stage">Design stage · continuous covariates</span>
+  <h2>Rerandomization with Mahalanobis distance (ReM) <span class="zh">重隨機化</span></h2>
+  <div class="exp">
+    <div>
+      <p>Draw a random assignment, compute the covariate imbalance, and accept it only if it is small. Otherwise discard it and draw again (Morgan &amp; Rubin 2012; Li, Ding &amp; Rubin 2018).</p>
+      <div class="formula">M = τ̂ₓᵀ Cov(τ̂ₓ)⁻¹ τ̂ₓ      accept if M ≤ a
+τ̂ₓ = x̄(treated) − x̄(control)</div>
+      <ul class="tight">
+        <li>Still unbiased for the ATE, but the sampling distribution becomes a narrower, non-Gaussian, truncated shape. Inference must account for that (use the ReM asymptotics or a randomization test that repeats the same rule).</li>
+        <li><strong>Duality (Li &amp; Ding 2020):</strong> as <span class="mono">a → 0</span>, ReM with a plain difference in means behaves like CRE followed by Lin regression adjustment. Compare the blue and green curves.</li>
+      </ul>
+      <p class="note">Simulation: <span class="mono">n = 100</span>, two covariates, outcome <span class="mono">Y(0) = X₁ + 0.8X₂ + N(0, 0.6²)</span>, τ = 1. Under a χ²₂ reference, acceptance probability <span class="mono">pₐ</span> gives threshold <span class="mono">a = −2 ln(1 − pₐ)</span>.</p>
+    </div>
+    <div class="lab">
+      <div class="controls">
+        <label for="rem-pa">Acceptance probability pₐ
+          <select id="rem-pa"><option value="0.5">0.50</option><option value="0.2">0.20</option><option value="0.1">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></label>
+        <button id="rem-run">Rerun 2,000 experiments</button>
+      </div>
+      <div class="legend"><span><i class="sw" style="background:var(--ctrl)"></i>CRE, unadjusted</span><span><i class="sw" style="background:var(--treat)"></i>ReM, unadjusted</span><span><i class="sw" style="background:var(--third)"></i>CRE + Lin adjustment</span></div>
+      <div id="rem-chart"></div>
+      <div class="stats" id="rem-stats"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIN ============ -->
+<section id="lin">
+  <span class="stage an">Analysis stage · randomized experiment</span>
+  <h2>Regression adjustment done safely: Lin (2013) <span class="zh">全交互作用迴歸調整</span></h2>
+  <div class="exp">
+    <div>
+      <p><strong>The problem (Freedman 2008):</strong> classic ANCOVA, <span class="mono">Y ~ Z + X</span>, uses one pooled slope. If the slope differs by arm (effect heterogeneity) and the arms are unequal in size, the pooled slope over-corrects the smaller arm. Its variance can then be <em>larger</em> than not adjusting at all.</p>
+      <p><strong>The fix (Lin 2013):</strong> center the covariate and interact it with treatment, then use Huber–White (HC2) standard errors.</p>
+      <div class="formula">Yᵢ = α + τZᵢ + (Xᵢ − X̄)β + Zᵢ(Xᵢ − X̄)γ + εᵢ
+τ̂_L = τ̂ − (n₀/n·β̂₁ + n₁/n·β̂₀)ᵀ τ̂ₓ</div>
+      <ul class="tight">
+        <li>Asymptotically never less precise than the unadjusted difference in means, even when the model is wrong.</li>
+        <li>Sandwich SEs are consistent or conservative, so 95% intervals keep coverage.</li>
+        <li>With a 1:1 design, ANCOVA's errors in the two arms cancel and it matches Lin. Move the slider away from 0.5 to watch ANCOVA break.</li>
+      </ul>
+      <div class="callout"><strong>Worked example from the Lin reference.</strong> 80 surgery vs 20 drug patients; age slope is 10 under surgery, 2 under drug; drug arm is 4 years older than average. A pooled slope ≈ 0.8·10 + 0.2·2 = 8.4 subtracts 4 × 8.4 = 33.6 points from the drug arm when the truth calls for 4 × 2 = 8. The interacted model gives each arm its own slope.</div>
+    </div>
+    <div class="lab">
+      <div class="controls">
+        <label for="lin-pa">Share treated n₁/n <span class="val" id="lin-pa-v">0.75</span><input type="range" id="lin-pa" min="0.2" max="0.8" step="0.05" value="0.75"></label>
+        <label for="lin-het">Opposite slopes (heterogeneity)
+          <select id="lin-het"><option value="1" selected>Yes: a = eᶻ, b = −eᶻ</option><option value="0">No: a = b + τ</option></select></label>
+        <button id="lin-run">Rerun 3,000 randomizations</button>
+      </div>
+      <div class="legend"><span><i class="sw" style="background:var(--ctrl)"></i>Unadjusted Δ means</span><span><i class="sw" style="background:var(--bad)"></i>ANCOVA Y~Z+X</span><span><i class="sw" style="background:var(--third)"></i>Lin interacted</span></div>
+      <div id="lin-chart"></div>
+      <div class="stats" id="lin-stats"></div>
+      <p class="note">Finite population <span class="mono">n = 400</span>, <span class="mono">z ~ U(−2, 2)</span>, nonlinear potential outcomes plus N(0,1) noise. The data-generating process is inspired by, not identical to, Lin's simulation, so the numbers differ from his Table 1.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OBS ============ -->
+<section id="obs">
+  <span class="stage obs">Observational study · design + analysis</span>
+  <h2>Propensity score, overlap, IPW and AIPW <span class="zh">傾向分數 · 逆機率加權 · 雙重穩健</span></h2>
+  <div class="exp">
+    <div>
+      <p>Without randomization, <span class="mono">X</span> affects both who gets treated and the outcome. Identification needs two assumptions:</p>
+      <ul class="tight">
+        <li><strong>Ignorability:</strong> <span class="mono">Z ⫫ (Y(1), Y(0)) | X</span>. No unmeasured confounders.</li>
+        <li><strong>Overlap:</strong> <span class="mono">0 &lt; e(X) &lt; 1</span>, where <span class="mono">e(X) = P(Z=1 | X)</span>.</li>
+      </ul>
+      <div class="formula">IPW:  τ̂ = mean[ ZY/ê ] − mean[ (1−Z)Y/(1−ê) ]
+AIPW: τ̂ = mean[ μ̂₁ − μ̂₀ + Z(Y−μ̂₁)/ê − (1−Z)(Y−μ̂₀)/(1−ê) ]</div>
+      <p>AIPW is <strong>doubly robust</strong>: it is consistent if <em>either</em> the outcome model μ̂ or the propensity model ê is right. In this simulation the outcome models are deliberately wrong (linear, while the true curve is exponential) and the propensity model is right, so plain regression stays biased while IPW and AIPW recover the truth.</p>
+      <p><strong>Design-stage tools:</strong> match treated units to controls on ê(X) before looking at outcomes, and trim units with ê outside [α, 1−α]. Trimming changes the target population, so report it.</p>
+      <p class="note">Data: <span class="mono">X ~ N(0,1)</span>, <span class="mono">logit e(X) = γX</span>, <span class="mono">Y(0) = X + 0.6eˣ + N(0,1)</span>, <span class="mono">Y(1) = Y(0) + 2 + X</span>. True ATE = 2. <span class="mono">n = 1,000</span>, 300 replications.</p>
+    </div>
+    <div class="lab">
+      <div class="controls">
+        <label for="obs-g">Confounding strength γ <span class="val" id="obs-g-v">1.5</span><input type="range" id="obs-g" min="0.25" max="2.5" step="0.25" value="1.5"></label>
+        <label for="obs-trim">Trim ê outside [α, 1−α], α = <span class="val" id="obs-trim-v">0.00</span><input type="range" id="obs-trim" min="0" max="0.15" step="0.01" value="0"></label>
+        <button id="obs-run">Rerun</button>
+      </div>
+      <h3 style="font-size:15px">Overlap of estimated propensity scores (one sample)</h3>
+      <div class="legend"><span><i class="sw" style="background:var(--treat)"></i>Treated</span><span><i class="sw" style="background:var(--ctrl)"></i>Control</span></div>
+      <div id="obs-ps"></div>
+      <h3 style="font-size:15px">Estimator mean ± 1.96 SD across replications</h3>
+      <div id="obs-est"></div>
+      <p class="note">With γ near 2.5 the scores pile up near 0 and 1. IPW weights explode and its spread widens. Trimming tames the variance at the cost of a slightly different estimand.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DAG ============ -->
+<section id="dag">
+  <span class="stage obs">Covariate selection · graphical criteria</span>
+  <h2>What not to adjust for <span class="zh">不該控制的變數</span></h2>
+  <p>Adjusting for every available variable is not safe. Pearl's back-door criterion: the adjustment set must block every back-door path into <span class="mono">Z</span> and must contain no descendant of <span class="mono">Z</span>. Pick a structure and see the estimate with and without adjusting for the third variable (one large sample, <span class="mono">n = 20,000</span>, true effect of Z on Y = 1).</p>
+  <div class="lab">
+    <div class="tabs" role="group" aria-label="Causal structure">
+      <button data-dag="conf" aria-pressed="true">Confounder</button>
+      <button data-dag="med" aria-pressed="false">Mediator</button>
+      <button data-dag="coll" aria-pressed="false">Collider</button>
+      <button data-dag="mbias" aria-pressed="false">M-bias</button>
+      <button data-dag="prec" aria-pressed="false">Precision covariate</button>
+    </div>
+    <div class="exp">
+      <div id="dag-svg"></div>
+      <div>
+        <p id="dag-text"></p>
+        <div class="stats" id="dag-stats"></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Post-treatment variables (mediators, compliance, survival to follow-up) need principal stratification or mediation analysis, not ordinary covariate adjustment.</p>
+</section>
+
+<!-- ============ DML ============ -->
+<section id="dml">
+  <span class="stage an">Analysis stage · high-dimensional X (p large)</span>
+  <h2>Double machine learning <span class="zh">雙重機器學習</span></h2>
+  <div class="exp">
+    <div>
+      <p>When <span class="mono">p</span> approaches or exceeds <span class="mono">n</span>, OLS fails. Plugging a regularized learner straight into the outcome model shrinks the confounder coefficients, and that <strong>regularization bias</strong> leaks into the treatment effect.</p>
+      <p>DML (Chernozhukov et al. 2018) is a machine-learning version of Frisch–Waugh–Lovell:</p>
+      <div class="flow">
+        <div><b>1 · Predict Y from X</b>Residual Ỹ = Y − m̂(X), fitted on other folds</div>
+        <div><b>2 · Predict Z from X</b>Residual Z̃ = Z − ê(X), fitted on other folds</div>
+        <div><b>3 · Regress Ỹ on Z̃</b>The slope is θ̂. Errors multiply: n^(−1/4)·n^(−1/4) = n^(−1/2)</div>
+      </div>
+      <ul class="tight">
+        <li><strong>Neyman orthogonality:</strong> first-order errors in the nuisance models do not move θ̂.</li>
+        <li><strong>Cross-fitting:</strong> each residual comes from a model that never saw that unit, removing overfitting bias.</li>
+        <li>Still needs overlap. Propensities near 0 or 1 make the variance blow up.</li>
+      </ul>
+      <p class="note">Simulation: <span class="mono">n = 500, p = 40</span>. Five covariates drive both <span class="mono">Z</span> and <span class="mono">Y</span>; θ = 1. Learner: ridge regression with penalty λ. 5-fold cross-fitting. 150 replications.</p>
+    </div>
+    <div class="lab">
+      <div class="controls">
+        <label for="dml-lam">Ridge penalty λ <span class="val" id="dml-lam-v">25</span><input type="range" id="dml-lam" min="0" max="100" step="5" value="25"></label>
+        <button id="dml-run">Rerun</button>
+      </div>
+      <div id="dml-est"></div>
+      <div class="stats" id="dml-stats"></div>
+      <p class="note">Raise λ: the naive plug-in drifts away from θ = 1 because shrunken confounder coefficients leave confounding in the residual. DML bias grows much more slowly because it depends on the <em>product</em> of the two nuisance errors. Push λ past about 50 and both learners become poor, so DML also loses coverage: orthogonality forgives moderate nuisance error, not a bad learner.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SENSITIVITY ============ -->
+<section id="sens">
+  <span class="stage obs">Unmeasured confounding · sensitivity analysis</span>
+  <h2>How much hidden bias would overturn the result? <span class="zh">敏感度分析</span></h2>
+  <div class="exp">
+    <div class="lab">
+      <h3>E-value (Ding &amp; VanderWeele)</h3>
+      <div class="formula">E = RR + √(RR·(RR − 1))      (use 1/RR if RR &lt; 1)
+Bounding factor  B = RR_EU·RR_UD / (RR_EU + RR_UD − 1)</div>
+      <div class="controls">
+        <label for="ev-rr">Observed RR<input type="number" id="ev-rr" value="0.45" step="0.01" min="0.01"></label>
+        <label for="ev-lo">CI lower<input type="number" id="ev-lo" value="0.32" step="0.01" min="0.01"></label>
+        <label for="ev-hi">CI upper<input type="number" id="ev-hi" value="0.63" step="0.01" min="0.01"></label>
+      </div>
+      <div class="stats" id="ev-stats"></div>
+      <div id="ev-chart"></div>
+      <p class="note">The curve shows every pair of confounder strengths (U→treatment, U→outcome) that could just explain away the point estimate. Any confounder below the curve cannot. The E-value is where the curve meets the diagonal. Default values are the lipid-drug cohort example from the reference (RR 0.45, CI 0.32–0.63 → E = 3.87, CI limit 2.55).</p>
+    </div>
+    <div class="lab">
+      <h3>Rosenbaum Γ for matched pairs</h3>
+      <div class="formula">1/Γ ≤ odds of treatment within a matched pair ≤ Γ
+Γ = 1 ⇔ no hidden bias (as in a randomized trial)</div>
+      <div class="controls">
+        <label for="ros-n">Matched pairs<input type="number" id="ros-n" value="60" min="10" max="500" step="10"></label>
+        <label for="ros-eff">Effect / SD <span class="val" id="ros-eff-v">0.8</span><input type="range" id="ros-eff" min="0.1" max="1.5" step="0.1" value="0.8"></label>
+        <button id="ros-run">New sample</button>
+      </div>
+      <div id="ros-chart"></div>
+      <div class="stats" id="ros-stats"></div>
+      <p class="note">Worst-case one-sided p-value of the Wilcoxon signed-rank test, normal approximation: under Γ the chance a pair's difference is positive is at most Γ/(1+Γ). Γ* is where the curve crosses α = 0.05.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GUIDE ============ -->
+<section id="guide">
+  <span class="eyebrow">Putting it together</span>
+  <h2>Decision guide</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Your situation</th><th>Recommended strategy</th><th>Watch out for</th></tr></thead>
+    <tbody>
+      <tr><td>Planning an RCT, few strong discrete prognostic factors</td><td>Block on them; analyze with block-weighted differences or post-stratification</td><td>Too many tiny blocks; analyze as blocked</td></tr>
+      <tr><td>Planning an RCT, several continuous baseline covariates</td><td>ReM at design + Lin regression with HC2 SEs at analysis (Li &amp; Ding 2020)</td><td>Inference must respect the rerandomization rule</td></tr>
+      <tr><td>Analyzing an already-run RCT</td><td>Lin interacted OLS on pre-specified, pre-treatment covariates; robust SE</td><td>Specification search (p-hacking); small n with many covariates</td></tr>
+      <tr><td>Small RCT, want exact inference</td><td>Covariate-adjusted Fisher randomization test (residuals or Lin's studentized t)</td><td>Test the sharp null vs weak null deliberately</td></tr>
+      <tr><td>Observational data, moderate p</td><td>Check overlap → match or trim → AIPW with robust SE; balance diagnostics</td><td>Extreme weights; adjusting colliders or post-treatment variables</td></tr>
+      <tr><td>Observational data, p large</td><td>DML with cross-fitting (e.g. R <span class="mono">DoubleML</span>)</td><td>Overlap failure; nuisance learners too slow</td></tr>
+      <tr><td>Any observational claim</td><td>Report E-value and/or Rosenbaum Γ*; benchmark against measured covariates</td><td>A large E-value is not proof of causation</td></tr>
+    </tbody>
+  </table></div>
+  <p class="refs">Sources: the four notes in <span class="mono">references/</span> (Covariate causal inference; Lin 2013 deep analysis; p≫n high-dimensional causal inference; worked examples). Key papers: Fisher 1935; Neyman 1923; Freedman 2008; Lin 2013 <em>Ann. Appl. Stat.</em> 7(1):295–318; Morgan &amp; Rubin 2012; Li, Ding &amp; Rubin 2018; Li &amp; Ding 2020; Chernozhukov et al. 2018; Rosenbaum 2002; Ding &amp; VanderWeele 2016. All charts are simulated live in your browser from seeded random numbers.</p>
+</section>
+</div>
+
+<script>
+/* ---------- random numbers ---------- */
+let _s = 20261111, _spare = null;
+function seed(s){ _s = s>>>0; _spare = null; }
+function runif(){ _s = (_s + 0x6D2B79F5)>>>0; let t=_s; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }
+function rnorm(){ if(_spare!==null){const v=_spare;_spare=null;return v;} let u=0,v=0; while(u===0)u=runif(); v=runif(); const r=Math.sqrt(-2*Math.log(u)); _spare=r*Math.sin(2*Math.PI*v); return r*Math.cos(2*Math.PI*v); }
+function shuffleIdx(n){ const a=Array.from({length:n},(_,i)=>i); for(let i=n-1;i>0;i--){const j=Math.floor(runif()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function assign(n,n1){ const idx=shuffleIdx(n), z=new Uint8Array(n); for(let k=0;k<n1;k++) z[idx[k]]=1; return z; }
+const mean=a=>{let s=0;for(const v of a)s+=v;return s/a.length;};
+const sd=a=>{const m=mean(a);let s=0;for(const v of a)s+=(v-m)*(v-m);return Math.sqrt(s/(a.length-1));};
+const logistic=x=>1/(1+Math.exp(-x));
+function pnorm(x){ // Abramowitz-Stegun
+  const t=1/(1+0.2316419*Math.abs(x)), d=0.3989422804*Math.exp(-x*x/2);
+  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+  return x>0?1-p:p; }
+function solve(A,b){ // Gaussian elimination, A is array of rows (copied)
+  const n=b.length, M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){ let p=c; for(let r=c+1;r<n;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c])) p=r;
+    [M[c],M[p]]=[M[p],M[c]]; const piv=M[c][c];
+    for(let r=c+1;r<n;r++){ const f=M[r][c]/piv; if(f) for(let k=c;k<=n;k++) M[r][k]-=f*M[c][k]; } }
+  const x=new Array(n).fill(0);
+  for(let r=n-1;r>=0;r--){ let s=M[r][n]; for(let k=r+1;k<n;k++) s-=M[r][k]*x[k]; x[r]=s/M[r][r]; }
+  return x; }
+
+/* ---------- simulations (pure functions) ---------- */
+function simBlocking(delta, reps){
+  seed(101); const n=80, male=new Uint8Array(n); for(let i=0;i<n/2;i++) male[i]=1;
+  const y0=Array.from({length:n},(_,i)=>10+delta*male[i]+rnorm()), y1=y0.map(v=>v+2);
+  const cre=[], blk=[]; const men=[...Array(n).keys()].filter(i=>male[i]), wom=[...Array(n).keys()].filter(i=>!male[i]);
+  for(let r=0;r<reps;r++){
+    let z=assign(n,n/2), s1=0,s0=0; for(let i=0;i<n;i++){ if(z[i]) s1+=y1[i]; else s0+=y0[i]; } cre.push(s1/(n/2)-s0/(n/2));
+    z=new Uint8Array(n); for(const g of [men,wom]){ const a=assign(g.length,g.length/2); g.forEach((u,k)=>{z[u]=a[k];}); }
+    s1=0;s0=0; for(let i=0;i<n;i++){ if(z[i]) s1+=y1[i]; else s0+=y0[i]; } blk.push(s1/(n/2)-s0/(n/2));
+  }
+  return {cre, blk, truth:2};
+}
+
+function linEst(y,x,z){ // returns [unadj, ancova, lin] for one covariate
+  let n1=0,n0=0,y1=0,y0=0,x1=0,x0=0;
+  for(let i=0;i<y.length;i++){ if(z[i]){n1++;y1+=y[i];x1+=x[i];} else {n0++;y0+=y[i];x0+=x[i];} }
+  y1/=n1;y0/=n0;x1/=n1;x0/=n0; const n=n1+n0, xb=(n1*x1+n0*x0)/n;
+  let sxy1=0,sxx1=0,sxy0=0,sxx0=0;
+  for(let i=0;i<y.length;i++){ if(z[i]){sxy1+=(x[i]-x1)*(y[i]-y1);sxx1+=(x[i]-x1)**2;} else {sxy0+=(x[i]-x0)*(y[i]-y0);sxx0+=(x[i]-x0)**2;} }
+  const b1=sxy1/sxx1, b0=sxy0/sxx0, bp=(sxy1+sxy0)/(sxx1+sxx0), un=y1-y0;
+  return [un, un-bp*(x1-x0), (y1+b1*(xb-x1))-(y0+b0*(xb-x0))];
+}
+
+function simRem(pa, reps){
+  seed(202); const n=100, n1=50, X1=[],X2=[]; for(let i=0;i<n;i++){X1.push(rnorm());X2.push(rnorm());}
+  const y0=X1.map((v,i)=>v+0.8*X2[i]+0.6*rnorm()), y1=y0.map(v=>v+1);
+  const m1=mean(X1), m2=mean(X2); let s11=0,s22=0,s12=0;
+  for(let i=0;i<n;i++){ s11+=(X1[i]-m1)**2; s22+=(X2[i]-m2)**2; s12+=(X1[i]-m1)*(X2[i]-m2); }
+  const f=(1/n1+1/(n-n1))/(n-1); const c11=s11*f,c22=s22*f,c12=s12*f, det=c11*c22-c12*c12;
+  const a=-2*Math.log(1-pa);
+  function draw(){ const z=assign(n,n1); let d1=0,d2=0,ys1=0,ys0=0;
+    for(let i=0;i<n;i++){ if(z[i]){d1+=X1[i];d2+=X2[i];ys1+=y1[i];} else {d1-=X1[i];d2-=X2[i];ys0+=y0[i];} }
+    d1/=n1; d2/=n1; // equal arms: x̄1−x̄0 = (Σ_T − Σ_C)/n1
+    const M=(c22*d1*d1-2*c12*d1*d2+c11*d2*d2)/det; return {z,M,tau:ys1/n1-ys0/(n-n1)}; }
+  const cre=[], rem=[], lin=[];
+  for(let r=0;r<reps;r++){
+    const d=draw(); cre.push(d.tau);
+    // Lin with 2 covariates: arm-wise OLS, predict at overall mean
+    lin.push(lin2(d.z));
+    let e; do{ e=draw(); } while(e.M>a); rem.push(e.tau);
+  }
+  function lin2(z){ const pred=[];
+    for(const arm of [1,0]){ const ys=arm?y1:y0; const rows=[],yy=[];
+      for(let i=0;i<n;i++) if(z[i]===arm){rows.push([1,X1[i]-m1,X2[i]-m2]); yy.push(ys[i]);}
+      const XtX=[[0,0,0],[0,0,0],[0,0,0]], Xty=[0,0,0];
+      rows.forEach((r,k)=>{ for(let p=0;p<3;p++){ Xty[p]+=r[p]*yy[k]; for(let q=0;q<3;q++) XtX[p][q]+=r[p]*r[q]; } });
+      pred.push(solve(XtX,Xty)[0]); }
+    return pred[0]-pred[1]; }
+  return {cre, rem, lin, truth:1, a};
+}
+
+function simLin(pa, het, reps){
+  seed(303); const n=400, x=[],ya=[],yb=[];
+  for(let i=0;i<n;i++){ const z=-2+4*runif(); x.push(z);
+    if(het){ ya.push(Math.exp(z)+0.25*Math.exp(z/2)+rnorm()); yb.push(-Math.exp(z)+0.25*Math.exp(z/2)+rnorm()); }
+    else { const b=Math.exp(z)+0.25*Math.exp(z/2)+rnorm(); yb.push(b); ya.push(b+1); } }
+  const truth=mean(ya)-mean(yb), n1=Math.round(pa*n), out=[[],[],[]], y=new Array(n);
+  for(let r=0;r<reps;r++){ const z=assign(n,n1); for(let i=0;i<n;i++) y[i]=z[i]?ya[i]:yb[i];
+    const e=linEst(y,x,z); for(let k=0;k<3;k++) out[k].push(e[k]); }
+  return {un:out[0], anc:out[1], lin:out[2], truth};
+}
+
+function fitLogit(x,z){ // intercept + slope, Newton
+  let b0=0,b1=0;
+  for(let it=0;it<25;it++){ let g0=0,g1=0,h00=0,h01=0,h11=0;
+    for(let i=0;i<x.length;i++){ const p=logistic(b0+b1*x[i]), w=p*(1-p), r=z[i]-p; g0+=r; g1+=r*x[i]; h00+=w; h01+=w*x[i]; h11+=w*x[i]*x[i]; }
+    const det=h00*h11-h01*h01; const d0=(h11*g0-h01*g1)/det, d1=(h00*g1-h01*g0)/det; b0+=d0; b1+=d1;
+    if(Math.abs(d0)+Math.abs(d1)<1e-9) break; }
+  return [b0,b1]; }
+function ols1(x,y){ const mx=mean(x),my=mean(y); let sxy=0,sxx=0; for(let i=0;i<x.length;i++){sxy+=(x[i]-mx)*(y[i]-my);sxx+=(x[i]-mx)**2;} const b=sxy/sxx; return [my-b*mx,b]; }
+function obsSample(g,n){ const x=[],z=[],y=[]; for(let i=0;i<n;i++){ const xi=rnorm(), zi=runif()<logistic(g*xi)?1:0, y0=xi+0.6*Math.exp(xi)+rnorm(); x.push(xi); z.push(zi); y.push(zi? y0+2+xi : y0); } return {x,z,y}; }
+function obsEstimates(d, alpha){
+  const {x,z,y}=d, n=x.length, [b0,b1]=fitLogit(x,z), e=x.map(v=>logistic(b0+b1*v));
+  const x1=[],y1=[],x0=[],y0=[]; for(let i=0;i<n;i++){ if(z[i]){x1.push(x[i]);y1.push(y[i]);} else {x0.push(x[i]);y0.push(y[i]);} }
+  const naive=mean(y1)-mean(y0);
+  // regression Y ~ Z + X (misspecified)
+  const XtX=[[0,0,0],[0,0,0],[0,0,0]],Xty=[0,0,0]; for(let i=0;i<n;i++){ const r=[1,z[i],x[i]]; for(let p=0;p<3;p++){Xty[p]+=r[p]*y[i]; for(let q=0;q<3;q++) XtX[p][q]+=r[p]*r[q];} }
+  const reg=solve(XtX,Xty)[1];
+  const m1=ols1(x1,y1), m0=ols1(x0,y0);
+  let sw1=0,sw0=0,s1=0,s0=0,aipw=0,k=0;
+  for(let i=0;i<n;i++){ if(e[i]<alpha||e[i]>1-alpha) continue; k++;
+    const mu1=m1[0]+m1[1]*x[i], mu0=m0[0]+m0[1]*x[i];
+    if(z[i]){ s1+=y[i]/e[i]; sw1+=1/e[i]; } else { s0+=y[i]/(1-e[i]); sw0+=1/(1-e[i]); }
+    aipw+= mu1-mu0 + z[i]*(y[i]-mu1)/e[i] - (1-z[i])*(y[i]-mu0)/(1-e[i]); }
+  return {naive, reg, ipw:s1/sw1-s0/sw0, aipw:aipw/k, e, kept:k/n};
+}
+function simObs(g, alpha, reps){
+  seed(404); const out={naive:[],reg:[],ipw:[],aipw:[]}; let first=null, kept=0;
+  for(let r=0;r<reps;r++){ const d=obsSample(g,1000), est=obsEstimates(d,alpha); if(!first) first={e:est.e,z:d.z}; kept+=est.kept; for(const k in out) out[k].push(est[k]); }
+  return {...out, first, kept:kept/reps, truth:2};
+}
+
+function simDag(kind){
+  seed(505); const n=20000, Z=[],Y=[],W=[];
+  for(let i=0;i<n;i++){ let z,y,w;
+    if(kind==="conf"){ w=rnorm(); z=0.8*w+rnorm(); y=1*z+1.5*w+rnorm(); }
+    else if(kind==="med"){ z=rnorm(); w=0.8*z+rnorm(); y=0.25*z+(0.75/0.8)*w+rnorm(); }      // total effect = 0.25 + 0.75 = 1
+    else if(kind==="coll"){ z=rnorm(); y=1*z+rnorm(); w=z+y+rnorm(); }
+    else if(kind==="mbias"){ const u1=rnorm(),u2=rnorm(); w=u1+u2+0.5*rnorm(); z=u1+rnorm(); y=1*z+u2+rnorm(); }
+    else { z=rnorm(); w=rnorm(); y=1*z+2*w+rnorm(); }
+    Z.push(z);Y.push(y);W.push(w); }
+  const unadj=ols1(Z,Y)[1];
+  const XtX=[[0,0,0],[0,0,0],[0,0,0]],Xty=[0,0,0]; for(let i=0;i<n;i++){ const r=[1,Z[i],W[i]]; for(let p=0;p<3;p++){Xty[p]+=r[p]*Y[i]; for(let q=0;q<3;q++) XtX[p][q]+=r[p]*r[q];} }
+  const adj=solve(XtX,Xty)[1];
+  // SE of unadj vs adj (homoskedastic) for precision example
+  return {unadj, adj};
+}
+
+function ridgeFit(X,y,lam,penalizeFirst){ // X rows, returns coef; columns centered assumed, no intercept
+  const p=X[0].length, A=Array.from({length:p},()=>new Array(p).fill(0)), b=new Array(p).fill(0);
+  for(let i=0;i<X.length;i++){ const r=X[i]; for(let j=0;j<p;j++){ b[j]+=r[j]*y[i]; for(let k=j;k<p;k++) A[j][k]+=r[j]*r[k]; } }
+  for(let j=0;j<p;j++){ for(let k=0;k<j;k++) A[j][k]=A[k][j]; if(j>0||penalizeFirst) A[j][j]+=lam; }
+  return solve(A,b); }
+function simDml(lam, reps){
+  seed(606); const n=500,p=40,K=5, naive=[],dml=[],oracle=[]; let covered=0;
+  for(let r=0;r<reps;r++){
+    const X=[],Z=[],Y=[];
+    for(let i=0;i<n;i++){ const x=Array.from({length:p},rnorm); let c=0; for(let j=0;j<5;j++) c+=x[j];
+      const z=0.5*c+rnorm(), y=1*z+1*c+rnorm(); X.push(x);Z.push(z);Y.push(y); }
+    const cen=a=>{const m=mean(a);return a.map(v=>v-m);}; const Zc=cen(Z),Yc=cen(Y);
+    const Xc=X.map(r=>r.slice()); for(let j=0;j<p;j++){ const m=mean(X.map(r=>r[j])); Xc.forEach(r=>{r[j]-=m;}); }
+    // naive plug-in: ridge Y ~ [Z, X], Z unpenalized
+    naive.push(ridgeFit(Xc.map((r,i)=>[Zc[i],...r]),Yc,lam,false)[0]);
+    // oracle: OLS on Z + true 5 confounders
+    oracle.push(ridgeFit(Xc.map((r,i)=>[Zc[i],...r.slice(0,5)]),Yc,0,false)[0]);
+    // DML partialling-out, K-fold cross-fitting
+    const fold=shuffleIdx(n).map((_,k)=>k%K), idx=shuffleIdx(n), f=new Array(n); idx.forEach((u,k)=>{f[u]=fold[k];});
+    const rY=new Array(n), rZ=new Array(n);
+    for(let k=0;k<K;k++){ const tr=[],te=[]; for(let i=0;i<n;i++) (f[i]===k?te:tr).push(i);
+      const XT=tr.map(i=>Xc[i]), bY=ridgeFit(XT,tr.map(i=>Yc[i]),lam,true), bZ=ridgeFit(XT,tr.map(i=>Zc[i]),lam,true);
+      for(const i of te){ let pY=0,pZ=0; for(let j=0;j<p;j++){pY+=Xc[i][j]*bY[j];pZ+=Xc[i][j]*bZ[j];} rY[i]=Yc[i]-pY; rZ[i]=Zc[i]-pZ; } }
+    let szz=0,szy=0; for(let i=0;i<n;i++){szz+=rZ[i]*rZ[i];szy+=rZ[i]*rY[i];} const th=szy/szz;
+    let meat=0; for(let i=0;i<n;i++){ const u=rY[i]-th*rZ[i]; meat+=rZ[i]*rZ[i]*u*u; } const se=Math.sqrt(meat)/szz;
+    if(Math.abs(th-1)<=1.96*se) covered++;
+    dml.push(th); }
+  return {naive,dml,oracle,truth:1,coverage:covered/reps};
+}
+
+function evalue(rr){ if(rr<1) rr=1/rr; return rr+Math.sqrt(rr*(rr-1)); }
+function rosenbaum(diffs, gammas){
+  const d=diffs.filter(v=>v!==0), n=d.length, ab=d.map((v,i)=>[Math.abs(v),i]).sort((a,b)=>a[0]-b[0]);
+  const rank=new Array(n); ab.forEach((v,k)=>{rank[v[1]]=k+1;});
+  let T=0; d.forEach((v,i)=>{ if(v>0) T+=rank[i]; });
+  const S=n*(n+1)/2, S2=n*(n+1)*(2*n+1)/6;
+  return gammas.map(G=>{ const q=G/(1+G), E=q*S, V=q*(1-q)*S2; return 1-pnorm((T-E)/Math.sqrt(V)); });
+}
+</script>
+
+<script>
+/* ---------- charts ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function niceTicks(lo,hi,count=5){ const span=hi-lo, step0=span/count, mag=Math.pow(10,Math.floor(Math.log10(step0))), r=step0/mag;
+  const step=(r<1.5?1:r<3?2:r<7?5:10)*mag, t=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) t.push(+v.toFixed(10)); return t; }
+const fmt=v=>Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);
+function quant(a,q){ const s=[...a].sort((x,y)=>x-y); return s[Math.floor(q*(s.length-1))]; }
+
+function histChart(box, series, truth, xlabel){
+  box.innerHTML=""; const W=520,H=230,L=36,R=12,T=10,B=38;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Sampling distributions"},box);
+  let lo=Infinity,hi=-Infinity; for(const s of series){ lo=Math.min(lo,quant(s.v,0.002)); hi=Math.max(hi,quant(s.v,0.998)); }
+  if(truth!=null){lo=Math.min(lo,truth);hi=Math.max(hi,truth);} const pad=(hi-lo)*0.05; lo-=pad; hi+=pad;
+  const nb=44, bw=(hi-lo)/nb, X=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  const dens=series.map(s=>{ const c=new Array(nb).fill(0); for(const v of s.v){ const k=Math.floor((v-lo)/bw); if(k>=0&&k<nb) c[k]++; } return c.map(x=>x/(s.v.length*bw)); });
+  const ymax=Math.max(...dens.flat())*1.08, Y=v=>H-B-v/ymax*(H-T-B);
+  el("line",{x1:L,x2:W-R,y1:H-B,y2:H-B,stroke:css("--line")},svg);
+  for(const t of niceTicks(lo,hi,6)){ el("line",{x1:X(t),x2:X(t),y1:H-B,y2:H-B+4,stroke:css("--muted")},svg); el("text",{x:X(t),y:H-B+16,"text-anchor":"middle"},svg).textContent=fmt(t); }
+  el("text",{x:(L+W-R)/2,y:H-4,"text-anchor":"middle"},svg).textContent=xlabel||"estimate";
+  series.forEach((s,i)=>{ let d=`M${X(lo)},${Y(0)}`; dens[i].forEach((v,k)=>{ d+=` L${X(lo+k*bw)},${Y(v)} L${X(lo+(k+1)*bw)},${Y(v)}`; }); d+=` L${X(hi)},${Y(0)} Z`;
+    el("path",{d,fill:css(s.c),"fill-opacity":0.22,stroke:css(s.c),"stroke-width":1.6},svg); });
+  if(truth!=null){ el("line",{x1:X(truth),x2:X(truth),y1:T,y2:H-B,stroke:css("--fg"),"stroke-dasharray":"4 3"},svg); el("text",{x:X(truth)+4,y:T+10,fill:css("--fg")},svg).textContent="truth "+fmt(truth); }
+}
+
+function dotChart(box, rows, truth){
+  box.innerHTML=""; const W=520,rowH=34,T=8,B=30,L=130,R=16,H=T+B+rows.length*rowH;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Estimator comparison"},box);
+  let lo=truth,hi=truth; rows.forEach(r=>{lo=Math.min(lo,r.m-1.96*r.s);hi=Math.max(hi,r.m+1.96*r.s);}); const pad=(hi-lo)*0.08||0.1; lo-=pad; hi+=pad;
+  const X=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  for(const t of niceTicks(lo,hi,6)){ el("line",{x1:X(t),x2:X(t),y1:T,y2:H-B,stroke:css("--line")},svg); el("text",{x:X(t),y:H-B+16,"text-anchor":"middle"},svg).textContent=fmt(t); }
+  el("line",{x1:X(truth),x2:X(truth),y1:T,y2:H-B,stroke:css("--fg"),"stroke-dasharray":"4 3"},svg);
+  el("text",{x:X(truth)+4,y:H-4,fill:css("--fg")},svg).textContent="truth "+fmt(truth);
+  rows.forEach((r,i)=>{ const y=T+i*rowH+rowH/2;
+    el("text",{x:L-10,y:y+4,"text-anchor":"end",fill:css("--fg")},svg).textContent=r.label;
+    el("line",{x1:X(r.m-1.96*r.s),x2:X(r.m+1.96*r.s),y1:y,y2:y,stroke:css(r.c),"stroke-width":3,"stroke-linecap":"round"},svg);
+    el("circle",{cx:X(r.m),cy:y,r:5.5,fill:css(r.c),stroke:css("--surface"),"stroke-width":1.5},svg); });
+}
+
+function lineChart(box, xs, ys, {xlabel,ylabel,hline,vline,vlabel,ymax,diag,point}){
+  box.innerHTML=""; const W=520,H=240,L=44,R=14,T=12,B=38;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":ylabel||"chart"},box);
+  const x0=xs[0],x1=xs[xs.length-1], y0=0, y1=ymax??Math.max(...ys)*1.05;
+  const X=v=>L+(v-x0)/(x1-x0)*(W-L-R), Y=v=>H-B-(Math.min(v,y1)-y0)/(y1-y0)*(H-T-B);
+  for(const t of niceTicks(y0,y1,5)){ el("line",{x1:L,x2:W-R,y1:Y(t),y2:Y(t),stroke:css("--line")},svg); el("text",{x:L-6,y:Y(t)+4,"text-anchor":"end"},svg).textContent=fmt(t); }
+  for(const t of niceTicks(x0,x1,6)){ el("text",{x:X(t),y:H-B+16,"text-anchor":"middle"},svg).textContent=fmt(t); }
+  el("text",{x:(L+W-R)/2,y:H-4,"text-anchor":"middle"},svg).textContent=xlabel;
+  if(diag) el("line",{x1:X(Math.max(x0,y0)),y1:Y(Math.max(x0,y0)),x2:X(Math.min(x1,y1)),y2:Y(Math.min(x1,y1)),stroke:css("--muted"),"stroke-dasharray":"2 4"},svg);
+  if(hline!=null){ el("line",{x1:L,x2:W-R,y1:Y(hline),y2:Y(hline),stroke:css("--bad"),"stroke-dasharray":"5 4"},svg); el("text",{x:W-R-4,y:Y(hline)-5,"text-anchor":"end",fill:css("--bad")},svg).textContent="α = "+hline; }
+  let d=""; xs.forEach((x,i)=>{ if(ys[i]<=y1*1.0001) d+=(d?" L":"M")+X(x)+","+Y(ys[i]); });
+  el("path",{d,fill:"none",stroke:css("--accent"),"stroke-width":2.4},svg);
+  if(vline!=null){ el("line",{x1:X(vline),x2:X(vline),y1:T,y2:H-B,stroke:css("--third"),"stroke-dasharray":"5 4"},svg); el("text",{x:X(vline)+5,y:T+12,fill:css("--third")},svg).textContent=vlabel; }
+  if(point){ el("circle",{cx:X(point[0]),cy:Y(point[1]),r:5,fill:css("--ctrl")},svg); el("text",{x:X(point[0])+8,y:Y(point[1])-8,fill:css("--ctrl")},svg).textContent=point[2]; }
+}
+
+function stats(box, items){ box.innerHTML=items.map(([k,v,c])=>`<div class="stat"><small>${k}</small><b${c?` style="color:var(${c})"`:""}>${v}</b></div>`).join(""); }
+const $=id=>document.getElementById(id);
+function later(fn){ setTimeout(fn,20); }
+
+/* ---------- wire up ---------- */
+function runBlk(){ const d=+$("blk-delta").value; $("blk-delta-v").textContent=d; const r=simBlocking(d,3000);
+  histChart($("blk-chart"),[{v:r.cre,c:"--ctrl"},{v:r.blk,c:"--treat"}],2,"estimated ATE");
+  const a=sd(r.cre), b=sd(r.blk); stats($("blk-stats"),[["SD, complete randomization",a.toFixed(3),"--ctrl"],["SD, blocked",b.toFixed(3),"--treat"],["Variance reduction",(100*(1-b*b/(a*a))).toFixed(0)+"%"]]); }
+$("blk-run").onclick=()=>later(runBlk); $("blk-delta").oninput=()=>{$("blk-delta-v").textContent=$("blk-delta").value;}; $("blk-delta").onchange=()=>later(runBlk);
+
+function runRem(){ const pa=+$("rem-pa").value, r=simRem(pa,2000);
+  histChart($("rem-chart"),[{v:r.cre,c:"--ctrl"},{v:r.rem,c:"--treat"},{v:r.lin,c:"--third"}],1,"estimated ATE");
+  stats($("rem-stats"),[["SD, CRE",sd(r.cre).toFixed(3),"--ctrl"],["SD, ReM",sd(r.rem).toFixed(3),"--treat"],["SD, CRE + Lin",sd(r.lin).toFixed(3),"--third"],["Threshold a",r.a.toFixed(3)]]); }
+$("rem-run").onclick=()=>later(runRem); $("rem-pa").onchange=()=>later(runRem);
+
+function runLin(){ const pa=+$("lin-pa").value; $("lin-pa-v").textContent=pa.toFixed(2); const r=simLin(pa,+$("lin-het").value,3000);
+  histChart($("lin-chart"),[{v:r.un,c:"--ctrl"},{v:r.anc,c:"--bad"},{v:r.lin,c:"--third"}],r.truth,"estimated ATE");
+  const s=[sd(r.un),sd(r.anc),sd(r.lin)];
+  stats($("lin-stats"),[["SD unadjusted",s[0].toFixed(3),"--ctrl"],["SD ANCOVA",s[1].toFixed(3),"--bad"],["SD Lin",s[2].toFixed(3),"--third"],["ANCOVA vs unadjusted",(s[1]>s[0]?"worse ":"better ")+Math.abs(100*(s[1]/s[0]-1)).toFixed(0)+"%",s[1]>s[0]?"--bad":"--good"]]); }
+$("lin-run").onclick=()=>later(runLin); $("lin-pa").oninput=()=>{$("lin-pa-v").textContent=(+$("lin-pa").value).toFixed(2);}; $("lin-pa").onchange=()=>later(runLin); $("lin-het").onchange=()=>later(runLin);
+
+function runObs(){ const g=+$("obs-g").value, al=+$("obs-trim").value; $("obs-g-v").textContent=g; $("obs-trim-v").textContent=al.toFixed(2);
+  const r=simObs(g,al,300); const e=r.first.e, z=r.first.z;
+  histChart($("obs-ps"),[{v:e.filter((_,i)=>z[i]),c:"--treat"},{v:e.filter((_,i)=>!z[i]),c:"--ctrl"}],null,"estimated propensity score ê(X)");
+  dotChart($("obs-est"),[{label:"Naive Δ means",m:mean(r.naive),s:sd(r.naive),c:"--bad"},{label:"OLS Y~Z+X",m:mean(r.reg),s:sd(r.reg),c:"--ctrl"},{label:"IPW (Hájek)",m:mean(r.ipw),s:sd(r.ipw),c:"--treat"},{label:"AIPW (DR)",m:mean(r.aipw),s:sd(r.aipw),c:"--third"}],2);
+}
+$("obs-run").onclick=()=>later(runObs); for(const id of ["obs-g","obs-trim"]){ $(id).oninput=()=>{$("obs-g-v").textContent=$("obs-g").value;$("obs-trim-v").textContent=(+$("obs-trim").value).toFixed(2);}; $(id).onchange=()=>later(runObs); }
+
+const DAGS={
+  conf:{nodes:{W:[180,40],Z:[60,150],Y:[300,150]},edges:[["W","Z"],["W","Y"],["Z","Y"]],w:"W = confounder",
+    text:"W causes both treatment and outcome, opening the back-door path Z ← W → Y. Adjusting for W blocks it. This is the variable you must control.",good:"adj"},
+  med:{nodes:{Z:[60,150],W:[180,40],Y:[300,150]},edges:[["Z","W"],["W","Y"],["Z","Y"]],w:"W = mediator",
+    text:"W lies on the causal path Z → W → Y. Adjusting for it removes the part of the effect that flows through W, so you estimate only the direct effect (0.25), not the total effect (1).",good:"unadj"},
+  coll:{nodes:{Z:[60,40],Y:[300,40],W:[180,150]},edges:[["Z","W"],["Y","W"],["Z","Y"]],w:"W = collider",
+    text:"W is caused by both Z and Y. Conditioning on a common effect opens a spurious path and biases the estimate (collider stratification bias). Never adjust for an outcome-caused variable.",good:"unadj"},
+  mbias:{nodes:{U1:[60,30],U2:[300,30],W:[180,95],Z:[60,165],Y:[300,165]},edges:[["U1","W"],["U2","W"],["U1","Z"],["U2","Y"],["Z","Y"]],w:"W = pre-treatment collider",
+    text:"W is measured before treatment yet is a collider of two unobserved causes U1 and U2. Unadjusted is unbiased; adjusting for W opens Z ← U1 → W ← U2 → Y. Being 'pre-treatment' is not enough; check the graph.",good:"unadj"},
+  prec:{nodes:{Z:[60,150],W:[180,40],Y:[300,150]},edges:[["W","Y"],["Z","Y"]],w:"W = outcome predictor only",
+    text:"W predicts Y but not Z, as in a randomized trial. Both estimates are unbiased; adjusting shrinks the standard error. This is the precision role of covariates from the RCT sections above.",good:"both"}
+};
+function drawDag(kind){
+  const g=DAGS[kind], box=$("dag-svg"); box.innerHTML=""; const svg=el("svg",{viewBox:"0 0 360 200",role:"img","aria-label":"Causal diagram"},box);
+  const defs=el("defs",{},svg), mk=el("marker",{id:"arr",viewBox:"0 0 10 10",refX:9,refY:5,markerWidth:7,markerHeight:7,orient:"auto-start-reverse"},defs); el("path",{d:"M0,0 L10,5 L0,10 z",fill:css("--muted")},mk);
+  for(const [a,b] of g.edges){ const [x1,y1]=g.nodes[a],[x2,y2]=g.nodes[b], dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy), r=22;
+    el("line",{x1:x1+dx/L*r,y1:y1+dy/L*r,x2:x2-dx/L*(r+2),y2:y2-dy/L*(r+2),stroke:css("--muted"),"stroke-width":1.8,"marker-end":"url(#arr)","stroke-dasharray":a.startsWith("U")?"4 3":"0"},svg); }
+  for(const [k,[x,y]] of Object.entries(g.nodes)){ const col=k==="Z"?"--treat":k==="Y"?"--ctrl":k==="W"?"--third":"--muted";
+    el("circle",{cx:x,cy:y,r:21,fill:css("--surface"),stroke:css(col),"stroke-width":2,"stroke-dasharray":k.startsWith("U")?"4 3":"0"},svg);
+    const t=el("text",{x,y:y+5,"text-anchor":"middle",fill:css("--fg")},svg); t.style.fontSize="14px"; t.textContent=k; }
+  const r=simDag(kind); $("dag-text").textContent=g.text;
+  const ok=v=>Math.abs(v-1)<0.05;
+  stats($("dag-stats"),[["Role",g.w],["Y ~ Z (unadjusted)",r.unadj.toFixed(3),ok(r.unadj)?"--good":"--bad"],["Y ~ Z + W (adjusted)",r.adj.toFixed(3),ok(r.adj)?"--good":"--bad"],["True total effect","1.000"]]);
+}
+document.querySelectorAll("[data-dag]").forEach(b=>b.onclick=()=>{ document.querySelectorAll("[data-dag]").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); drawDag(b.dataset.dag); });
+
+function runDml(){ const lam=+$("dml-lam").value; $("dml-lam-v").textContent=lam; const r=simDml(lam,150);
+  dotChart($("dml-est"),[{label:"Naive ridge plug-in",m:mean(r.naive),s:sd(r.naive),c:"--bad"},{label:"DML cross-fit",m:mean(r.dml),s:sd(r.dml),c:"--third"},{label:"Oracle OLS",m:mean(r.oracle),s:sd(r.oracle),c:"--muted"}],1);
+  stats($("dml-stats"),[["Bias, naive",(mean(r.naive)-1).toFixed(3),"--bad"],["Bias, DML",(mean(r.dml)-1).toFixed(3),"--third"],["DML 95% CI coverage",(100*r.coverage).toFixed(0)+"%"]]); }
+$("dml-run").onclick=()=>later(runDml); $("dml-lam").oninput=()=>{$("dml-lam-v").textContent=$("dml-lam").value;}; $("dml-lam").onchange=()=>later(runDml);
+
+function runEv(){ const rr=+$("ev-rr").value, lo=+$("ev-lo").value, hi=+$("ev-hi").value; if(!(rr>0&&lo>0&&hi>0)) return;
+  const ep=evalue(rr), limit = rr<1 ? hi : lo, crosses = rr<1 ? hi>=1 : lo<=1, ec = crosses?1:evalue(limit);
+  stats($("ev-stats"),[["E-value, point",ep.toFixed(2),"--ctrl"],["E-value, CI limit",ec.toFixed(2)],["Target RR",(rr<1?1/rr:rr).toFixed(2)]]);
+  const R=rr<1?1/rr:rr, xs=[], ys=[], xmax=Math.max(ep*3,6); // B(x,y)=R => y = R(x-1)/(x-R)
+  for(let x=R*1.0005;x<=xmax;x+=(xmax-R)/300){ xs.push(x); ys.push(R*(x-1)/(x-R)); }
+  lineChart($("ev-chart"),xs,ys,{xlabel:"RR between U and treatment",ylabel:"RR between U and outcome",ymax:xmax,diag:true,point:[ep,ep,"E = "+ep.toFixed(2)]}); }
+["ev-rr","ev-lo","ev-hi"].forEach(id=>$(id).oninput=runEv);
+
+let rosSeed=707;
+function runRos(){ const n=Math.max(10,Math.min(500,+$("ros-n").value||60)), eff=+$("ros-eff").value; $("ros-eff-v").textContent=eff.toFixed(1);
+  seed(rosSeed); const diffs=Array.from({length:n},()=>eff+rnorm()); const gs=[]; for(let g=1;g<=6.0001;g+=0.02) gs.push(+g.toFixed(2));
+  const ps=rosenbaum(diffs,gs), k=ps.findIndex(p=>p>=0.05), gstar=k<0?null:gs[k];
+  lineChart($("ros-chart"),gs,ps,{xlabel:"Γ (bound on hidden bias)",ylabel:"worst-case p-value",hline:0.05,ymax:0.3,vline:gstar,vlabel:gstar?("Γ* ≈ "+gstar.toFixed(2)):""});
+  stats($("ros-stats"),[["p at Γ = 1",ps[0]<1e-4?"< 0.0001":ps[0].toFixed(4)],["Γ*",gstar?gstar.toFixed(2):"> 6","--third"],["Reading",gstar?`Hidden bias of odds ${gstar.toFixed(2)} could explain it`:"Robust to Γ up to 6"]]); }
+$("ros-run").onclick=()=>{rosSeed++;runRos();}; $("ros-eff").oninput=()=>{$("ros-eff-v").textContent=(+$("ros-eff").value).toFixed(1);}; $("ros-eff").onchange=runRos; $("ros-n").onchange=runRos;
+
+/* initial render: cheap ones first, heavier ones staggered */
+runEv(); runRos(); drawDag("conf"); runBlk();
+setTimeout(runLin,30); setTimeout(runRem,60); setTimeout(runObs,90); setTimeout(runDml,120);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ runEv(); runRos(); drawDag(document.querySelector('[data-dag][aria-pressed="true"]').dataset.dag); runBlk(); runLin(); runRem(); runObs(); runDml(); });
+</script>
