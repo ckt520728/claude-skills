@@ -25,7 +25,7 @@ skill: stat-sim-explainer
 
 | Item | Result | Evidence |
 |---|---|---|
-| Interactive page, 8 concept cards + map + decision guide | Blocking, ReM, Lin 2013, PS/IPW/AIPW, DAG pitfalls, DML, E-value, Rosenbaum Γ | Published as an Artifact (v2 includes the seed fix) |
+| Interactive page, 9 concept cards + map + decision guide | Blocking, ReM, Lin 2013, covariate-adjusted FRT, PS/IPW/AIPW, DAG pitfalls, DML, E-value, Rosenbaum Γ | Published as an Artifact (v2: seed fix; v3: FRT card) |
 | Headless verification | Every simulation claim confirmed numerically | See the table below |
 | Project init | `CLAUDE.md` (conventions, grill-with-doc, finding-unknowns), `handoffs.md` | Files in the project root |
 | Skill `stat-sim-explainer` | `SKILL.md`, template, node harness, recipes, pitfalls, full example | Template demo: Var(median)/Var(mean) = 1.57 = π/2 ✔︎ |
@@ -39,6 +39,7 @@ skill: stat-sim-explainer
 | Lin vs ANCOVA (n₁/n = 0.75, opposite slopes) | unadjusted 0.141, **ANCOVA 0.255 (worse)**, Lin 0.109 |
 | Observational (γ = 1.5, true ATE 2) | naive 4.55, OLS 1.90, IPW 1.99, AIPW 1.96 |
 | DML (λ = 25) | naive 1.12, DML 1.01, coverage 93.5% |
+| Covariate-adjusted FRT (n = 50, ρ = 0.8) | one experiment, τ = 0.5: p = 0.26 (Δ means) vs 0.006 (residuals, Lin t). Size 0.050/0.054/0.057; power at τ = 0.4 is 0.28 vs 0.62 |
 | E-values in the references | 3.87, 2.55, 7.14, all correct |
 
 ## Concept summary (the learning goal)
@@ -85,6 +86,8 @@ skill: stat-sim-explainer
 8. **`seed()` did not reset the Box–Muller spare,** so reruns were not exactly reproducible. Fixed and republished (v2).
 9. **Heavy simulations block the UI.** DML takes about 1.4 s. Stagger initial renders with `setTimeout`; rerun on `change`, not `input`.
 10. **Chart colors** come from CSS tokens, so charts must redraw on a theme change. The Artifact CSP blocks MathJax, so formulas are Unicode.
+10b. **Nested Monte Carlo is expensive.** An FRT power curve is experiments × permutations × statistics. 11 τ × 400 × 199 took 3.2 s. Cut it to 6 × 300 × 99 (0.75 s), and recompute only when the slider that matters changes. With M = 99, p = (1+c)/(M+1) is still valid at α = 0.05.
+10c. **Headless Chrome has a ~504 px minimum viewport** on Windows. A `--window-size=390` screenshot looks clipped even when nothing overflows. Measure `scrollWidth` vs `innerWidth` instead.
 
 ### Tooling and process
 11. **An unset shell variable hung a command:** `cat > "$TMP/t.js"` waited on stdin until the 120 s timeout. Use absolute paths.
@@ -104,5 +107,6 @@ skill: stat-sim-explainer
 ## Next steps
 - ~~Check Lin (2013) Table 1 against the original paper~~ Done: the note mis-transcribed the DGP.
 - ~~Install R and run the R snippets~~ Done: 6 issues fixed.
-- Add a covariate-adjusted FRT card.
+- ~~Add a covariate-adjusted FRT card~~ Done (Artifact v3; the skill example is updated).
+- Optional: an FRT demo under the weak null with heterogeneous effects (size distortion, unstudentized vs studentized).
 - Run a `/grill-with-docs` session on Lin vs ANCOVA, trimming estimands and M-bias.
