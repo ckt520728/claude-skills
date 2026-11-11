@@ -36,7 +36,7 @@ skill: stat-sim-explainer
 |---|---|
 | Blocking (δ = 6) | SD 0.736 → 0.248, about 89% less variance |
 | ReM (pₐ = 0.05) | SD 0.273 → 0.133 ≈ CRE+Lin 0.126 (design ↔ analysis duality) |
-| Lin vs ANCOVA (n₁/n = 0.75, opposite slopes) | unadjusted 0.141, **ANCOVA 0.255 (worse)**, Lin 0.109 |
+| Lin vs ANCOVA, paper's exact DGP (n₁/n = 0.75) | unadjusted 0.094, **ANCOVA 0.172 (worse)**, Lin 0.079, vs Table 1's 0.093 / 0.171 / 0.081. All five allocations are within 2 units ×1000 (Artifact v4) |
 | Observational (γ = 1.5, true ATE 2) | naive 4.55, OLS 1.90, IPW 1.99, AIPW 1.96 |
 | DML (λ = 25) | naive 1.12, DML 1.01, coverage 93.5% |
 | Covariate-adjusted FRT (n = 50, ρ = 0.8) | one experiment, τ = 0.5: p = 0.26 (Δ means) vs 0.006 (residuals, Lin t). Size 0.050/0.054/0.057; power at τ = 0.4 is 0.28 vs 0.62 |
@@ -88,6 +88,7 @@ skill: stat-sim-explainer
 10. **Chart colors** come from CSS tokens, so charts must redraw on a theme change. The Artifact CSP blocks MathJax, so formulas are Unicode.
 10b. **Nested Monte Carlo is expensive.** An FRT power curve is experiments × permutations × statistics. 11 τ × 400 × 199 took 3.2 s. Cut it to 6 × 300 × 99 (0.75 s), and recompute only when the slider that matters changes. With M = 99, p = (1+c)/(M+1) is still valid at α = 0.05.
 10c. **Headless Chrome has a ~504 px minimum viewport** on Windows. A `--window-size=390` screenshot looks clipped even when nothing overflows. Measure `scrollWidth` vs `innerWidth` instead.
+10d. **One fixed population can sit far from its expected value.** Lin's slopes (1.06 / −0.73) are below their expectations (about 1.14 / −0.78), so a typical draw gives SDs about 10% above Table 1. A seed scan picked a population with matching slopes (seed 1612), and every cell then fell within 2 units ×1000.
 
 ### Tooling and process
 11. **An unset shell variable hung a command:** `cat > "$TMP/t.js"` waited on stdin until the 120 s timeout. Use absolute paths.

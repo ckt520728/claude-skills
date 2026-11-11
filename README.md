@@ -7,7 +7,7 @@ A collection of custom Claude Code skills.
 Builds a single-file interactive HTML page that teaches statistics or causal-inference concepts with live, seeded Monte Carlo simulations and theme-aware SVG charts. Each concept is a card: a plain explanation and a formula beside a simulation with sliders that move the method from "works" to "fails".
 
 - Includes a working template (seeded RNG, stats helpers, solver, histogram / dot-interval / line chart helpers), a headless node harness (`scripts/test_sims.mjs`), verified simulation recipes and 14 measured pitfalls.
-- Worked example: covariates in causal inference (blocking, rerandomization, Lin 2013 vs ANCOVA, PS/IPW/AIPW, DAG collider/mediator/M-bias, DML, E-value, Rosenbaum Γ), with every claim checked numerically.
+- Worked example: covariates in causal inference (blocking, rerandomization, Lin 2013 vs ANCOVA reproducing the paper's Table 1, covariate-adjusted FRT, PS/IPW/AIPW, DAG collider/mediator/M-bias, DML, E-value, Rosenbaum Γ), with every claim checked numerically.
 - Tested on Windows with node 26. The R snippets in the source notes were run and fixed in R 4.6.2 (see the skill's `references/pitfalls.md` #5–6).
 - Skill folder: `stat-sim-explainer/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
 - Bundle: `stat-sim-explainer.skill`

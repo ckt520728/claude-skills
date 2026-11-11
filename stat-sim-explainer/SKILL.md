@@ -49,7 +49,7 @@ Open the page with a "map" table that relates the concepts to each other (for ca
 - **Draw the truth on every chart.** Report SD, bias and coverage as numbers next to the picture, not only visually.
 - **Let a slider break the method.** Each concept needs a control that moves the reader from "method works" to "method fails": unequal allocation for ANCOVA, strong confounding for IPW, large λ for DML.
 - **Show estimand changes.** Trimming, matching and blocking can change the target population. Say so on the card.
-- **Mark your own DGP.** If a reference's DGP is not reproduced, label the page's DGP as "inspired by, not identical to".
+- **Prefer the paper's exact DGP.** Reproduce the primary source's simulation and show its table next to yours. If it uses one fixed finite population that isn't published, pick a seed whose population summaries match the ones the paper reports (e.g. its LS slopes), and say so. If you can't reproduce it, label the page's DGP "inspired by, not identical to".
 - **Never hard-code colors in JS.** Read CSS tokens with `getComputedStyle` and redraw on a `prefers-color-scheme` change.
 - **Keep the main thread responsive.** Use moderate reps. Run the cheap simulations first and stagger the heavy ones with `setTimeout`. Rerun on slider `change`; update only the label on `input`.
 

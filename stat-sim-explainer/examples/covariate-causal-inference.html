@@ -180,15 +180,15 @@ ul.tight{margin:0;padding-left:20px;display:grid;gap:4px;max-width:68ch}
     </div>
     <div class="lab">
       <div class="controls">
-        <label for="lin-pa">Share treated n₁/n <span class="val" id="lin-pa-v">0.75</span><input type="range" id="lin-pa" min="0.2" max="0.8" step="0.05" value="0.75"></label>
+        <label for="lin-pa">Share treated n₁/n <span class="val" id="lin-pa-v">0.75</span><input type="range" id="lin-pa" min="0.25" max="0.75" step="0.05" value="0.75"></label>
         <label for="lin-het">Opposite slopes (heterogeneity)
-          <select id="lin-het"><option value="1" selected>Yes: a = eᶻ, b = −eᶻ</option><option value="0">No: a = b + τ</option></select></label>
+          <select id="lin-het"><option value="1" selected>Yes: Lin's a, b (Qa = 1.06, Qb = −0.73)</option><option value="0">No: a = b + 1</option></select></label>
         <button id="lin-run">Rerun 3,000 randomizations</button>
       </div>
       <div class="legend"><span><i class="sw" style="background:var(--ctrl)"></i>Unadjusted Δ means</span><span><i class="sw" style="background:var(--bad)"></i>ANCOVA Y~Z+X</span><span><i class="sw" style="background:var(--third)"></i>Lin interacted</span></div>
       <div id="lin-chart"></div>
       <div class="stats" id="lin-stats"></div>
-      <p class="note">Finite population <span class="mono">n = 400</span>, <span class="mono">z ~ U(−2, 2)</span>, nonlinear potential outcomes plus N(0,1) noise. The data-generating process is inspired by, not identical to, Lin's simulation, so the numbers differ from his Table 1.</p>
+      <p class="note">Lin (2013) §4.2.3 exactly: finite population <span class="mono">n = 1000</span>, <span class="mono">z ~ U[−4, 4]</span>, <span class="mono">a = [eᶻ + e^{z/2}]/4 + ν</span>, <span class="mono">b = [−eᶻ + e^{z/2}]/4 + ε</span>, with ν, ε ~ N(0, 1). The population is drawn once and held fixed; only the assignment is re-randomized. Lin's single draw of z is not published, so this page uses a draw whose least-squares slopes match his (Qa = 1.06, Qb = −0.73). At the paper's five allocations, the SDs agree with his Table 1 to within about 2 units ×1000. 3,000 re-randomizations here vs his 40,000.</p>
     </div>
   </div>
 </section>
@@ -445,16 +445,22 @@ function simRem(pa, reps){
   return {cre, rem, lin, truth:1, a};
 }
 
-function simLin(pa, het, reps){
-  seed(303); const n=400, x=[],ya=[],yb=[];
-  for(let i=0;i<n;i++){ const z=-2+4*runif(); x.push(z);
-    if(het){ ya.push(Math.exp(z)+0.25*Math.exp(z/2)+rnorm()); yb.push(-Math.exp(z)+0.25*Math.exp(z/2)+rnorm()); }
-    else { const b=Math.exp(z)+0.25*Math.exp(z/2)+rnorm(); yb.push(b); ya.push(b+1); } }
+// Lin (2013) §4.2.3 exactly: n = 1000, z ~ U[−4,4],
+// a = [e^z + e^{z/2}]/4 + ν, b = [−e^z + e^{z/2}]/4 + ε  (ν, ε ~ N(0,1)); finite population held fixed.
+// popSeed 1612: out of seeds 1–3000, the population whose LS slopes best match the paper's (Qa = 1.06, Qb = −0.73)
+function simLin(pa, het, reps, popSeed=1612){
+  seed(popSeed); const n=1000, x=[],ya=[],yb=[];
+  for(let i=0;i<n;i++){ const z=-4+8*runif(); x.push(z);
+    if(het){ ya.push((Math.exp(z)+Math.exp(z/2))/4+rnorm()); yb.push((-Math.exp(z)+Math.exp(z/2))/4+rnorm()); }
+    else { const b=(Math.exp(z)+Math.exp(z/2))/4+rnorm(); yb.push(b); ya.push(b+1); } }
+  const slope=y=>{ const mx=mean(x), my=mean(y); let sxy=0,sxx=0; for(let i=0;i<n;i++){ sxy+=(x[i]-mx)*(y[i]-my); sxx+=(x[i]-mx)**2; } return sxy/sxx; };
   const truth=mean(ya)-mean(yb), n1=Math.round(pa*n), out=[[],[],[]], y=new Array(n);
   for(let r=0;r<reps;r++){ const z=assign(n,n1); for(let i=0;i<n;i++) y[i]=z[i]?ya[i]:yb[i];
     const e=linEst(y,x,z); for(let k=0;k<3;k++) out[k].push(e[k]); }
-  return {un:out[0], anc:out[1], lin:out[2], truth};
+  return {un:out[0], anc:out[1], lin:out[2], truth, Qa:slope(ya), Qb:slope(yb)};
 }
+// Lin (2013) Table 1, empirical SD × 1000: [unadjusted, usual OLS-adjusted, OLS with interaction]
+const LIN_T1={0.75:[93,171,81],0.6:[49,73,50],0.5:[53,47,47],0.4:[78,80,59],0.25:[142,180,99]};
 
 /* ---- covariate-adjusted Fisher randomization test (FRT) ---- */
 function dmean(v,z){ let s1=0,s0=0,n1=0; for(let i=0;i<v.length;i++){ if(z[i]){s1+=v[i];n1++;} else s0+=v[i]; } return s1/n1-s0/(v.length-n1); }
@@ -660,7 +666,9 @@ $("rem-run").onclick=()=>later(runRem); $("rem-pa").onchange=()=>later(runRem);
 function runLin(){ const pa=+$("lin-pa").value; $("lin-pa-v").textContent=pa.toFixed(2); const r=simLin(pa,+$("lin-het").value,3000);
   histChart($("lin-chart"),[{v:r.un,c:"--ctrl"},{v:r.anc,c:"--bad"},{v:r.lin,c:"--third"}],r.truth,"estimated ATE");
   const s=[sd(r.un),sd(r.anc),sd(r.lin)];
-  stats($("lin-stats"),[["SD unadjusted",s[0].toFixed(3),"--ctrl"],["SD ANCOVA",s[1].toFixed(3),"--bad"],["SD Lin",s[2].toFixed(3),"--third"],["ANCOVA vs unadjusted",(s[1]>s[0]?"worse ":"better ")+Math.abs(100*(s[1]/s[0]-1)).toFixed(0)+"%",s[1]>s[0]?"--bad":"--good"]]); }
+  const t1=+$("lin-het").value ? LIN_T1[pa.toFixed(2).replace(/0$/,"")] : null;
+  stats($("lin-stats"),[["SD unadjusted",s[0].toFixed(3),"--ctrl"],["SD ANCOVA",s[1].toFixed(3),"--bad"],["SD Lin",s[2].toFixed(3),"--third"],["ANCOVA vs unadjusted",(s[1]>s[0]?"worse ":"better ")+Math.abs(100*(s[1]/s[0]-1)).toFixed(0)+"%",s[1]>s[0]?"--bad":"--good"],
+    ["Paper Table 1, SD ×1000", t1 ? t1.join(" / ") : (+$("lin-het").value ? "only at 0.25, 0.4, 0.5, 0.6, 0.75" : "n/a (no heterogeneity)")]]); }
 $("lin-run").onclick=()=>later(runLin); $("lin-pa").oninput=()=>{$("lin-pa-v").textContent=(+$("lin-pa").value).toFixed(2);}; $("lin-pa").onchange=()=>later(runLin); $("lin-het").onchange=()=>later(runLin);
 
 let frtExp=0;
