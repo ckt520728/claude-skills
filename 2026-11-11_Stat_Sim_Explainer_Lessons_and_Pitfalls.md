@@ -13,7 +13,7 @@ skill: stat-sim-explainer
 - `CLAUDE.md` and `handoffs.md` in `D:\2026 Statistics learning`
 - the reusable skill `stat-sim-explainer/` in `ckt520728/claude-skills`
 
-**Environment:** Windows 11, Claude Code (Opus 5.5), Git Bash, node 26, Python 3.9. R is not installed.
+**Environment:** Windows 11, Claude Code (Opus 5.5), Git Bash, node 26, Python 3.9, R 4.6.2 (installed in session 2).
 
 > Methods and lessons only. No keys, no private data.
 
@@ -70,8 +70,15 @@ skill: stat-sim-explainer
 4. **Extreme IPW weights** at γ = 3 made the chart unreadable. Fixed by capping γ at 2.5 and adding trimming. Trimming changes the estimand.
 
 ### References
-5. **The Lin note's simulation SDs did not reproduce** with its stated DGP: Var(eᶻ) ≈ 140 implies an SD near 0.4, not 0.093. Logged as a known unknown; the page labels its own DGP.
-6. **Bugs in the reference R code:** `which(p >= 0.05)[25]` should be `[1]`, and the claim that `senmw(method="t")` is a Wilcoxon test is doubtful. Neither was run (no R).
+5. **The Lin note's simulation SDs did not reproduce** with its stated DGP: Var(eᶻ) ≈ 140 implies an SD near 0.4, not 0.093. **Resolved in session 2 against the original paper.** The paper's DGP is a = [eᶻ + e^{z/2}]/4 + ν. The note had moved the ¼ onto e^{z/2} only. With the paper's DGP, R reproduces Table 1 (0.75: 95/177/80 vs the paper's 93/171/81). With the note's DGP, the unadjusted SD is 0.397.
+6. **Bugs in the reference R code, confirmed in R 4.6.2:**
+   - `which(p >= 0.05)[25]` gives Γ* = NA. The Γ grid (1–3) also never crosses 0.05.
+   - `senmw(method="t")` is a permutational t-test, not Wilcoxon. `DOS2::senWilcox` gives Γ* = 2.90, and "t" gives 3.20.
+   - `summary(dml_irm)` crashes on the R6 object; use `$summary()`. DML ATE = 2.495, CI [2.25, 2.74].
+   - An E-value label said "lower" while using the upper bound.
+   - The default `pdf()` device can't draw CJK under Rscript.
+
+   The fixed scripts are in `D:\2026 Statistics learning\r-examples\fixed\`.
 7. **Citation numbers** in the NotebookLM exports point to a missing source list.
 
 ### Code
@@ -95,7 +102,7 @@ skill: stat-sim-explainer
 7. Write a handoff with known unknowns.
 
 ## Next steps
-- Check Lin (2013) §5 / Table 1 against the original paper.
-- Install R and run the `DoubleML`, `EValue` and `sensitivitymw` snippets.
+- ~~Check Lin (2013) Table 1 against the original paper~~ Done: the note mis-transcribed the DGP.
+- ~~Install R and run the R snippets~~ Done: 6 issues fixed.
 - Add a covariate-adjusted FRT card.
 - Run a `/grill-with-docs` session on Lin vs ANCOVA, trimming estimands and M-bias.
