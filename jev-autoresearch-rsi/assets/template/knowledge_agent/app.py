@@ -115,6 +115,11 @@ def create_app() -> Flask:
     def index():
         return send_from_directory(BASE_DIR, "dashboard.html", max_age=0)
 
+    @app.route("/discovery-lab")
+    def discovery_lab():
+        """Serve the self-contained educational autonomous-discovery simulation."""
+        return send_from_directory(BASE_DIR, "discovery_lab.html", max_age=0)
+
     @app.route("/outputs/<path:filename>")
     def outputs(filename):
         return send_from_directory(OUTPUT_DIR, filename, max_age=0)

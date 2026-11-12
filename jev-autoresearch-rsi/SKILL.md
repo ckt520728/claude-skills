@@ -170,4 +170,5 @@ See `references/publishing.md`.
 | `references/reading-outputs.md` | the checklist for step 6 of the ladder |
 | `references/project-init.md` | CLAUDE.md / AGENTS.md / handoffs.md for a new project |
 | `references/pitfalls.md` | before starting, and whenever something looks successful too easily |
+| `references/discovery-lab-manual.md` | using or changing the Discovery Lab simulation page (`/discovery-lab`) |
 | `AGENTS.md` | running this in Codex, Gemini CLI, Antigravity or OpenCode |

@@ -220,6 +220,14 @@ class TestServerSafety(unittest.TestCase):
         html = self.client.get("/", headers=self.base).get_data(as_text=True)
         self.assertIn('step="any"', html)
 
+    def test_discovery_lab_is_served_and_honestly_labelled(self):
+        response = self.client.get("/discovery-lab", headers=self.base)
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Autonomous Discovery Lab", html)
+        self.assertIn("SIMULATED EDUCATIONAL MODEL", html)
+        self.assertIn("not a real Lean runtime", html)
+
 
 class FakeOpenAI(BaseHTTPRequestHandler):
     seen = []

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discovery Lab Dashboard</title>
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:light;--bg:#f4f6f8;--panel:#ffffff;--panel2:#f7f9fb;--line:#dbe2e8;--text:#0b0b0b;--muted:#52514e;--faint:#77756f;--grid:#e9edf1;--accent:#0d7f76;--accent-ink:#ffffff;
+--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#6250d6;--good:#0ca30c;--good-t:#006300;--warn:#fab219;--warn-t:#8a5a00;--serious:#ec835a;--crit:#d03b3b;--crit-t:#b02a2a;
+--heat0:#f3f7fc;--heat1:#86b6ef;--heat2:#104281;--ring:#ffffff;--shadow:0 1px 2px #0000000f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0a1017;--panel:#111a24;--panel2:#0d151e;--line:#233243;--text:#eef2f5;--muted:#a6b4c2;--faint:#7c8b99;--grid:#1a2633;--accent:#4dd9cf;--accent-ink:#04201e;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#9085e9;--good-t:#3fcf5a;--warn-t:#fab219;--crit-t:#f07a7a;--heat0:#0f1a26;--heat1:#1c5cab;--heat2:#cde2fb;--ring:#0a1017;--shadow:none}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0a1017;--panel:#111a24;--panel2:#0d151e;--line:#233243;--text:#eef2f5;--muted:#a6b4c2;--faint:#7c8b99;--grid:#1a2633;--accent:#4dd9cf;--accent-ink:#04201e;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#9085e9;--good-t:#3fcf5a;--warn-t:#fab219;--crit-t:#f07a7a;--heat0:#0f1a26;--heat1:#1c5cab;--heat2:#cde2fb;--ring:#0a1017;--shadow:none}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Microsoft JhengHei",sans-serif}
+.shell{max-width:1560px;margin:0 auto;padding:20px 16px 40px}
+.mono,.eyebrow{font:700 11px/1.4 ui-monospace,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase}
+.eyebrow{color:var(--accent)}.muted{color:var(--muted)}.faint{color:var(--faint)}
+a{color:var(--accent)}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+h1{margin:4px 0 2px;font-size:clamp(24px,3.2vw,36px);line-height:1.1;letter-spacing:-.02em}
+.sub{margin:0;color:var(--muted);max-width:760px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.field{display:grid;gap:3px}.field label,.field span{font-size:11px;color:var(--muted);font-weight:600}
+select,input[type=number]{font:inherit;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input[type=number]{width:90px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:7px 12px;font-weight:600}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.notice{margin:12px 0;padding:9px 12px;border-left:3px solid var(--warn);background:var(--panel);border-radius:0 8px 8px 0;font-size:12.5px;color:var(--muted)}
+.notice b{color:var(--text)}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:12px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);min-width:0}
+.kpi .k{font-size:11px;color:var(--muted);font-weight:600}
+.kpi .v{font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.25}
+.kpi .d{font-size:11.5px;color:var(--faint);overflow-wrap:anywhere}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr) 360px;gap:12px;align-items:start}
+.col{display:grid;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0;font-size:13px;letter-spacing:.02em}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.ch .hint{font-size:11.5px;color:var(--faint)}
+.controls{position:sticky;top:12px}
+.ctl{padding:9px 0;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0}
+.ctl .lab{display:flex;justify-content:space-between;font-weight:600;font-size:12.5px}
+.ctl .lab output{font:700 12px ui-monospace,Consolas,monospace;color:var(--accent)}
+.ctl .hint{font-size:11.5px;color:var(--faint);line-height:1.4}
+input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 2px}
+.btnrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.btnrow .primary{grid-column:1/-1}
+.status{font:700 11px ui-monospace,Consolas,monospace;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border:1px solid currentColor;border-radius:99px;padding:1px 8px;white-space:nowrap}
+.chip.good{color:var(--good-t)}.chip.warn{color:var(--warn-t)}.chip.crit{color:var(--crit-t)}.chip.none{color:var(--faint)}
+.chip.good::before{content:"✓"}.chip.warn::before{content:"!"}.chip.crit::before{content:"✕"}.chip.none::before{content:"–"}
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:12px;align-items:start}
+.mapbox{position:relative}
+canvas#map{width:100%;aspect-ratio:1/1;display:block;border-radius:8px;border:1px solid var(--line);image-rendering:pixelated;cursor:crosshair}
+.axlab{font-size:11px;color:var(--faint);display:flex;justify-content:space-between;margin-top:3px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 9px;font-size:12px;background:transparent;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel2);color:var(--text);box-shadow:inset 0 -2px 0 var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.lg-col{display:grid;gap:7px;font-size:12px;color:var(--muted)}
+.lg-col .sw{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-2px}
+.mission{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px}
+.mission b{display:block;font-size:13px}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+svg.chart text{fill:var(--faint);font:10.5px ui-monospace,Consolas,monospace}
+svg.chart .gl{stroke:var(--grid);stroke-width:1}
+svg.chart .ax{stroke:var(--line);stroke-width:1}
+svg.chart .lbl{fill:var(--muted);font:600 11px system-ui,sans-serif}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
+th{color:var(--muted);font-weight:600;font-size:11px}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--panel2)}tbody tr.sel{box-shadow:inset 3px 0 0 var(--accent)}
+.tablewrap{max-height:300px;overflow:auto}
+.bar{height:8px;border-radius:0 4px 4px 0;background:var(--s1);min-width:2px}
+.log{list-style:none;margin:0;padding:0;max-height:330px;overflow:auto;font-size:12px}
+.log li{padding:6px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:44px 1fr;gap:6px}
+.log li:first-child{border-top:0}
+.log .t{font:700 11px ui-monospace,Consolas,monospace;color:var(--accent)}
+.log .kind{font:700 10px ui-monospace,Consolas,monospace;color:var(--faint);letter-spacing:.06em}
+pre.proof{margin:0;white-space:pre-wrap;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font:12px/1.6 ui-monospace,Consolas,monospace;min-height:190px}
+.ok-t{color:var(--good-t)}.bad-t{color:var(--crit-t)}.warn-t{color:var(--warn-t)}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:8px}
+.stats b{color:var(--text);font-variant-numeric:tabular-nums}
+details{margin-top:8px;font-size:12px}summary{cursor:pointer;color:var(--muted)}
+.sources{margin-top:12px}
+.srcgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.src{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2);font-size:12px;min-width:0}
+.src .h{display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:4px}
+.src b{font-size:12.5px}
+.src ul{margin:4px 0 0;padding-left:16px;color:var(--muted)}
+.src .use{margin-top:6px;font-size:11px;color:var(--faint)}
+#tip{position:fixed;pointer-events:none;z-index:20;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;box-shadow:0 6px 20px #0004;max-width:260px;opacity:0;transition:opacity .08s}
+#tip b{display:block;margin-bottom:2px}
+#tip .r{display:flex;justify-content:space-between;gap:12px;color:var(--muted)}
+#tip .r span:last-child{color:var(--text);font-variant-numeric:tabular-nums}
+.tb{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:var(--muted)}
+.tb label{display:inline-flex;gap:5px;align-items:center}
+@media (max-width:1240px){.layout{grid-template-columns:250px minmax(0,1fr)}.rightcol{grid-column:1/-1;grid-template-columns:1fr 1fr}.three{grid-template-columns:1fr 1fr}.srcgrid{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:860px){.layout{grid-template-columns:1fr}.controls{position:static}.rightcol{grid-template-columns:1fr}.three,.two,.srcgrid{grid-template-columns:1fr}.mapwrap{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top">
+  <div>
+    <div class="eyebrow">2026 Autoresearch RSI · research instrument · <span style="color:var(--warn-t)">SIMULATED EDUCATIONAL MODEL</span></div>
+    <h1>Autonomous Discovery Lab</h1>
+    <p class="sub">A closed-loop simulation of an AI scientist: plan, run, analyse, verify, audit, replan. You can see how capability, test-time compute, verification and risk policy change what gets claimed as a discovery.</p>
+  </div>
+  <div class="toolbar">
+    <div class="field"><label for="scenario">Scenario</label><select id="scenario"></select></div>
+    <div class="field"><label for="seed">Seed</label><input id="seed" type="number" min="1" max="99999" value="4102"></div>
+    <button id="theme" type="button" aria-label="Toggle light or dark theme">Theme</button>
+    <button id="export" type="button">Export run JSON</button>
+  </div>
+</header>
+
+<div class="notice"><b>Interpretation boundary.</b> The campaign, landscapes and claims are <b>simulated</b> with a seeded generator. The proof panel is Lean-<i>inspired</i> and is not a real Lean runtime: no Lean kernel runs here. The only real measurements are METR's published time horizons (fetched 2026-11-12). The paper figures in Sources are quoted from local PDFs. "Promoted" means a claim passed this simulation's gates; it does not mean the claim is true. The ground-truth view exists only because this is a simulation.</div>
+
+<section class="kpis" aria-label="Key indicators">
+  <div class="kpi"><div class="k">Targets realized (agent)</div><div class="v" id="kTargets">0 / 0</div><div class="d" id="kTargetsD">random planner: 0</div></div>
+  <div class="kpi"><div class="k">False discoveries promoted</div><div class="v" id="kFalse">0</div><div class="d" id="kFalseD">random planner: 0</div></div>
+  <div class="kpi"><div class="k">Budget left</div><div class="v" id="kBudget">0</div><div class="d" id="kBudgetD">units</div></div>
+  <div class="kpi"><div class="k">Execution reliability</div><div class="v" id="kExec">0%</div><div class="d" id="kExecD">per experiment</div></div>
+  <div class="kpi"><div class="k">Analysis accuracy</div><div class="v" id="kAcc">0%</div><div class="d" id="kAccD">verifier best-of-N</div></div>
+  <div class="kpi"><div class="k">Modeled 50% horizon</div><div class="v" id="kHor">0</div><div class="d">METR-style difficulty proxy</div></div>
+</section>
+
+<main class="layout">
+  <aside class="card controls" aria-labelledby="hCtl">
+    <div class="ch"><h2 id="hCtl">Control surface</h2><span id="runStatus" class="status" role="status" aria-live="polite">READY</span></div>
+    <div class="ctl"><div class="lab"><label for="capability">Agent capability</label><output id="capabilityV"></output></div><input id="capability" type="range" min="20" max="95" value="70"><div class="hint">Sets the modeled task horizon, so how often a run finishes. Also sets how often planning drifts and how sharp the judge is.</div></div>
+    <div class="ctl"><div class="lab"><label for="tts">Test-time samples N</label><output id="ttsV"></output></div><input id="tts" type="range" min="0" max="6" value="3" step="1"><div class="hint">Analysis drafts N interpretations and a verifier picks one. Costs 0.01 × N units per analysis.</div></div>
+    <div class="ctl"><div class="lab"><label for="rigor">Verification rigor</label><output id="rigorV"></output></div><input id="rigor" type="range" min="0" max="100" value="70"><div class="hint">Chance that a hit is replicated (it confirms when the replicate reaches 0.80 − noise σ), and how good the verifier is. In the Lean-gated scenario the kernel checks every candidate exactly.</div></div>
+    <div class="ctl"><div class="lab"><label for="budget">Experiment budget</label><output id="budgetV"></output></div><input id="budget" type="range" min="30" max="160" value="80"><div class="hint">1 unit per experiment, 1 per replicate, 0.5 per kernel check. Applies on Reset.</div></div>
+    <div class="ctl"><div class="lab"><label for="risk">Risk tolerance</label><output id="riskV"></output></div><input id="risk" type="range" min="2" max="60" value="10"><div class="hint">A claim is promoted when its confidence ≥ 1 − tolerance. A verified claim has 0.95; an unverified one has 0.60.</div></div>
+    <div class="ctl"><div class="lab"><label for="explore">Exploration κ</label><output id="exploreV"></output></div><input id="explore" type="range" min="0" max="100" value="40"><div class="hint">UCB acquisition = predicted value + κ × uncertainty (active learning). Cells within 4 of a promoted or refuted claim are down-weighted, so the agent moves on to new regions.</div></div>
+    <div class="ctl"><label class="tb" style="font-weight:600;color:var(--text)"><input type="checkbox" id="lit" checked> Literature prior (A-Lab style)</label><div class="hint">The agent starts from a blurred, noisy map, as recipes proposed by literature-trained models would give it. The random planner never gets it. Applies on Reset.</div></div>
+    <div class="ctl"><div class="lab"><label for="speed">Speed</label><output id="speedV"></output></div><input id="speed" type="range" min="1" max="5" value="3"></div>
+    <div class="btnrow"><button id="run" class="primary" type="button">Run campaign</button><button id="step" type="button">Step</button><button id="finishBtn" type="button">Finish</button><button id="reset" type="button">Reset</button></div>
+  </aside>
+
+  <div class="col">
+    <section class="card" aria-labelledby="hMap">
+      <div class="ch"><h2 id="hMap">Closed-loop campaign · search space</h2>
+        <div class="seg" role="group" aria-label="Map view"><button type="button" data-view="belief" aria-pressed="true">Agent belief</button><button type="button" data-view="truth" aria-pressed="false">Ground truth (sim only)</button></div></div>
+      <div class="mapwrap">
+        <div class="mapbox"><canvas id="map" width="448" height="448" role="img" aria-label="Heatmap of the search space with experiment locations"></canvas>
+          <div class="axlab"><span id="axX">x</span><span id="axY">y ↑</span></div></div>
+        <div class="col" style="gap:10px">
+          <div class="mission" id="mission"></div>
+          <div class="lg-col" aria-label="Map legend">
+            <span><span class="sw" style="border:2px solid var(--text);border-radius:50%"></span>Agent experiment</span>
+            <span><span class="sw" style="background:var(--s3);transform:rotate(45deg) scale(.8)"></span>Promoted claim</span>
+            <span><span class="sw" style="border:2px solid var(--crit)"></span>Quarantined or refuted</span>
+            <span><span class="sw" style="background:var(--s2);border-radius:50%;transform:scale(.6)"></span>Random-planner experiment</span>
+            <span><span class="sw" style="background:linear-gradient(90deg,var(--heat0),var(--heat1),var(--heat2))"></span>Value 0 → 1 (target ≥ 0.80)</span>
+          </div>
+          <label class="tb"><input type="checkbox" id="showBase"> Show random-planner experiments</label>
+          <div class="stats" id="mapStats"></div>
+        </div>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="hCurve">
+      <div class="ch"><h2 id="hCurve">Discovery curve: targets realized vs budget spent</h2><button type="button" id="batchBtn">Run 20-seed batch</button></div><p class="faint" style="font-size:11.5px;margin:-4px 0 8px">Same robot and noise on both sides. Only the planning, the prior, verification and the promotion policy differ.</p>
+      <svg id="curve" class="chart" viewBox="0 0 640 220" role="img" aria-label="Targets realized versus budget spent for the agent and a random planner"></svg>
+      <div id="batch" class="stats" aria-live="polite"></div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Agent (UCB + verification)</span><span><i style="background:var(--s2)"></i>Random planner (no verification)</span><span><i style="background:var(--faint);height:2px"></i>Targets available</span></div>
+    </section>
+  </div>
+
+  <div class="col rightcol">
+    <section class="card" aria-labelledby="hGraph">
+      <div class="ch"><h2 id="hGraph">Agent graph · last iteration</h2><span class="hint">visit counts</span></div>
+      <svg id="graph" class="chart" viewBox="0 0 340 236" role="img" aria-label="Agent pipeline graph"></svg>
+    </section>
+    <section class="card" aria-labelledby="hLog">
+      <div class="ch"><h2 id="hLog">Event log</h2><span class="hint">append-only · newest first</span></div>
+      <ul class="log" id="log"></ul>
+    </section>
+  </div>
+</main>
+
+<div class="three">
+  <section class="card" aria-labelledby="hTts">
+    <div class="ch"><h2 id="hTts">Test-time scaling: why the verifier sets the ceiling</h2></div>
+    <svg id="ttsChart" class="chart" viewBox="0 0 400 230" role="img" aria-label="Accuracy versus number of samples"></svg>
+    <div class="legend"><span><i style="background:var(--s3)"></i>Coverage (pass@N, oracle)</span><span><i style="background:var(--s1)"></i>Verifier best-of-N</span><span><i style="background:var(--s4)"></i>Majority vote</span></div>
+    <div class="stats" id="ttsStats"></div>
+  </section>
+  <section class="card" aria-labelledby="hMetr">
+    <div class="ch"><h2 id="hMetr">METR time horizons (real data)</h2>
+      <div class="seg" role="group" aria-label="Reliability level"><button type="button" data-q="p50" aria-pressed="true">50%</button><button type="button" data-q="p80" aria-pressed="false">80%</button></div></div>
+    <svg id="metrChart" class="chart" viewBox="0 0 400 230" role="img" aria-label="Frontier model time horizons by release date, log scale"></svg>
+    <div class="legend"><span><i style="background:var(--s1);border-radius:50%"></i>Frontier model (METR TH 1.1)</span><span><i style="background:var(--faint);height:2px"></i>Exponential refit, 2023 on</span><span><i style="background:var(--s2);height:2px"></i>Modeled agent</span></div>
+    <div class="stats" id="metrStats"></div>
+    <details><summary>Table view</summary><div class="tablewrap"><table id="metrTable"></table></div></details>
+  </section>
+  <section class="card" aria-labelledby="hTour">
+    <div class="ch"><h2 id="hTour">Hypothesis tournament (Robin-style BTL)</h2><button type="button" id="tourBtn">Re-run</button></div>
+    <div class="ctl" style="border:0;padding-top:0"><div class="lab"><label for="bias">Judge position-A bias</label><output id="biasV"></output></div><input id="bias" type="range" min="0" max="45" value="25">
+      <label class="tb"><input type="checkbox" id="counter" checked> Judge each pair in both orders</label></div>
+    <div id="tour"></div>
+  </section>
+</div>
+
+<div class="two">
+  <section class="card" aria-labelledby="hLedger">
+    <div class="ch"><h2 id="hLedger">Claim ledger</h2><span class="hint">click a row to inspect its proof state</span></div>
+    <div class="tablewrap"><table id="ledger"></table></div>
+  </section>
+  <section class="card" aria-labelledby="hProof">
+    <div class="ch"><h2 id="hProof">Proof gate (Lean-inspired)</h2><span id="proofChip" class="chip none">no claim</span></div>
+    <pre class="proof" id="proof"></pre>
+    <p class="faint" style="font-size:11.5px;margin:6px 0 0">Lean's design is the model here: a small trusted kernel checks each step and tracks every open goal. <code>sorry</code> marks a goal this simulation could not close. Nothing is sent to a real Lean kernel.</p>
+  </section>
+</div>
+
+<section class="card sources" aria-labelledby="hSrc">
+  <div class="ch"><h2 id="hSrc">Evidence behind the design</h2><span class="hint">LIVE = fetched in the browser this session · SAVED = read from a local file</span></div>
+  <div class="srcgrid" id="sources"></div>
+</section>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const G=32,THR=0.8,NS=[1,2,4,8,16,32,64];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- scenarios (fictional missions, grounded in the cited systems) ---------- */
+const SCEN={
+ materials:{name:"Inorganic synthesis (A-Lab style)",mission:"Find synthesis conditions that give more than 80% target yield.",ax:["precursor ratio →","anneal temperature ↑"],peaks:6,noise:.09,taskMin:60,exact:false,unit:"synthesis + XRD analysis",ref:"Pattern: Szymanski et al. (2023). Literature-proposed recipes, then ARROWS3 active learning when yield is under 50%."},
+ nas:{name:"Architecture search (NAS style)",mission:"Find architectures in the top validation-accuracy band.",ax:["depth →","width ↑"],peaks:5,noise:.06,taskMin:30,exact:false,unit:"training run",ref:"Pattern: Zoph & Le (2017). A controller proposes architectures and is rewarded by validation accuracy."},
+ lean:{name:"Formal conjecture search (Lean-gated)",mission:"Find parameter regions where a conjecture holds, then check every candidate in a proof kernel.",ax:["parameter a →","parameter b ↑"],peaks:4,noise:.12,taskMin:120,exact:true,unit:"proof attempt",ref:"Pattern: lean-lang.org. A minimal trusted kernel checks every proof, so verification is exact."},
+ bio:{name:"Biomedical co-scientist",mission:"Find dose–time windows with a strong assay response.",ax:["dose →","exposure time ↑"],peaks:5,noise:.14,taskMin:240,exact:false,unit:"wet-lab assay",ref:"Pattern: Wang et al. (2025) survey of multimodal biomedical agents. Long, noisy experiments."}
+};
+
+/* ---------- METR Time Horizon 1.1, frontier (is_sota) models; minutes. Fetched 2026-11-12 from metr.org/time-horizons ---------- */
+const METR=[["GPT-2","2019-02-14",0.1,null],["davinci-002 (GPT-3)","2020-05-28",0.1,0.1],["GPT-3.5 Turbo Instruct","2022-03-15",0.6,0.3],["GPT-4","2023-03-14",4.0,0.9],["GPT-4 (Nov 2023)","2023-11-06",4.0,0.8],["GPT-4o","2024-05-13",7.0,1.3],["Claude 3.5 Sonnet (Jun 2024)","2024-06-20",11.4,1.7],["o1-preview","2024-09-12",20.3,4.4],["Claude 3.5 Sonnet (Oct 2024)","2024-10-22",20.5,2.6],["o1","2024-12-05",38.8,7.1],["Claude 3.7 Sonnet","2025-02-24",60.4,12.1],["o3","2025-04-16",119.7,30.0],["GPT-5","2025-08-07",203.0,38.3],["Gemini 3 Pro","2025-11-18",224.3,54.1],["Claude Opus 4.5","2025-11-24",293.0,49.4],["GPT-5.2","2025-12-11",352.2,66.0],["Claude Opus 4.6","2026-02-05",718.8,69.9],["Claude Mythos Preview (early)","2026-04-07",1044.8,185.9]];
+const METR_DOUBLING={point:128.7,lo:104.4,hi:158.0};
+
+const SOURCES=[
+ {t:"METR · Task-completion time horizons",s:"LIVE",u:"https://metr.org/time-horizons/",pts:["The 50% horizon is the human-expert task length at which an agent succeeds half the time. It comes from a logistic fit over 100+ software tasks.","Time Horizon 1.1: doubling time since 2023 is 128.7 days (CI 104–158).","Measurements above 16 h are unreliable. The page has not been updated since 2026-09-08.","METR stresses that the horizon measures task difficulty, not how long an agent can act on its own."],use:"Used in: the METR chart, the modeled horizon and execution reliability"},
+ {t:"Lean programming language",s:"LIVE",u:"https://lean-lang.org/",pts:["An open-source language and proof assistant. Its minimal trusted kernel checks every proof.","You build a proof one tactic at a time, and Lean tracks every remaining goal.","Mathlib has over a million lines of formalized mathematics.","Its October 2026 news lists AI-generated results with Lean-verified components."],use:"Used in: the proof gate, and exact verification in the Lean-gated scenario"},
+ {t:"Szymanski et al. (2023), Nature 624 · A-Lab",s:"SAVED",u:"",pts:["17 days of continuous operation produced 36 of 57 targets (abstract of the local PDF).","Recipes came from literature-trained models. When yield was under 50%, ARROWS3 active learning took over.","Failure modes found: slow kinetics, precursor volatility, amorphization and computational inaccuracy."],use:"Used in: the materials scenario, the active-learning loop and the targets-realized KPI"},
+ {t:"Tom et al. (2024), Chem. Rev. 124 · Self-driving labs",s:"SAVED",u:"",pts:["Grades SDL autonomy from Level 1 to Level 5, separately for software and hardware.","Most SDLs to date are Level 2–3. A true Level 5 SDL remains unattained.","Bayesian optimization and active learning are the core experiment planners."],use:"Used in: the UCB planner and the interpretation boundary"},
+ {t:"Zoph & Le (2017), ICLR · Neural architecture search",s:"SAVED",u:"",pts:["An RNN controller, trained with reinforcement learning, proposes architectures and is rewarded by validation accuracy.","CIFAR-10 test error 3.65%; Penn Treebank perplexity 62.4.","Search ran on 800 GPUs at once, an early sign of the cost of compute-heavy discovery loops."],use:"Used in: the NAS scenario"},
+ {t:"Wang et al. (2025) · The dawn of the AI co-scientist",s:"SAVED",u:"",pts:["Systematic review of more than 80 papers on multimodal agents in biomedicine and chemistry.","Taxonomy: modalities, agent learning, agent inference, applications, benchmarks."],use:"Used in: the biomedical scenario"},
+ {t:"Latha (2026), IJAR · Autonomous laboratories",s:"SAVED",u:"",pts:["An agent uses BO or RL to interpret data and choose the next experiment without a human in the loop.","Applications: battery electrolytes, catalysts, drug synthesis, process scale-up."],use:"Used in: closing the plan → experiment → analyse loop"},
+ {t:"Twinkle (2026) · Test-time scaling, parts 1–3",s:"SAVED",u:"",pts:["Generation and verification are different problems: verifying is easier than finding.","Methods covered: self-consistency (majority vote), best-of-N with learned verifiers, process supervision, MCTS.","Secondary blog source: only its concepts are used. None of its quoted benchmark figures are reused here."],use:"Used in: the test-time scaling chart and analysis accuracy"},
+ {t:"Robin layer (ADR 0002, this project)",s:"SAVED",u:"",pts:["Hypotheses are ranked by pairwise BTL tournament, with every pair judged in both orders.","The position-A share is measured. An always-A judge must leave every candidate level."],use:"Used in: the hypothesis tournament"}
+];
+
+/* ---------- state ---------- */
+let S,timer=null,view="belief",metrQ="p50",selClaim=null,tts=null;
+const keys=["capability","tts","rigor","budget","risk","explore","speed","bias"];
+function cfg(){const c=Object.fromEntries(keys.map(k=>[k,+$(k).value]));c.N=NS[c.tts];c.counter=$("counter").checked;return c}
+function horizonMin(cap){return Math.exp(Math.log(1045)*(cap-20)/75)}      // 20 → 1 min, 95 → ~17.4 h (latest METR frontier point)
+function execP(c,sc){const h=horizonMin(c.capability);return 1/(1+sc.taskMin/h)}   // logistic in log task length, slope 1
+function hfmt(m){return m<1?Math.round(m*60)+" s":m<60?m.toFixed(m<10?1:0)+" min":m<1440?(m/60).toFixed(1)+" h":(m/1440).toFixed(1)+" d"}
+function verifierRates(c,sc){return sc.exact?{tpr:1,fpr:0}:{tpr:.55+.43*c.rigor/100,fpr:.45*(1-c.rigor/100)+.02}}
+function baseP(c){return .25+.6*(c.capability-20)/75}
+
+function makeWorld(seed){const sc=S.sc,r=rng(seed*7919+sc.peaks*131);const peaks=[];
+ for(let i=0;i<sc.peaks;i++)peaks.push({x:3+r()*(G-6),y:3+r()*(G-6),h:.9+r()*.1,w:2+r()*1.6});
+ const hills=[];for(let i=0;i<5;i++)hills.push({x:r()*G,y:r()*G,h:.35+r()*.32,w:4+r()*5});
+ const f=new Float32Array(G*G),owner=new Int16Array(G*G).fill(-1);
+ for(let y=0;y<G;y++)for(let x=0;x<G;x++){let v=0,bi=-1,bv=0;
+  peaks.forEach((p,i)=>{const c=p.h*Math.exp(-((x-p.x)**2+(y-p.y)**2)/(2*p.w*p.w));if(c>bv){bv=c;bi=i}});
+  v=bv;hills.forEach(h=>{v=Math.max(v,h.h*Math.exp(-((x-h.x)**2+(y-h.y)**2)/(2*h.w*h.w)))});
+  const k=y*G+x;f[k]=v;if(bv>=THR)owner[k]=bi}
+ const K=new Set([...owner].filter(o=>o>=0)).size;
+ // literature prior: a blurred, biased, noisy copy of the truth (what text-mined recipes would suggest)
+ const pr=new Float32Array(G*G),rp=rng(seed*104729+11);for(let y=0;y<G;y++)for(let x=0;x<G;x++){let sw=0,sv=0;for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=G||yy>=G)continue;const w=Math.exp(-(dx*dx+dy*dy)/18);sw+=w;sv+=w*f[yy*G+xx]}pr[y*G+x]=Math.max(0,Math.min(1,.15+.6*sv/sw+gauss(rp)*.08))}
+ return{peaks,f,owner,K,prior:pr}}
+
+function newAgent(budget){return{samples:[],sampled:new Set(),claims:[],found:new Set(),falseProm:0,spent:0,budget,curve:[[0,0]],fails:0,replans:0,steps:0,done:false}}
+
+function reset(quiet){stop();const c=cfg(),sc=SCEN[$("scenario").value],seed=+$("seed").value||1;
+ S={sc,seed,r:rng(seed),rb:rng(seed^0x5bd1e995),claimN:0,events:[],path:[],visits:{plan:0,exec:0,analyze:0,verify:0,audit:0,replan:0,ledger:0},sur:null,budget0:c.budget};
+ S.world=makeWorld(seed);S.agent=newAgent(c.budget);S.base=newAgent(c.budget);S.sur=surrogate(S.agent);selClaim=null;
+ recomputeTTS();
+ log("SETUP",`Scenario “${sc.name}”, seed ${seed}, budget ${c.budget}. ${S.world.K} target regions exist; the agent cannot see them.`);
+ if(!quiet)renderAll()}
+function batch(){stop();const keep=$("seed").value,R=[];for(let sd=1;sd<=20;sd++){$("seed").value=sd;reset(true);let g=0;while(!(S.agent.done&&S.base.done)&&g++<3000){agentStep();baseStep()}R.push([S.world.K,S.agent.found.size,S.agent.falseProm,S.base.found.size,S.base.falseProm])}
+ $("seed").value=keep;reset();const n=R.length,mean=i=>(R.reduce((a,r)=>a+r[i],0)/n).toFixed(1),w=R.filter(r=>r[1]>r[3]).length,t=R.filter(r=>r[1]===r[3]).length;
+ $("batch").innerHTML=`<span>20 seeds · ${esc(S.sc.name)} · prior ${$("lit").checked?"on":"off"}</span><span>agent targets <b>${mean(1)}</b> · false <b>${mean(2)}</b></span><span>random targets <b>${mean(3)}</b> · false <b>${mean(4)}</b></span><span>agent ahead in <b>${w}</b>, level in <b>${t}</b>, behind in <b>${n-w-t}</b></span><span class="faint">measured just now with the current settings</span>`;
+ log("BATCH",`20-seed batch: agent ${mean(1)} targets / ${mean(2)} false; random ${mean(3)} / ${mean(4)}; agent ahead in ${w} of 20.`);drawLog()}
+
+/* ---------- surrogate (kernel regression) + UCB ---------- */
+function surrogate(ag){const lit=$("lit").checked,m=new Float32Array(G*G),u=new Float32Array(G*G),b2=2*2.2*2.2;
+ for(let k=0;k<G*G;k++){const x=k%G,y=(k/G)|0;let sw=0,swy=0;
+  for(const s of ag.samples){const w=Math.exp(-((x-s.x)**2+(y-s.y)**2)/b2);sw+=w;swy+=w*s.v}
+  const p0=lit?S.world.prior[k]:.3,w0=lit?.6:.15;m[k]=(swy+p0*w0)/(sw+w0);u[k]=1/Math.sqrt(1+4*sw)}
+ return{m,u}}
+function randomFree(ag,r){for(let i=0;i<5000;i++){const k=Math.floor(r()*G*G);if(!ag.sampled.has(k))return k}return -1}
+
+function measure(k,r,acc){const sc=S.sc,y=S.world.f[k]+gauss(r)*sc.noise,ok=r()<acc;return{v:ok?y:y+(r()<.5?-1:1)*(.25+r()*.2),ok}}
+
+function agentStep(){const ag=S.agent;if(ag.done)return;const c=cfg(),sc=S.sc,r=S.r,costA=.01*c.N,left=ag.budget-ag.spent;
+ if(left<1+costA){ag.done=true;log("STOP",`Agent budget exhausted (${left.toFixed(2)} units left). No later stage runs.`);return}
+ const path=["plan"];ag.steps++;
+ const sur=S.sur,kap=.6*c.explore/100;let k=-1,best=-1e9;
+ const drift=.3*(1-(c.capability-20)/75)+.02;
+ if(r()<drift){k=randomFree(ag,r);log("PLAN",`Planning drift (p=${drift.toFixed(2)}): the proposal ignored the model; a random condition was chosen.`)}
+ else{const known=ag.claims.filter(q=>q.decision==="PROMOTED"||q.refuted).map(q=>[q.k%G,(q.k/G)|0]);for(let i=0;i<G*G;i++){if(ag.sampled.has(i))continue;const x=i%G,y=(i/G)|0;let a=sur.m[i]+kap*sur.u[i];for(const[qx,qy]of known){if((x-qx)**2+(y-qy)**2<16){a-=.5;break}}if(a>best){best=a;k=i}}}
+ if(k<0){ag.done=true;return}
+ ag.spent+=1;path.push("exec");const pE=execP(c,sc);
+ if(r()>pE){ag.fails++;ag.replans++;path.push("replan");log("EXEC",`Execution failed: a ${hfmt(sc.taskMin)} ${sc.unit} at ${cell(k)} exceeded modeled reliability (p=${pE.toFixed(2)}). Replanned; no data recorded.`);return finish(path,ag)}
+ ag.spent+=costA;path.push("analyze");const acc=tts.ver[c.tts];const m=measure(k,r,acc);
+ ag.samples.push({k,x:k%G,y:(k/G)|0,v:m.v,ok:m.ok});ag.sampled.add(k);
+ if(m.v<THR){if(!m.ok)log("ANALYZE",`Misread at ${cell(k)}: the selected interpretation was wrong (verifier best-of-${c.N}). The value is recorded as measured.`);return finish(path,ag)}
+ const cl={id:++S.claimN,k,meas:m.v,method:"none",rep:null,verified:false,refuted:false,truth:S.world.f[k]>=THR,owner:S.world.owner[k],settings:{...c},misread:!m.ok};
+ path.push("verify");
+ if(sc.exact){if(ag.budget-ag.spent>=.5){ag.spent+=.5;cl.method="kernel";cl.verified=cl.truth;cl.refuted=!cl.truth}}
+ else if(r()<c.rigor/100&&ag.budget-ag.spent>=1+costA){ag.spent+=1+costA;const m2=measure(k,r,acc);cl.method="replicate";cl.rep=m2.v;cl.verified=m2.v>=THR-sc.noise;cl.refuted=!cl.verified}
+ path.push("audit");const conf=cl.verified?.95:cl.refuted?.05:.6;cl.conf=conf;
+ cl.decision=conf>=1-c.risk/100?"PROMOTED":"QUARANTINED";
+ if(cl.refuted){path.push("replan");ag.replans++}
+ if(cl.decision==="PROMOTED"){path.push("ledger");if(cl.truth&&cl.owner>=0)ag.found.add(cl.owner);else ag.falseProm++}
+ ag.claims.unshift(cl);selClaim=cl.id;
+ log(cl.decision==="PROMOTED"?"PROMOTE":"QUARANTINE",`Claim C${cl.id} at ${cell(k)}: measured ${m.v.toFixed(2)}; ${cl.method==="kernel"?(cl.verified?"kernel check closed all goals":"kernel check failed (goal unprovable)"):cl.method==="replicate"?`replicate ${cl.rep.toFixed(2)} → ${cl.verified?"agrees":"disagrees"}`:"no verification run"}; confidence ${conf.toFixed(2)} vs required ${(1-c.risk/100).toFixed(2)} → ${cl.decision}.`);
+ return finish(path,ag)}
+function finish(path,ag){S.path=path;path.forEach(p=>S.visits[p]++);ag.curve.push([+ag.spent.toFixed(2),ag.found.size]);S.sur=surrogate(ag)}
+
+function baseStep(){const b=S.base;if(b.done)return;const c=cfg(),sc=S.sc,r=S.rb;
+ if(b.budget-b.spent<1){b.done=true;return}
+ const k=randomFree(b,r);if(k<0){b.done=true;return}b.spent+=1;b.steps++;
+ if(r()>execP(c,sc)){b.fails++;b.curve.push([b.spent,b.found.size]);return}
+ const m=measure(k,r,tts.cov[0]);b.samples.push({k,x:k%G,y:(k/G)|0,v:m.v});b.sampled.add(k);
+ if(m.v>=THR){const t=S.world.f[k]>=THR;if(t&&S.world.owner[k]>=0)b.found.add(S.world.owner[k]);else b.falseProm++}
+ b.curve.push([b.spent,b.found.size])}
+
+function tick(){agentStep();baseStep();if(S.agent.done&&S.base.done){stop();log("DONE",`Campaign complete. Agent realized ${S.agent.found.size}/${S.world.K} targets with ${S.agent.falseProm} false promotions; the random planner realized ${S.base.found.size} with ${S.base.falseProm}.`)}renderAll()}
+function run(){if(timer){stop();renderAll();return}if(S.agent.done&&S.base.done)reset();const sp=[0,900,500,250,110,40][+$("speed").value];timer=setInterval(tick,sp);renderAll()}
+function stop(){clearInterval(timer);timer=null}
+function finishAll(){stop();let g=0;while(!(S.agent.done&&S.base.done)&&g++<2000){agentStep();baseStep()}log("DONE",`Campaign complete. Agent realized ${S.agent.found.size}/${S.world.K} targets with ${S.agent.falseProm} false promotions; the random planner realized ${S.base.found.size} with ${S.base.falseProm}.`);renderAll()}
+function cell(k){return `(${k%G},${(k/G)|0})`}
+function log(kind,msg){S.events.unshift({n:S.events.length+1,kind,msg,spent:S.agent?+S.agent.spent.toFixed(2):0});if(S.events.length>400)S.events.pop()}
+
+/* ---------- test-time scaling model (Monte Carlo, seeded) ---------- */
+function recomputeTTS(){const c=cfg(),sc=S.sc,p=baseP(c),{tpr,fpr}=verifierRates(c,sc),r=rng(S.seed*17+3),T=600,o={cov:[],maj:[],ver:[],p,tpr,fpr};
+ for(const N of NS){let cv=0,mj=0,vr=0;
+  for(let t=0;t<T;t++){const cnt=[0,0,0,0,0],fl=[],all=[];let any=false;
+   for(let i=0;i<N;i++){const ok=r()<p;const a=ok?0:1+Math.floor(r()*4);cnt[a]++;if(ok)any=true;const f=ok?r()<tpr:r()<fpr;all.push(ok);if(f)fl.push(ok)}
+   if(any)cv++;const mx=Math.max(...cnt),ties=[];cnt.forEach((v,i)=>{if(v===mx)ties.push(i)});if(ties[Math.floor(r()*ties.length)]===0)mj++;
+   const pool=fl.length?fl:all;if(pool[Math.floor(r()*pool.length)])vr++}
+  o.cov.push(cv/T);o.maj.push(mj/T);o.ver.push(vr/T)}
+ tts=o}
+
+/* ---------- rendering ---------- */
+function renderAll(){const c=cfg();
+ $("capabilityV").textContent=c.capability;$("ttsV").textContent=c.N;$("rigorV").textContent=S.sc.exact?"kernel":c.rigor+"%";$("budgetV").textContent=c.budget+(c.budget!==S.budget0?" (on reset)":"");$("riskV").textContent=c.risk+"%";$("exploreV").textContent=(.6*c.explore/100).toFixed(2);$("speedV").textContent=["","slow","calm","normal","fast","max"][c.speed];$("biasV").textContent=c.bias+"%";
+ $("rigor").disabled=S.sc.exact;
+ const A=S.agent,B=S.base,st=timer?"RUNNING":(A.done&&B.done)?"COMPLETE":A.steps?"PAUSED":"READY";
+ $("runStatus").textContent=st;$("runStatus").style.color=st==="COMPLETE"?"var(--good-t)":st==="RUNNING"?"var(--accent)":"var(--muted)";
+ $("run").textContent=timer?"Pause":(A.done&&B.done)?"Run again":"Run campaign";$("step").disabled=!!timer||(A.done&&B.done);$("finishBtn").disabled=A.done&&B.done;
+ $("kTargets").textContent=`${A.found.size} / ${S.world.K}`;$("kTargetsD").textContent=`random planner: ${B.found.size} / ${S.world.K}`;
+ $("kFalse").innerHTML=`${A.falseProm} <span class="chip ${A.falseProm?"crit":"good"}">${A.falseProm?"present":"none"}</span>`;$("kFalseD").textContent=`random planner: ${B.falseProm} (promotes every hit)`;
+ const left=Math.max(0,A.budget-A.spent);$("kBudget").textContent=left.toFixed(1);$("kBudgetD").textContent=`of ${A.budget} · ${A.steps} experiments · ${A.fails} failed`;
+ const pE=execP(c,S.sc);$("kExec").textContent=Math.round(pE*100)+"%";$("kExecD").textContent=`${hfmt(S.sc.taskMin)} task vs ${hfmt(horizonMin(c.capability))} horizon`;
+ $("kAcc").textContent=Math.round(tts.ver[c.tts]*100)+"%";$("kAccD").textContent=`N=${c.N} · single sample ${Math.round(tts.cov[0]*100)}%`;
+ $("kHor").textContent=hfmt(horizonMin(c.capability));
+ $("mission").innerHTML=`<span class="eyebrow">Mission · ${esc(S.sc.name)}</span><b>${esc(S.sc.mission)}</b><span class="muted">${esc(S.sc.ref)}</span>`;
+ $("axX").textContent=S.sc.ax[0];$("axY").textContent=S.sc.ax[1];
+ drawMap();drawCurve();drawGraph();drawLog();drawTTS();drawMETR();drawLedger();drawProof();drawTour()}
+
+function hex2rgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(x=>x+x).join("");return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
+function ramp(v){const a=hex2rgb(css("--heat0")),b=hex2rgb(css("--heat1")),c=hex2rgb(css("--heat2"));v=Math.max(0,Math.min(1,v));const [p,q,t]=v<.55?[a,b,v/.55]:[b,c,(v-.55)/.45];return`rgb(${p.map((x,i)=>Math.round(x+(q[i]-x)*t)).join(",")})`}
+function drawMap(){const cv=$("map"),dpr=Math.min(2,window.devicePixelRatio||1),W=448;if(cv.width!==W*dpr){cv.width=W*dpr;cv.height=W*dpr}
+ const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);const s=W/G,vals=view==="truth"?S.world.f:S.sur.m;
+ for(let k=0;k<G*G;k++){const x=k%G,y=(k/G)|0;g.fillStyle=ramp(vals[k]);g.fillRect(x*s,(G-1-y)*s,s+.5,s+.5)}
+ if(view==="truth"){g.strokeStyle=css("--text");g.globalAlpha=.55;g.lineWidth=1;for(let k=0;k<G*G;k++){if(S.world.f[k]<THR)continue;const x=k%G,y=(k/G)|0;g.strokeRect(x*s+1,(G-1-y)*s+1,s-2,s-2)}g.globalAlpha=1}
+ const P=k=>[(k%G+.5)*s,(G-1-((k/G)|0)+.5)*s];
+ if($("showBase").checked){g.fillStyle=css("--s2");for(const b of S.base.samples){const[x,y]=P(b.k);g.beginPath();g.arc(x,y,3,0,7);g.fill()}}
+ g.lineWidth=2;for(const a of S.agent.samples){const[x,y]=P(a.k);g.strokeStyle=css("--ring");g.beginPath();g.arc(x,y,5,0,7);g.stroke();g.strokeStyle=css("--text");g.lineWidth=1.6;g.beginPath();g.arc(x,y,4.2,0,7);g.stroke();g.lineWidth=2}
+ for(const cl of S.agent.claims){const[x,y]=P(cl.k);if(cl.decision==="PROMOTED"){g.fillStyle=css("--s3");g.strokeStyle=css("--ring");g.beginPath();g.moveTo(x,y-7);g.lineTo(x+7,y);g.lineTo(x,y+7);g.lineTo(x-7,y);g.closePath();g.fill();g.stroke()}else{g.strokeStyle=css("--crit");g.strokeRect(x-5.5,y-5.5,11,11)}
+  if(cl.id===selClaim){g.strokeStyle=css("--accent");g.lineWidth=2;g.beginPath();g.arc(x,y,10,0,7);g.stroke()}}
+ const A=S.agent;$("mapStats").innerHTML=`<span>experiments <b>${A.samples.length}</b></span><span>claims <b>${A.claims.length}</b></span><span>replans <b>${A.replans}</b></span><span>view <b>${view==="truth"?"ground truth":"agent belief"}</b></span><span>prior <b>${$("lit").checked?"literature":"flat"}</b></span>`}
+
+function tip(e,html){const t=$("tip");t.innerHTML=html;t.style.opacity=1;const w=t.offsetWidth,h=t.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-8)x=e.clientX-w-14;if(y+h>innerHeight-8)y=e.clientY-h-14;t.style.left=x+"px";t.style.top=y+"px"}
+function untip(){$("tip").style.opacity=0}
+const row=(a,b)=>`<div class="r"><span>${a}</span><span>${b}</span></div>`;
+
+/* generic axes helper */
+function frame(svg,W,H,m,xt,yt){let o="";yt.forEach(([v,l])=>{o+=`<line class="gl" x1="${m.l}" x2="${W-m.r}" y1="${v}" y2="${v}"/><text x="${m.l-5}" y="${v+3.5}" text-anchor="end">${l}</text>`});
+ xt.forEach(([v,l])=>{o+=`<text x="${v}" y="${H-m.b+14}" text-anchor="middle">${l}</text>`});o+=`<line class="ax" x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}"/>`;return o}
+
+function endLabels(L,x,top,bot){const o=L.map((l,i)=>({y:l[0],t:l[1],i})).sort((a,b)=>a.y-b.y);for(let i=1;i<o.length;i++)if(o[i].y-o[i-1].y<14)o[i].y=o[i-1].y+14;const over=o[o.length-1].y-bot;if(over>0)o.forEach(e=>e.y-=over);o.forEach(e=>{if(e.y<top)e.y=top});return o.map(e=>`<text x="${x}" y="${e.y.toFixed(1)}" class="lbl">${esc(e.t)}</text>`).join("")}
+function drawCurve(){const svg=$("curve"),W=640,H=220,m={l:34,r:120,t:12,b:26},A=S.agent.curve,B=S.base.curve,K=S.world.K,xmax=S.budget0,ymax=Math.max(1,K);
+ const X=v=>m.l+(W-m.l-m.r)*v/xmax,Y=v=>H-m.b-(H-m.t-m.b)*v/ymax;
+ const yt=[];for(let i=0;i<=ymax;i+=ymax>6?2:1)yt.push([Y(i),i]);const xt=[];for(let i=0;i<=xmax;i+=xmax>100?40:20)xt.push([X(i),i]);
+ const step=pts=>{let d="";pts.forEach((p,i)=>{d+=(i?`H${X(p[0]).toFixed(1)}V${Y(p[1]).toFixed(1)}`:`M${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`)});return d};
+ const la=A[A.length-1],lb=B[B.length-1];
+ svg.innerHTML=frame(svg,W,H,m,xt,yt)+`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(K)}" y2="${Y(K)}" stroke="var(--faint)" stroke-dasharray="4 4"/>`+
+  `<path d="${step(B)}" fill="none" stroke="var(--s2)" stroke-width="2"/><path d="${step(A)}" fill="none" stroke="var(--s1)" stroke-width="2"/>`+
+  endLabels([[Y(K)+3.5,`${K} available`],[Y(la[1])+3.5,`Agent ${la[1]}`],[Y(lb[1])+3.5,`Random ${lb[1]}`]],W-m.r+6,m.t+4,H-m.b)+
+  `<text x="${m.l}" y="${H-2}">budget spent (units)</text><line id="cx" class="ax" y1="${m.t}" y2="${H-m.b}" x1="-9" x2="-9"/><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent" id="cHit"/>`;
+ const at=(pts,x)=>{let v=0;for(const p of pts){if(p[0]<=x)v=p[1];else break}return v};
+ $("cHit").onmousemove=e=>{const rc=svg.getBoundingClientRect(),sx=(e.clientX-rc.left)*W/rc.width,x=Math.max(0,Math.min(xmax,(sx-m.l)/(W-m.l-m.r)*xmax));$("cx").setAttribute("x1",X(x));$("cx").setAttribute("x2",X(x));tip(e,`<b>${x.toFixed(1)} units spent</b>${row("Agent",at(A,x)+" / "+K)}${row("Random planner",at(B,x)+" / "+K)}`)};
+ $("cHit").onmouseleave=()=>{untip();$("cx").setAttribute("x1",-9);$("cx").setAttribute("x2",-9)}}
+
+function drawGraph(){const svg=$("graph"),N={plan:[60,34,"Plan","UCB proposal"],exec:[170,34,"Execute",S.sc.unit.split(" ")[0]],analyze:[280,34,"Analyze","best-of-N"],verify:[280,124,"Verify",S.sc.exact?"kernel":"replicate"],audit:[170,124,"Audit","promote gate"],ledger:[60,124,"Ledger","append-only"],replan:[170,208,"Replan","narrow & retry"]};
+ const E=[["plan","exec"],["exec","analyze"],["analyze","verify"],["verify","audit"],["audit","ledger"],["exec","replan"],["audit","replan"],["replan","plan"],["analyze","plan"]];
+ const on=new Set(S.path),pe=new Set();for(let i=0;i<S.path.length-1;i++)pe.add(S.path[i]+">"+S.path[i+1]);
+ let o=`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--faint)"/></marker><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--accent)"/></marker></defs>`;
+ E.forEach(([a,b])=>{const[x1,y1]=N[a],[x2,y2]=N[b];const hot=pe.has(a+">"+b)||(a==="analyze"&&b==="plan"&&S.path[S.path.length-1]==="analyze");const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,ox=Math.abs(ux)>.5?44:0,oy=Math.abs(uy)>.5?20:0;
+  let d;if(a==="replan"&&b==="plan")d=`M${x1-44},${y1} H${x2} V${y2+20}`;else if(a==="analyze"&&b==="plan")d=`M${x1},${y1-20} V8 H${x2} V${y2-20}`;else d=`M${x1+ux*ox},${y1+uy*oy} L${x2-ux*ox},${y2-uy*oy}`;
+  o+=`<path d="${d}" fill="none" stroke="${hot?"var(--accent)":"var(--line)"}" stroke-width="${hot?2:1.4}" marker-end="url(#${hot?"ah2":"ah"})"/>`});
+ Object.entries(N).forEach(([k,[x,y,t,s]])=>{const hot=on.has(k);o+=`<g><rect x="${x-44}" y="${y-20}" width="88" height="40" rx="8" fill="var(--panel2)" stroke="${hot?"var(--accent)":"var(--line)"}" stroke-width="${hot?2:1}"/><text x="${x}" y="${y-3}" text-anchor="middle" class="lbl" style="fill:var(--text)">${t}</text><text x="${x}" y="${y+11}" text-anchor="middle">${esc(s)}</text><text x="${x+40}" y="${y-24}" text-anchor="end">${S.visits[k]}</text></g>`});
+ svg.innerHTML=o}
+
+function drawLog(){$("log").innerHTML=S.events.slice(0,120).map(e=>`<li><span class="t">#${String(e.n).padStart(3,"0")}</span><span><span class="kind">${e.kind} · spent ${e.spent}</span><br>${esc(e.msg)}</span></li>`).join("")}
+
+function drawTTS(){const svg=$("ttsChart"),W=400,H=230,m={l:36,r:12,t:10,b:30},c=cfg();
+ const X=i=>m.l+(W-m.l-m.r)*i/(NS.length-1),Y=v=>H-m.b-(H-m.t-m.b)*v;
+ const yt=[0,.25,.5,.75,1].map(v=>[Y(v),Math.round(v*100)+"%"]),xt=NS.map((n,i)=>[X(i),n]);
+ const line=(a,col,dash)=>`<polyline points="${a.map((v,i)=>X(i)+","+Y(v)).join(" ")}" fill="none" stroke="var(${col})" stroke-width="2" ${dash?'stroke-dasharray="5 4"':""}/>`+a.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="2.6" fill="var(${col})"/>`).join("");
+ svg.innerHTML=frame(svg,W,H,m,xt,yt)+`<line x1="${X(c.tts)}" x2="${X(c.tts)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-dasharray="3 3"/>`+line(tts.maj,"--s4",true)+line(tts.cov,"--s3")+line(tts.ver,"--s1")+`<text x="${m.l}" y="${H-2}">samples N (log₂)</text><line id="tx" class="ax" y1="${m.t}" y2="${H-m.b}" x1="-9" x2="-9"/><rect id="tHit" x="${m.l-10}" y="${m.t}" width="${W-m.l-m.r+20}" height="${H-m.t-m.b}" fill="transparent"/>`;
+ $("tHit").onmousemove=e=>{const rc=svg.getBoundingClientRect(),sx=(e.clientX-rc.left)*W/rc.width,i=Math.max(0,Math.min(NS.length-1,Math.round((sx-m.l)/(W-m.l-m.r)*(NS.length-1))));$("tx").setAttribute("x1",X(i));$("tx").setAttribute("x2",X(i));tip(e,`<b>N = ${NS[i]}</b>${row("Coverage",pct(tts.cov[i]))}${row("Verifier best-of-N",pct(tts.ver[i]))}${row("Majority vote",pct(tts.maj[i]))}`)};
+ $("tHit").onmouseleave=()=>{untip();$("tx").setAttribute("x1",-9);$("tx").setAttribute("x2",-9)};
+ const gap=tts.cov[6]-tts.ver[6];
+ $("ttsStats").innerHTML=`<span>single-sample p <b>${pct(tts.p)}</b></span><span>verifier TPR <b>${pct(tts.tpr)}</b> · FPR <b>${pct(tts.fpr)}</b></span><span>gap at N=64 <b>${(gap*100).toFixed(0)} pts</b></span><span class="faint">${S.sc.exact?"Exact kernel: the verifier reaches coverage.":"An imperfect verifier stays well below coverage, however large N gets."}</span>`}
+const pct=v=>Math.round(v*100)+"%";
+
+function drawMETR(){const svg=$("metrChart"),W=400,H=230,m={l:44,r:12,t:10,b:30},c=cfg(),qi=metrQ==="p50"?2:3;
+ const pts=METR.filter(d=>d[qi]!=null).map(d=>({n:d[0],t:Date.parse(d[1]),v:d[qi],d:d[1]}));
+ const t0=Date.parse("2019-01-01"),t1=Date.parse("2026-12-31"),lo=Math.log10(.05),hi=Math.log10(4000);
+ const X=t=>m.l+(W-m.l-m.r)*(t-t0)/(t1-t0),Y=v=>H-m.b-(H-m.t-m.b)*(Math.log10(v)-lo)/(hi-lo);
+ const yt=[[.1,"6 s"],[1,"1 min"],[10,"10 min"],[60,"1 h"],[480,"8 h"],[960,"16 h"]].map(([v,l])=>[Y(v),l]);
+ const xt=[2019,2020,2021,2022,2023,2024,2025,2026].map(y=>[X(Date.parse(y+"-01-01")),"'"+String(y).slice(2)]);
+ // OLS refit of log2(h) on time for points from 2023
+ const fp=pts.filter(p=>p.t>=Date.parse("2023-01-01"));const n=fp.length,mx=fp.reduce((s,p)=>s+p.t,0)/n,my=fp.reduce((s,p)=>s+Math.log2(p.v),0)/n;
+ let sxy=0,sxx=0;fp.forEach(p=>{sxy+=(p.t-mx)*(Math.log2(p.v)-my);sxx+=(p.t-mx)**2});const sl=sxy/sxx,dbl=1/sl/864e5;
+ const fit=t=>Math.pow(2,my+sl*(t-mx));const fa=Date.parse("2023-01-01"),fb=t1;
+ const hm=horizonMin(c.capability)*(metrQ==="p80"?.25:1);
+ let o=frame(svg,W,H,m,xt,yt)+`<rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${Y(960)-m.t}" fill="var(--panel2)" opacity=".7"/><text x="${m.l+4}" y="${m.t+11}">above 16 h: unreliable (METR)</text>`+
+  `<line x1="${X(fa)}" y1="${Y(fit(fa))}" x2="${X(fb)}" y2="${Y(Math.min(4000,fit(fb)))}" stroke="var(--faint)" stroke-width="1.5" stroke-dasharray="5 4"/>`+
+  `<line x1="${m.l}" x2="${W-m.r}" y1="${Y(hm)}" y2="${Y(hm)}" stroke="var(--s2)" stroke-width="2"/><text x="${m.l+4}" y="${Y(hm)-5}" class="lbl">modeled agent ${hfmt(hm)}</text>`;
+ pts.forEach((p,i)=>{o+=`<circle cx="${X(p.t)}" cy="${Y(p.v)}" r="4.5" fill="var(--s1)" stroke="var(--panel)" stroke-width="2"/><circle data-i="${i}" cx="${X(p.t)}" cy="${Y(p.v)}" r="11" fill="transparent" class="mh"/>`});
+ const last=pts[pts.length-1];o+=`<text x="${X(last.t)-9}" y="${Y(last.v)+4}" text-anchor="end" class="lbl">${esc(last.n)}</text><text x="${m.l}" y="${H-2}">release date · human task length (log)</text>`;
+ svg.innerHTML=o;
+ svg.querySelectorAll(".mh").forEach(el=>{const p=pts[+el.dataset.i];el.onmousemove=e=>tip(e,`<b>${esc(p.n)}</b>${row("Released",p.d)}${row(metrQ==="p50"?"50% horizon":"80% horizon",hfmt(p.v))}`);el.onmouseleave=untip});
+ $("metrStats").innerHTML=`<span>our refit doubling <b>${dbl.toFixed(0)} d</b></span><span>METR published <b>${METR_DOUBLING.point} d</b> (CI ${METR_DOUBLING.lo}–${METR_DOUBLING.hi})</span><span class="faint">The refit uses frontier points only, so it differs from METR's estimate.${metrQ==="p80"?" The modeled agent's 80% line assumes a horizon ¼ of its 50% horizon (an assumption).":""}</span>`;
+ $("metrTable").innerHTML=`<thead><tr><th>Model</th><th>Release</th><th>50%</th><th>80%</th></tr></thead><tbody>`+METR.map(d=>`<tr><td>${esc(d[0])}</td><td>${d[1]}</td><td>${hfmt(d[2])}</td><td>${d[3]==null?"–":hfmt(d[3])}</td></tr>`).join("")+`</tbody>`}
+
+function drawLedger(){const cl=S.agent.claims,show=S.agent.done;
+ if(!cl.length){$("ledger").innerHTML=`<tbody><tr><td class="faint">No claims yet. A claim opens when an analysed value reaches ≥ ${THR.toFixed(2)}.</td></tr></tbody>`;return}
+ $("ledger").innerHTML=`<thead><tr><th>Claim</th><th>Cell</th><th>Measured</th><th>Verification</th><th>Conf.</th><th>Decision</th><th>Ground truth${show?"":" (after run)"}</th></tr></thead><tbody>`+cl.map(c=>{
+  const ver=c.method==="kernel"?(c.verified?'<span class="chip good">kernel ✓</span>':'<span class="chip crit">kernel</span>'):c.method==="replicate"?(c.verified?`<span class="chip good">rep ${c.rep.toFixed(2)}</span>`:`<span class="chip crit">rep ${c.rep.toFixed(2)}</span>`):'<span class="chip none">none</span>';
+  const dec=c.decision==="PROMOTED"?'<span class="chip good">PROMOTED</span>':'<span class="chip warn">QUARANTINED</span>';
+  const gt=show?(c.truth?'<span class="ok-t">real target</span>':'<span class="bad-t">false</span>'):'<span class="faint">hidden</span>';
+  return`<tr data-id="${c.id}" class="${c.id===selClaim?"sel":""}" tabindex="0"><td>C${c.id}</td><td>${cell(c.k)}</td><td>${c.meas.toFixed(2)}</td><td>${ver}</td><td>${c.conf.toFixed(2)}</td><td>${dec}</td><td>${gt}</td></tr>`}).join("")+`</tbody>`;
+ $("ledger").querySelectorAll("tbody tr").forEach(tr=>{const f=()=>{selClaim=+tr.dataset.id;drawLedger();drawProof();drawMap()};tr.onclick=f;tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}}})}
+
+function drawProof(){const cl=S.agent.claims.find(c=>c.id===selClaim);const chip=$("proofChip");
+ if(!cl){$("proof").textContent="-- No claim selected.\n-- Run the campaign; each hit ≥ 0.80 opens a theorem here.";chip.className="chip none";chip.textContent="no claim";return}
+ const x=cl.k%G,y=(cl.k/G)|0,sc=S.sc,N=cl.settings.N;let L=[];
+ L.push(`theorem claim_C${cl.id} (c : Cell := ⟨${x}, ${y}⟩)`,`    (h_meas : analysed c ≥ 0.80)   -- measured ${cl.meas.toFixed(2)}, best-of-${N}`,`    : target c := by`);
+ let open=0;
+ if(sc.exact){if(cl.method==="kernel"&&cl.verified){L.push(`  unfold target`,`  exact conj_holds c (by decide)   -- kernel ✓`)}else if(cl.method==="kernel"){L.push(`  unfold target`,`  sorry   -- kernel rejected: no proof of conj_holds c exists`);open=1}else{L.push(`  sorry   -- not checked: budget exhausted`);open=1}}
+ else{if(cl.method==="replicate"){L.push(`  have h_rep : replicate c ≥ ${(THR-sc.noise).toFixed(2)} := ${cl.verified?`by norm_num [obs_${cl.id}b]   -- ${cl.rep.toFixed(2)} ✓`:`sorry   -- replicate ${cl.rep.toFixed(2)} < ${(THR-sc.noise).toFixed(2)}`}`);if(!cl.verified)open++}else{L.push(`  have h_rep : replicate c ≥ ${(THR-sc.noise).toFixed(2)} := sorry   -- no replicate was run`);open++}
+  L.push(`  have h_bridge : analysed c ≥ 0.80 → replicate c ≥ ${(THR-sc.noise).toFixed(2)} → target c :=`,`    sorry   -- empirical bridge: needs domain review, not provable here`);open++;
+  L.push(`  exact h_bridge h_meas h_rep`)}
+ L.push("",open?`-- ${open} open goal${open>1?"s":""} (sorry). Decision: ${cl.decision} at confidence ${cl.conf.toFixed(2)}`:`-- No open goals. Decision: ${cl.decision}`);
+ if(!sc.exact)L.push("-- Empirical claims always keep the bridge goal open:","-- traceable is not the same as proven.");
+ $("proof").textContent=L.join("\n");chip.className="chip "+(open?(cl.decision==="PROMOTED"?"warn":"crit"):"good");chip.textContent=open?`${open} open goal${open>1?"s":""}`:"goals closed"}
+
+/* ---------- BTL tournament ---------- */
+function drawTour(){const c=cfg(),A=S.agent;
+ if(A.samples.length<6){$("tour").innerHTML=`<p class="faint" style="font-size:12px">Needs at least 6 measurements before regions can be proposed as hypotheses (now ${A.samples.length}).</p>`;return}
+ const r=rng(S.seed*31+A.samples.length+(+$("tourBtn").dataset.n||0)*977),m=S.sur.m,idx=[...m.keys()].sort((a,b)=>m[b]-m[a]),cand=[];
+ for(const k of idx){if(cand.every(j=>Math.hypot(j%G-k%G,((j/G)|0)-((k/G)|0))>5))cand.push(k);if(cand.length===6)break}
+ for(let i=cand.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[cand[i],cand[j]]=[cand[j],cand[i]]}
+ const n=cand.length,q=cand.map(k=>S.world.f[k]),temp=.03+.25*(1-(c.capability-20)/75),bias=c.bias/100;
+ const W=Array.from({length:n},()=>Array(n).fill(0));let games=0,aw=0;
+ const judge=(a,b)=>{const p=1/(1+Math.exp(-(q[a]-q[b])/temp)),pa=p*(1-bias)+bias;games++;if(r()<pa){aw++;W[a][b]++}else W[b][a]++};
+ for(let rep=0;rep<2;rep++)for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){judge(i,j);if(c.counter)judge(j,i)}
+ let w=Array(n).fill(1);for(let it=0;it<200;it++){const nw=w.map((wi,i)=>{let wins=.5,den=0;for(let j=0;j<n;j++){if(i===j)continue;const nij=W[i][j]+W[j][i]+1;wins+=W[i][j];den+=nij/(wi+w[j])}wins+=.5;return wins/den});const s=nw.reduce((a,b)=>a+b,0);w=nw.map(v=>v*n/s)}
+ let con=0,dis=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const s=Math.sign(w[i]-w[j])*Math.sign(q[i]-q[j]);if(s>0)con++;else if(s<0)dis++}const tau=(con-dis)/(n*(n-1)/2);
+ const order=[...Array(n).keys()].sort((a,b)=>w[b]-w[a]),trueRank=[...Array(n).keys()].sort((a,b)=>q[b]-q[a]),mw=Math.max(...w);
+ $("tour").innerHTML=`<table><thead><tr><th>#</th><th>Hypothesis</th><th>BTL strength</th><th>True rank${A.done?"":" (sim)"}</th></tr></thead><tbody>`+order.map((i,rk)=>`<tr><td>${rk+1}</td><td>H${i+1} near ${cell(cand[i])}</td><td><div class="bar" style="width:${Math.max(3,w[i]/mw*100)}%"></div></td><td>${trueRank.indexOf(i)+1}</td></tr>`).join("")+`</tbody></table>`+
+  `<div class="stats"><span>games <b>${games}</b></span><span>position-A share <b>${pct(aw/games)}</b> ${Math.abs(aw/games-.5)>.12?'<span class="chip warn">biased</span>':'<span class="chip good">balanced</span>'}</span><span>Kendall τ vs truth <b>${tau.toFixed(2)}</b></span></div>`+
+  `<p class="faint" style="font-size:11.5px;margin:6px 0 0">${c.counter?"Both orders are judged, so position bias cancels out of the ranking (the A share stays near 50%).":"One order per pair, in list order: the judge's position bias leaks into the ranking."}</p>`}
+
+/* ---------- sources ---------- */
+function drawSources(){$("sources").innerHTML=SOURCES.map(s=>`<div class="src"><div class="h"><b>${s.u?`<a href="${s.u}" target="_blank" rel="noreferrer">${esc(s.t)}</a>`:esc(s.t)}</b><span class="chip ${s.s==="LIVE"?"good":"none"}">${s.s}</span></div><ul>${s.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul><div class="use">${esc(s.use)}</div></div>`).join("")}
+
+/* ---------- wiring ---------- */
+Object.entries(SCEN).forEach(([k,v])=>{const o=document.createElement("option");o.value=k;o.textContent=v.name;$("scenario").appendChild(o)});
+$("scenario").onchange=reset;$("seed").onchange=reset;
+["capability","tts","rigor"].forEach(k=>$(k).addEventListener("input",()=>{recomputeTTS();renderAll()}));
+["risk","explore","bias","budget"].forEach(k=>$(k).addEventListener("input",()=>renderAll()));
+$("speed").addEventListener("input",()=>{if(timer){stop();run()}else renderAll()});
+$("counter").onchange=()=>drawTour();
+$("tourBtn").onclick=()=>{$("tourBtn").dataset.n=(+$("tourBtn").dataset.n||0)+1;drawTour()};
+$("batchBtn").onclick=batch;$("run").onclick=run;$("step").onclick=()=>{tick()};$("reset").onclick=reset;$("finishBtn").onclick=finishAll;
+$("showBase").onchange=drawMap;$("lit").onchange=reset;
+document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));drawMap()});
+document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{metrQ=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));drawMETR()});
+$("theme").onclick=()=>{const cur=document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=cur==="dark"?"light":"dark";try{localStorage.setItem("dlab-theme",document.documentElement.dataset.theme)}catch(e){}renderAll()};
+try{const t=localStorage.getItem("dlab-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+$("map").onmousemove=e=>{const rc=$("map").getBoundingClientRect(),x=Math.floor((e.clientX-rc.left)/rc.width*G),y=G-1-Math.floor((e.clientY-rc.top)/rc.height*G);if(x<0||y<0||x>=G||y>=G)return;const k=y*G+x,s=S.agent.samples.find(a=>a.k===k);
+ tip(e,`<b>Cell (${x},${y})</b>${row("Agent belief",S.sur.m[k].toFixed(2))}${row("Uncertainty",S.sur.u[k].toFixed(2))}${s?row("Measured",s.v.toFixed(2)):""}${view==="truth"?row("Ground truth",S.world.f[k].toFixed(2)):""}`)};
+$("map").onmouseleave=untip;
+$("export").onclick=()=>{const A=S.agent,data={exported:new Date().toISOString(),kind:"SIMULATION",scenario:S.sc.name,seed:S.seed,settings:{...cfg(),literaturePrior:$("lit").checked},targets:S.world.K,agent:{found:A.found.size,falsePromotions:A.falseProm,spent:A.spent,experiments:A.steps,failures:A.fails,claims:A.claims.map(c=>({id:c.id,cell:cell(c.k),measured:+c.meas.toFixed(3),verification:c.method,verified:c.verified,decision:c.decision,groundTruth:A.done?c.truth:"hidden until run completes"}))},randomPlanner:{found:S.base.found.size,falsePromotions:S.base.falseProm},events:S.events.slice().reverse()};
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download=`discovery-lab-${$("scenario").value}-seed${S.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawMap,120)});
+drawSources();reset();
+</script>
+</body>
+</html>
