@@ -2,6 +2,26 @@
 
 A collection of custom Claude Code skills.
 
+### patient-care-network
+
+Builds a hospital patient care network as a local, intranet-first clinical decision-support system. It has three tiers:
+- **Patient edge:** LINE messaging with meal photos, voice meals, CGM and proactive outreach.
+- **In-hospital server:** FastAPI + SQLite with deterministic risk calculators, care-gap rules, a three-ring RAG / LLM-Wiki and a guardrail.
+- **Desktop agentic AI:** Claude Desktop, Cursor or OpenCode over MCP. It can read and stage, but never commit.
+
+- Hard rules:
+  - no LLM arithmetic, no doses, no imputation;
+  - MCP reads and stages only;
+  - auto-send only for hard-coded safety text and physician-approved templates on consented schedules;
+  - a guardrail check before anything is staged.
+- Covers the architecture, build order, clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, `wiki://`, MCP Apps `ui://` panels), and Claude Desktop setup on Windows (Microsoft Store config path).
+- Includes `scripts/score2_diabetes.py` (standalone, `--selftest` pins the 8.4 % worked example) and `scripts/mcp_stdio_bridge.py` (stdio ↔ streamable-HTTP, re-initialises after a server restart).
+- 30 measured pitfalls, e.g. MCP HTTP 421 from DNS-rebinding protection, SQLite on Google Drive at 60 ms per connection, guardrail number-grounding false passes.
+- Reference build: Smart Diabetes Care Network v2 (`ckt520728/2026-open-code`, `projects/smart-dm-care`), 48 tests, mobile-checked dashboard.
+- Skill folder: `patient-care-network/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
+- Bundle: `patient-care-network.skill`
+- Session wrap-up: `2026-11-17_Smart_Diabetes_Care_Network_Lessons_and_Pitfalls.md`
+
 ### stat-sim-explainer
 
 Builds a single-file interactive HTML page that teaches statistics or causal-inference concepts with live, seeded Monte Carlo simulations and theme-aware SVG charts. Each concept is a card: a plain explanation and a formula beside a simulation with sliders that move the method from "works" to "fails".
