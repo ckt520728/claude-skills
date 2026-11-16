@@ -1,0 +1,8 @@
+﻿### Result
+{"online":false,"model":"small","results":[{"mode":"zh","output":"今天下午四點開會,請記得帶研究報告。"},{"mode":"en","output":"The meeting starts at 4 in the afternoon. Please bring the research report."}]}
+### Ran Playwright code
+```js
+await (async page => {   await page.reload();   await page.getByLabel('語音模型').selectOption('small');   await page.getByRole('button', {name: '下載／載入模型', exact: true}).click();   await page.waitForFunction(() => !document.getElementById('record').disabled, null, {timeout: 120000});   await page.context().setOffline(true);   await page.reload();   await page.getByRole('button', {name: '下載／載入模型', exact: true}).click();   await page.waitForFunction(() => !document.getElementById('record').disabled, null, {timeout: 120000});   const results = [];   for (const [mode, file] of [['zh', 'quality-meeting.wav'], ['en', 'quality-english.wav']]) {     await page.getByLabel('辨識模式').selectOption(mode);     await page.getByRole('textbox', {name: '可編輯的轉錄文字'}).fill('');     await page.locator('input[type=file]').setInputFiles('D:/2026 Voice2Txt/tests/fixtures/' + file);     await page.waitForFunction(() => document.getElementById('status').textContent.includes('本機轉錄完成'), null, {timeout: 120000});     results.push({mode, output: await page.getByRole('textbox', {name: '可編輯的轉錄文字'}).inputValue()});   }   return {online: await page.evaluate(() => navigator.onLine), model: await page.getByLabel('語音模型').inputValue(), results}; })(page);
+```
+### Events
+- New console entries: .playwright-cli\console-2026-11-15T10-21-17-153Z.log#L20-L31

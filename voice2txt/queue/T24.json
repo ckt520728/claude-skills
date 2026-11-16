@@ -1,0 +1,17 @@
+{
+  "task_id": "T24",
+  "objective": "Close audit G minors (verification/audit-G-2026-11-13.json). G1: in context._late_watch, before restoring, require that the clipboard owner window (GetClipboardOwner -> GetWindowThreadProcessId) belongs to the target process pid captured at capture time (pass target_pid into the watcher; if the owner cannot be determined or the pid differs, do not restore); when the user's own copy happens the watcher must leave it alone; unit test with injectable owner_pid(); real check in check_context_capture.py: no-selection scenario where the test copies its own text 0.3 s after the late return -> clipboard keeps the user's text. G2: desktop.py:657 docstring 0.4 -> 0.9; keep the status text but make it accurate: '未取得選取文字（目標未回應或無選取）；若目標稍後才回應，剪貼簿會自動還原'. G3: check_context_capture.py records the timeout used per scenario in the JSON, and STATUS.md:60 states that the 700 ms evidence used timeout 0.4 to reproduce the original defect while the shipped default is 0.9 s. INFO: context.py:258 docstring lists 'late'; move the T23 entry in handoffs.md out of the 2026-10-18 section into the 2026-11-13 wave D entry. Do not touch hotkeys.py or check_wave_d.py.",
+  "inputs": ["verification/audit-G-2026-11-13.json", "voice2txt/context.py", "voice2txt/desktop.py", "scripts/check_context_capture.py", "tests/test_context.py", "STATUS.md", "handoffs.md", "USER_MANUAL.md"],
+  "outputs": ["voice2txt/context.py", "voice2txt/desktop.py", "scripts/check_context_capture.py", "tests/test_context.py", "verification/context-capture-2026-11-13.json", "STATUS.md", "handoffs.md", "USER_MANUAL.md"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with the owner-pid tests (restore only when owner pid == target pid; no restore otherwise).",
+    "`scripts\\check_context_capture.py` ok=true for fast, delayed-700ms (timeout 0.4 recorded) and no-selection-user-copy scenarios; real clipboard restored after the run.",
+    "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok.",
+    "grep: desktop.py has no '0.4 秒' in the _begin_ask docstring; STATUS.md explains the 0.4 vs 0.9 timeouts; handoffs.md T23 entry sits under the 2026-11-13 entry."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T23"],
+  "max_output_tokens": 6000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Minimal diffs. Python 3.9. Never inject Right Alt. Save/restore the real clipboard. Do not rebuild dist (T19c). Do not run git."
+}

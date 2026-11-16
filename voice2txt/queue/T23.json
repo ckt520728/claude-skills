@@ -1,0 +1,17 @@
+{
+  "task_id": "T23",
+  "objective": "Fix audit F major D1 (verification/audit-F-2026-11-13.json): context.capture_selection returns ('', True) after the 0.4 s timeout, so a target app that writes the clipboard late leaves the selection in the clipboard and never restores the saved text. Changes: (1) widen the wait to 0.9 s; (2) on timeout return ('', False) and set last_skip_reason='late' (never report restored when nothing was restored); (3) start a background watcher thread that keeps polling GetClipboardSequenceNumber for a 2.0 s grace period after the timeout; when the sequence advances exactly once relative to the post-inject value, it restores the saved CF_UNICODETEXT (or empties if the clipboard was empty) and records last_late_restore=True; if the sequence advances more than once (the user copied something else) it does nothing; the watcher is daemon, never raises, and is cancelled if a new capture starts; (4) desktop.py: when capture returns late/skip, the status line says '選取文字擷取逾時，未取得選取；剪貼簿將在目標回應後自動還原'; (5) scripts/check_context_capture.py: add a delayed-target scenario (a Tk window that writes the clipboard 700 ms after receiving Ctrl+C) and assert the clipboard is restored to the prior text within 3 s and the function returned ('', False); keep the fast scenario; (6) USER_MANUAL.md line ~130: say the clipboard is restored once the target app has answered the copy, normally immediately, and that for very slow apps the selection is not used; STATUS.md 已知限制: replace the wave D clipboard statement accordingly and cite audit-F; (7) D4: STATUS.md:34 and handoffs.md:31 cite the test count 136 from verification/audit-F-2026-11-13.json instead of hotkey-hook JSON. Do not change hotkeys.py.",
+  "inputs": ["verification/audit-F-2026-11-13.json", "voice2txt/context.py", "voice2txt/desktop.py", "scripts/check_context_capture.py", "tests/test_context.py", "USER_MANUAL.md", "STATUS.md", "handoffs.md"],
+  "outputs": ["voice2txt/context.py", "voice2txt/desktop.py", "scripts/check_context_capture.py", "tests/test_context.py", "verification/context-capture-2026-11-13.json", "USER_MANUAL.md", "STATUS.md", "handoffs.md"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with new tests (timeout returns ('', False) with reason 'late'; watcher restores on single late advance; watcher does nothing on double advance) using an injectable sequence/clipboard stub.",
+    "`scripts\\check_context_capture.py` ok=true for both scenarios: fast (selection captured, restored) and delayed 700 ms (returned ('', False), clipboard restored to the prior text within 3 s); real clipboard restored after the run.",
+    "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `scripts\\check_wave_d.py` ok=true at least 2 of 2 runs; run_desktop --self-test ok.",
+    "grep: USER_MANUAL.md no longer says the clipboard is restored 立刻 unconditionally; STATUS.md cites audit-F-2026-11-13.json for the 136 test count and the clipboard limitation."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T22"],
+  "max_output_tokens": 7000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9, stdlib + ctypes. Never inject Right Alt (Typeless running). Save and restore the real clipboard in checks. Do not rebuild dist. Do not run git."
+}

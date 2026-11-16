@@ -1,0 +1,17 @@
+{
+  "task_id": "T21",
+  "objective": "Fix audit E2 defects (verification/audit-E2-2026-11-13.json). MAJOR N1: after _begin_ask injects MARKER key-ups for the held combo keys, GetAsyncKeyState reports them up and _sync_physical drops them after 1.2 s, stopping a held 隨便問. Fix in hotkeys.py: add PushToTalk.mark_synthetic_release(vks) which clears `_seen_physical_down[vk]` and sets a flag so later physical sampling for that vk is ignored until a real key-up or a new real key-down arrives (the T12 rule 'never seen physically down => never dropped by sync' then keeps the key held); desktop._begin_ask calls it with the keys it released; also apply the same call in the paste path for symmetry (harmless there). Tests: machine with is_physically_down returning False after mark_synthetic_release keeps the key held for 5 s and stops only on the real key-up; a real key-down after the synthetic release re-enables sampling. Real-key check in check_wave_d.py: hold LeftAlt+VK0x86 as ask for 3 s -> recording runs until release (stop >= 2.9 s), selection still captured. MINOR N2: a key we swallowed never updates GetAsyncKeyState, so a lost key-up leaves it stuck; for swallowed keys use the repeat heuristic instead: if a swallowed key has had no key-down (repeat) for 1.2 s and no key-up, treat it as released (emit the synthetic key-up through the machine and clear _swallowed); unit test with the injectable clock. NITS: (1) _begin_ask must check the clipboard format (read-only) before releasing modifiers and injecting Ctrl+C; when capture will be skipped, inject nothing. (2) Hotkey migration gets a version marker: settings['hotkeys_version']=2 after migration; a user who sets RightAlt+Space deliberately afterwards keeps it. (3) audiofocus.py docstring: do not claim the manual already documents it; say 'documented in USER_MANUAL.md (T18)'. Refresh verification/wave-d-2026-11-13.json and hotkey-hook JSON as applicable.",
+  "inputs": ["verification/audit-E2-2026-11-13.json", "voice2txt/hotkeys.py", "voice2txt/desktop.py", "voice2txt/audiofocus.py", "scripts/check_wave_d.py", "scripts/check_hotkey_hook.py", "tests/test_hotkeys.py"],
+  "outputs": ["voice2txt/hotkeys.py", "voice2txt/desktop.py", "voice2txt/audiofocus.py", "scripts/check_wave_d.py", "scripts/check_hotkey_hook.py", "tests/test_hotkeys.py", "verification/wave-d-2026-11-13.json", "verification/hotkey-hook-2026-11-13.json"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with the new tests (synthetic release keeps key held; re-enable on real key-down; swallowed key repeat-timeout release; migration version marker).",
+    "`scripts\\check_wave_d.py` ok=true including the new 3 s hold check (ask recording not stopped before release) and the capture-skip path injecting no keys.",
+    "`scripts\\check_hotkey_hook.py` PASS (all scenarios unchanged plus swallowed-key stuck recovery if added there).",
+    "smoke_desktop PASS; run_desktop --self-test ok (zh and ask); check_desktop_settings, check_tray_indicator, check_single_instance ok."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T20"],
+  "max_output_tokens": 9000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9, stdlib + ctypes. Typeless.exe runs here: never inject Right Alt; use LeftAlt/VK0x86/VK0x87/Space. Tk only on the Tk thread. Do not touch docs, iOS, dist. Do not run git. Restore the real clipboard after checks."
+}

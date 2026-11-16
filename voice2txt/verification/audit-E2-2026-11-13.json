@@ -1,0 +1,126 @@
+{
+  "audit_id": "AUDIT-E2",
+  "date": "2026-11-13",
+  "auditor_environment": "Windows 11, .build-venv Python 3.9.12, Typeless.exe running (Right Alt never injected; LeftAlt/F23=VK0x86/F24=VK0x87/Space/LeftCtrl used), NumLock on, Chinese IME active (bare Space reaches a native window as VK_PROCESSKEY 229 + WM_CHAR 0x20). The scripts that write into verification/ ran on a byte-identical copy at C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\repo (sha256 of all 167 files compared, 0 mismatches; models\\whisper-small reached through a junction). After the audit: repo sha256 list identical (REPO_UNCHANGED), HKCU Run identical (no Voice2Txt value before or after), python process count 26 before and 26 after (none project-related), real clipboard restored to its pre-audit value (text-only, formats [13,16,1,7]). Note: at audit start the real clipboard held 'prior-wave-d-clipboard-1794545401' (written 12:50:01, before the final 12:52 check_wave_d run). An earlier executor run of check_wave_d left it behind, and the final run then saved and restored it as the 'real' value.",
+  "tasks": {
+    "T20": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with new tests for: swallow rule, settings migration of the old ask default, merged paste text, ask prompt sentence present, capture skipped on non-text clipboard, ask zh output converted.",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v (in D:\\2026 Voice2Txt)",
+          "observed": "Ran 129 tests in 0.375s OK. New tests present and ok: test_swallow_only_for_non_modifier_completing_an_alt_combo, test_modifiers_are_never_swallowed_even_in_alt_combo, test_bare_space_and_unrelated_keys_are_not_swallowed, test_combo_without_alt_is_never_swallowed, test_take_swallowed_matches_key_up_during_capture, test_old_ask_default_is_migrated_but_custom_value_is_kept, test_desktop_default_ask_hotkey_has_no_space, test_merge_pastes_joins_same_target_in_order, test_ask_task_says_cleanup_rules_do_not_limit_the_answer, test_capture_is_skipped_for_non_text_clipboard_or_open_failure, test_capture_selection_returns_empty_without_injecting_for_non_text_clipboard, test_decode_segment_ask_zh_output_is_converted_but_en_is_not",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` PASS including: LeftAlt+Space ask hold does not open the system menu of a foreground window in another process; bare Space still reaches that window; all earlier scenarios unchanged (use LeftAlt/F23/F24, never Right Alt).",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\repo; $env:PYTHONPATH='.'; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe scripts\\check_hotkey_hook.py",
+          "observed": "PASS, exit 0; checks all true (event_sequence, watchdog_reinstall, swallowed_key_single_start_stop, two_key_swallowed_single_start_stop, idle_timer_not_reset_no_probe, active_user_liveness_probe, deferred_paste_control_only, alt_combo_swallow_no_system_menu). swallow_rule: return_paths {swallow_return_1:1, call_next_hook:1}; baseline_menu_flags_during_hold 12 (control opened the menu); menu_flags_during_hold 0; menu_flags_after_release 0; bare_space_events [{keysym space, state 8}]; swallowed_count_combo 16 = after bare space 16; space_hidden_from_window true; alt_not_swallowed true; ask_started true",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_wave_d.py` ok=true including a new cross-process check (LeftAlt+F23 ask, native EDIT in another process, C key without Alt, three-segment paste as one ordered text, clipboard restored).",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\repo; $env:PYTHONPATH='.'; python scripts\\check_wave_d.py; then probe\\clip.py compare clip_before.json",
+          "observed": "ok=true, exit 0, all 19 results true. cross_process: selection_obtained true ('CROSS-PROCESS-SELECTION 選取'), target_c_key_events [{vk 67, msg 0x100, alt_down false, alt_bit_in_lparam false}], merged_paste_text 'SEG-ONE\\nSEG-TWO\\nSEG-THREE', ctrl_v_count 1, clipboard_restored_after_capture/paste true; real_clipboard_restore {restored true, equal_after_run true}; external clipboard compare: EQUAL. Note: the check holds the combo only 0.3 s after recording starts (check_wave_d.py:204), so it cannot see defect N1.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_context_capture.py` ok=true and the clipboard after the run equals the clipboard before.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\repo; python scripts\\check_context_capture.py; probe\\clip.py compare clip_before.json",
+          "observed": "{ok true, selection_matches true, clipboard_restored true, restored_ok true, had_other_formats false, real_clipboard_restored true, real_clipboard_equal_after_run true}; external compare EQUAL (text + format list)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "smoke_desktop PASS; run_desktop --self-test ok (incl. --mode ask); check_desktop_settings, check_tray_indicator, check_single_instance ok.",
+          "command": "in the copy with $env:PYTHONPATH='.': scripts\\smoke_desktop.py; scripts\\check_desktop_settings.py <tmp>\\settings.json; scripts\\check_tray_indicator.py <tmp>\\tray.json; scripts\\check_single_instance.py <tmp>\\single.json; run_desktop.py --self-test <tmp>\\st-ui.json --audio tests\\fixtures\\chinese.wav --mode zh --model small; same with --mode ask",
+          "observed": "smoke PASS; settings ok_roundtrip true (key_is_dpapi_protected true); tray ok true, real_run_value_unchanged true, no_zombie_python true; single instance PASS, no_process_left true; self-test zh ok true desktop_ui true stage completed text '今天下午四點開會,請記得帶研究報告。'; self-test ask ok true desktop_ui true backend Whisper fallback_warning '沒有可用的 LLM，顯示原始轉錄'",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "independent (a): real desktop.App, ask = LeftAlt+Space, foreground = native Win32 window with HMENU menubar + EDIT in another process, hold 0.5 s; control without hook must open the system menu; bare Space still delivered",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\drive.py <copy> a probe\\a1.json (target: probe\\target_win.py)",
+          "observed": "control: GUI flags 12, target got WM_SYSCOMMAND SC_KEYMENU(0xF100)+WM_ENTERMENULOOP+WM_INITMENU, closed with Esc. With App: menu_flags_during_hold 0, right_after_release 0, end 0, no menu messages, target never saw VK_SPACE; target Alt sequence SKD Alt / KU Alt (MARKER) / KU Alt (physical), C key KD without Alt state; answer 'ANSWER-QUESTION' pasted (1 Ctrl+V); clipboard restored ('restored'); right_alt_injected false. Bare Space afterwards: KD vk 229 (IME VK_PROCESSKEY) + WM_CHAR 0x20 + KU 0x20 delivered; swallowed_count unchanged 15 -> 15.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "independent (b): ask = LeftAlt+VK0x86, native EDIT in another process with selection; selection captured, C key without Alt bit",
+          "command": "drive.py <copy> b probe\\b2.json LeftAlt+VK0x86 3.0 (F23 auto-repeat every 33 ms like a real keyboard, LeftAlt held without repeats)",
+          "observed": "session_context.selection 'AUDIT-E2 SELECTED 選取文字'; LLM received it; target C key [{KD, alt_state false, ctx_bit29 false}]; answer replaced the selection (edit_text 'ANSWER-QUESTION'); 1 Ctrl+V; clipboard restored. BUT timeline: recording true at 0.23 s, recording false at 1.25 s while LeftAlt and F23 were both still held; ptt.recovered ['0xa4'] (see defect N1).",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "independent (b2): modifier-only ask combo (analogue of the new default RightAlt+RightCtrl, Right Alt not injectable here) held 3 s",
+          "command": "drive.py <copy> b probe\\b3_modonly.json LeftAlt+LeftCtrl 3.0",
+          "observed": "timeline [[0.24 recording true, held 0xa2,0xa4], [1.22 held 0xa2 only], [1.27 recording false]], keys still held until 9.09 s; ptt_recovered ['0xa4']. The hold-to-talk ask stops about 1 s after it starts.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "independent (c): three segments through the real path (dictate hotkey LeftAlt+VK0x87 held, FakeStream 24 s -> three 8 s chunks, stub engine SEG-ONE/TWO/THREE, results deferred while held), target = native EDIT in another process",
+          "command": "drive.py <copy> c probe\\c1.json LeftAlt+VK0x87 3.0",
+          "observed": "deferred_while_held 3; no recovery and no stop during the 3 s hold (dictate does not release keys); after release edit_text 'SEG-ONE\\nSEG-TWO\\nSEG-THREE', target_v_keydowns 1, clipboard 'AUDIT-E2-PRIOR-c' restored (last_clipboard_restore 'restored'); F24 never reached the target; only the NOOP pair (MARKER) injected.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: swallow-rule boundaries, migration, merge_pastes, capture skip injects nothing, hook return paths, Python 3.9",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\adversarial.py <copy> (output probe\\adversarial.json); probe\\async_swallow.py <copy>",
+          "observed": "LeftAlt+A: A alone not swallowed (down/repeat/up), A with LeftAlt swallowed down+repeat+up, A alone afterwards not swallowed. AltGr (LCtrl+RAlt)+Q with shipped defaults, with RightAlt+Q, or with Alt+E configured: nothing swallowed. AltGr+E is swallowed only when Ctrl+Alt+E is configured (exact match, as the rule says). Key-up of a swallowed Space is still swallowed after reset() and after set_combos() removed the combo, and later bare Space passes. Space pressed before Alt: initial down and up pass, only the repeats are swallowed. A foreign key held: nothing swallowed. proc returns: exactly 'return 1' and 'return user32.CallNextHookEx(...)'. Migration: ['RightAlt+Space'] -> ['RightAlt+RightCtrl']; ['RightAlt+Space','LeftAlt+F5'] kept; ['LeftAlt+Space'] kept; [] kept; dictate untouched. merge_pastes([(a,1),(b,2),(c,1),(d,2),(e,3)]) -> [('a\\nc',1),('b\\nd',2),('e',3)]; []->[]. capture_selection non_text -> ('',False,'non_text'), busy -> ('',False,'busy'), no send_key and no clipboard write. ast.parse(feature_version=(3,9)) OK39 for all 11 T20 files. Swallowed key: GetAsyncKeyState(Space) false while swallowed, true for bare Space (see N2).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: m1 status not overwritten; m5 off sends no app/title",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\m1_m5.py <copy>",
+          "observed": "m1: final status '沒有可用的 LLM，顯示原始轉錄' after draining (status tail shows the per-segment lines then the warning), no paste queued. m5 off: session_context {'selection':'SEL'}, LLM contexts [{'selection':'SEL'}]x2, instructions() contains neither title nor app; on: title sent.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Tk thread rule; repo unchanged; HKCU Run unchanged; no leftover processes",
+          "command": "review of every thread entry touched by T20 (_begin_ask.work, hook callback, _decode, load) + sha256 list before/after + reg query + Win32_Process",
+          "observed": "_begin_ask reads _own_hwnd/_editor_selection/relevant_keys on the Tk thread, and the worker only calls SendInput/ctypes and events.put. _flush_pastes/_paste/_restore_clipboard run from _poll/after. The hook callback only does events.put. REPO_UNCHANGED, RUN_KEY_UNCHANGED, python count 26 -> 26.",
+          "result": "PASS"
+        }
+      ],
+      "original_defects_status": {
+        "D1": "FIXED as specified, but see N1. desktop.py:654 held_keys = relevant_keys() (no 0xA5/0x12 exclusion); desktop.py:664-665 release_held_modifiers(keys=held_keys) before foreground_context(capture=True) at :666. Real (b): target C key without Alt, selection captured.",
+        "D2": "FIXED. (a) desktop.py:30-31 DEFAULT_HOTKEYS ask ['RightAlt+RightCtrl']; hotkeys.py:85-94 OLD_DEFAULT_HOTKEYS + migrate_hotkeys; desktop.py:512-521 applies it on load. (b) hotkeys.py:272-307 handle()/_completes_alt_combo swallow rule, :177 _swallowed key-up mapping, :294-300 take_swallowed during capture, :754-764 proc with exactly two returns. Real (a) and check_hotkey_hook: no system menu, bare Space delivered.",
+        "D3": "FIXED. desktop.py:62-70 merge_pastes; desktop.py:1167-1173 _flush_pastes pastes one merged text per target. Real (c): one Ctrl+V, exact 'SEG-ONE\\nSEG-TWO\\nSEG-THREE', clipboard restored.",
+        "m1": "FIXED. desktop.py:856-857 sets session_error for ask+Whisper; final status at :902 keeps it (probe m1_m5).",
+        "m2": "FIXED. context.py:105-130 _read_clipboard reports other formats; :171-178 capture_skip_reason; :194-197 returns ('', False) without injecting or writing; desktop.py:831-833 shows SKIP_MESSAGES status.",
+        "m3": "FIXED. context.py:108-109 OpenClipboard failure -> ok=False -> 'busy' -> capture aborted ('', False).",
+        "m4": "FIXED. translation.py:33-34 sentence present in TASKS['ask'].",
+        "m5": "FIXED. desktop.py:675-676 ask with context_aware off -> {'selection': ...} only (probe m1_m5).",
+        "m6": "FIXED. translation.py:295-297 ask + ask_language 'zh' -> engine.converter.convert; en unchanged (unit test).",
+        "m7": "FIXED. check_context_capture.py:30-35,47,103-108 and check_wave_d.py:115-117,303-305,661-665 save and restore the real clipboard text; external compare EQUAL after both runs.",
+        "m8": "FIXED. audiofocus.py:254-258 restore() removes the handle from _active (finally); docstring :7-10 documents force-kill + persisted per-app mute.",
+        "m9": "Accepted nit (theme popdown/scrollbars), not re-checked."
+      },
+      "defects": [
+        "MAJOR desktop.py:654-665 together with hotkeys.py:375-399. The ask hold-to-talk session stops by itself about 1.2 s after it starts while the user is still holding the combo. _begin_ask injects MARKER key-ups for every held combo modifier (D1). Those key-ups update GetAsyncKeyState, so the modifier now reads as released. A held modifier does not auto-repeat once another key was pressed later (Windows repeats only the last key). After PHYSICAL_CHECK_SECONDS (1.2 s), _sync_physical therefore treats the modifier as physically released, synthesizes its key-up and emits ('stop', None), because the hold was longer than hold_seconds. Measured with the real App: LeftAlt+VK0x86 held 3 s -> recording 0.23 s .. 1.25 s, ptt.recovered ['0xa4']. LeftAlt+LeftCtrl (modifier-only analogue of the new default RightAlt+RightCtrl) -> recording 0.24 s .. 1.27 s. Dictate with LeftAlt+VK0x87 held 3 s does not stop (no release), so the stop is specific to ask. T20's own spec requires 'state machine still sees the key held'. With the new default on a machine without Typeless, both RightCtrl and RightAlt are released this way, so the default 隨便問 hold-to-talk truncates the spoken question to about 1 s. T17 already did this for LeftAlt; T20 extends it to every combo modifier, including the default. check_wave_d holds only 0.3 s (check_wave_d.py:204), so it cannot detect this. Fix direction: tell PushToTalk which vks were released by injection (for example, mark them never-seen-physically or exempt them from _sync_physical until their real key-up), and add a >= 2 s hold check.",
+        "MINOR hotkeys.py:177,281-291 vs 375-399. A key that the hook itself swallowed never updates GetAsyncKeyState (measured: async Space false while swallowed, true when bare). The physical-state recovery therefore can never repair a lost key-up of a swallowed key, for example after a hook timeout. Simulated: Space stays in held_keys indefinitely, the next LeftAlt-alone press starts 'ask', and the next bare Space press is swallowed once. Before T20 the same Space would have been recoverable. Narrow (needs a missed key-up), but it is a new failure mode of the swallow rule.",
+        "NIT desktop.py:664-666. When capture_selection then skips (non_text/busy), _begin_ask has already injected the NOOP pair and MARKER key-ups for held modifiers. capture_selection itself injects nothing (verified), and these events are harmless releases, but 'capture skipped -> no key injected' holds only at the context.py level.",
+        "NIT hotkeys.py:85-94 + desktop.py:521. Migration has no version marker: a user who deliberately sets RightAlt+Space as the only ask combo has it silently replaced on every launch. The spec accepts this behaviour; a warning in the hotkey UI would make it visible.",
+        "NIT audiofocus.py:10. The docstring says 'the user manual cites this', but USER_MANUAL.md has no mute / Volume Mixer text (and no 隨便問 section at all). Docs were out of T20 scope; the planner should schedule the manual update."
+      ],
+      "notes": "All five listed acceptance commands pass when re-run, and every original defect (D1-D3, m1-m8) is fixed at the cited lines. Independent real-machine reproductions (a), (b) capture part and (c) pass. FAIL comes from the new adversarial finding N1: a hold-to-talk 隨便問 session is cut off about 1.2 s after start because the D1 release makes the physical-state recovery drop the released modifier. That violates T20's own requirement that the state machine still sees the key held, and it breaks the default combo's primary interaction (press and hold to speak). Observation, not a defect (the spec mandates it): capture is now skipped whenever the clipboard holds any format other than text/locale. Text copied from browsers, Word or VS Code carries such formats (HTML/RTF/editor data), so in practice the selection capture may often be skipped with the SKIP_MESSAGES status."
+    }
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T20: _begin_ask's MARKER key-up release (D1) makes PushToTalk._sync_physical drop the released modifier after 1.2 s and stop a held 隨便問 session (desktop.py:654-665 + hotkeys.py:375-399). Exempt injected releases from physical recovery and add a >= 2 s hold real check."
+  ],
+  "auditor_artifacts": [
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\drive.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\target_win.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\adversarial.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\adversarial.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\async_swallow.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\m1_m5.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\clip.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\a1.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\b1.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\b2.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\b3_modonly.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\probe\\c1.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\repo",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE2\\out"
+  ]
+}

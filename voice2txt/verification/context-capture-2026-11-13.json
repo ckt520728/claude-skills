@@ -1,0 +1,82 @@
+{
+  "ok": true,
+  "stage": "done",
+  "real_clipboard_saved": {
+    "had_text": false,
+    "had_other_formats": false
+  },
+  "fast": {
+    "delay_ms": 0,
+    "user_copy": false,
+    "timeout_used": 0.9,
+    "ok": true,
+    "stage": "done",
+    "foreground": {
+      "title": "V2T-context-check",
+      "process_name": "python"
+    },
+    "capture_seconds": 0.828,
+    "selection": "Voice2Txt 選取測試 12345",
+    "returned": [
+      "Voice2Txt 選取測試 12345",
+      true
+    ],
+    "last_skip_reason": "",
+    "selection_matches": true,
+    "clipboard_after": "prior-clipboard-1794600791",
+    "clipboard_restored": true,
+    "had_other_formats": false
+  },
+  "delayed_700ms": {
+    "delay_ms": 700,
+    "user_copy": false,
+    "timeout_used": 0.4,
+    "ok": true,
+    "stage": "done",
+    "foreground": {
+      "title": "V2T-context-check",
+      "process_name": "python"
+    },
+    "capture_seconds": 0.422,
+    "selection": "",
+    "returned": [
+      "",
+      false
+    ],
+    "last_skip_reason": "late",
+    "clipboard_after": "prior-clipboard-1794600791",
+    "clipboard_restored": true,
+    "restored_within_seconds_after_return": 0.906,
+    "last_late_restore": true
+  },
+  "selection_matches": true,
+  "clipboard_restored": true,
+  "selection": "Voice2Txt 選取測試 12345",
+  "clipboard_after": "prior-clipboard-1794600791",
+  "had_other_formats": false,
+  "no_selection_user_copy": {
+    "delay_ms": 0,
+    "user_copy": true,
+    "timeout_used": 0.4,
+    "ok": true,
+    "stage": "done",
+    "foreground": {
+      "title": "V2T-context-check",
+      "process_name": "python"
+    },
+    "capture_seconds": 0.421,
+    "selection": "",
+    "returned": [
+      "",
+      false
+    ],
+    "last_skip_reason": "late",
+    "user_copy_written": true,
+    "clipboard_after": "user-own-copy-1794600791",
+    "clipboard_kept_user_copy": true,
+    "last_late_restore": false
+  },
+  "clipboard_prior": "prior-clipboard-1794600791",
+  "real_clipboard_restored": true,
+  "real_clipboard_equal_after_run": true
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "T06",
+  "objective": "Rebuild the Windows portable build with the T01/T02 changes and record packaged evidence. Run `powershell -NoProfile -File scripts\\build_windows.ps1 -IncludeGpu > build.log 2>&1` (never *> redirection), then run packaged self-tests against dist\\Voice2Txt\\Voice2Txt.exe: (a) --self-test (UI only, no --audio); (b) --audio tests\\fixtures\\chinese.wav --mode zh --llm-model gemma4:latest; (c) --audio tests\\fixtures\\chinese.wav --mode translate --llm-model gemma4:latest --cloud Anthropic:low (no key in env, so Anthropic must be skipped and translator_chain must show Ollama then Whisper; if Ollama is down, the Whisper translate fallback with a warning is acceptable); (d) --audio tests\\fixtures\\jfk.wav --mode en. Collect all four reports into verification/packaged-anthropic-2026-11-13.json (object with keys reports[], build_log_tail, dist_bytes, exe_sha256, help_text, msvcp140_version). Also check that dist\\Voice2Txt\\使用者手冊.md was copied from USER_MANUAL.md by the build script; if T05 has not yet updated USER_MANUAL.md, note that the copy predates T05.",
+  "inputs": ["scripts/build_windows.ps1", "run_desktop.py", "tests/fixtures/chinese.wav", "tests/fixtures/jfk.wav", "queue/PLAN-2026-11-13.md"],
+  "outputs": ["dist/Voice2Txt/Voice2Txt.exe", "verification/packaged-anthropic-2026-11-13.json", "build.log"],
+  "acceptance": [
+    "verification/packaged-anthropic-2026-11-13.json exists; every report has ok=true and stage='completed'; report (a) has desktop_ui=true; report (c) backend is 'Ollama gemma4:latest' or 'Whisper' and the translator_chain string does not contain 'Anthropic' (no key); if it does contain Anthropic because a key was found in the environment, say so explicitly in the JSON.",
+    "help_text (output of `dist\\Voice2Txt\\Voice2Txt.exe --help`) lists Anthropic:low among the --cloud choices, proving the rebuilt exe contains T01/T02.",
+    "build_log_tail shows no error; dist/Voice2Txt/_internal/msvcp140.dll file version is recorded and is not 14.27.x."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T01", "T02"],
+  "max_output_tokens": 5000,
+  "model": "claude-sonnet-5-5",
+  "notes": "The build takes several minutes and produces about 7.8 GB; run it with a 10-minute timeout or in the background and poll build.log. Never put API keys in reports. Do not modify source files; if the build fails, report the failure with the log excerpt and stop (replan). Do not run git."
+}

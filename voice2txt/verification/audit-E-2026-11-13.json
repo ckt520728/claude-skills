@@ -1,0 +1,264 @@
+{
+  "audit_id": "AUDIT-E",
+  "date": "2026-11-13",
+  "auditor_environment": "Windows 11, .build-venv Python 3.9.12, Typeless.exe running (Right Alt never injected; LeftAlt/F23 used), NumLock on. Scripts that write into verification/ were run on a byte-identical copy at C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\repo (cmp verified). Repo sha256 before/after identical; HKCU Run identical (no Voice2Txt value before or after); no leftover python processes (22 before, 22 after, none project-related); clipboard restored to empty.",
+  "tasks": {
+    "T14": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "unittest discover passes with >= 8 new tests (categorize, context block/truncation, TASKS[ask], decode_segment ask stub/failing chain, unchanged without context)",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "Ran 117 tests in 0.853s OK; test_context.py 12 tests plus 2 new in test_translation (ask task text, context only changes system text)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "check_context_capture.py writes ok=true with selection_matches=true and clipboard_restored=true",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\repo; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe scripts\\check_context_capture.py",
+          "observed": "{\"ok\": true, \"selection_matches\": true, \"clipboard_restored\": true, \"restored_ok\": true, \"had_other_formats\": false}; result fields equal to the repo verification file",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "RULES unchanged; CLOUD unchanged; Anthropic/OpenAI/Gemini request shapes unchanged except the system text",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\cmp_old.py (old translation module extracted from build\\Voice2Txt\\PYZ-00.pyz of the wave C build, compared at runtime)",
+          "observed": "RULES same: True; CLOUD same: True; TASK zh/en/translate same: True; instructions() without context identical; Gemini/Anthropic/OpenAI url+headers same, body byte-identical without context, equal except system text with context; Ollama chat body same except system",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: TASKS[ask] cannot be read as asking for commentary; context truncation at 2000",
+          "command": "same cmp_old.py; C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\ask_llm.py, ask_llm2.py (real gemma4:latest)",
+          "observed": "TASKS[ask] says \"Never add preamble, quotes or explanations\"; selection of 2500 chars -> exactly 2000 kept; real LLM: translate/rewrite/answer worked in 7/8, 1/8 echoed the question (see minor m4)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: decode_segment(ask) with failing chain returns transcript with warning, no error",
+          "command": ".\\.build-venv\\Scripts\\python.exe run_desktop.py --self-test selftest\\st-ask.json --audio tests\\fixtures\\chinese.wav --mode ask --model small (copy)",
+          "observed": "ok=true, text==source=\"今天下午四點開會,請記得帶研究報告。\", backend=Whisper, fallback_warning=\"沒有可用的 LLM，顯示原始轉錄\"; unit test test_decode_segment_ask_failing_chain_returns_transcript_with_warning ok",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: clipboard restored on the timeout path (no selection) and when it was empty; Ctrl+C carries MARKER; never Right Alt",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\capture_edges.py (observer WH_KEYBOARD_LL hook)",
+          "observed": "no selection: (\"\", True) after 0.42 s, clipboard \"PRIOR-A\" untouched, sequence unchanged; empty clipboard: selection captured, clipboard empty again (0 formats); Ctrl/C events all injected with extra 0x56325454 (MARKER); right_alt_injected=false; wrong hwnd -> no injection; non-text-only clipboard lost (minor m2)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Python 3.9 syntax; no new dependencies",
+          "command": "ast.parse(feature_version=(3,9)) on every changed file; tests run on Python 3.9.12",
+          "observed": "OK39 for all changed .py; context.py imports os/time/ctypes only",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "MINOR context.py:169-181: when the clipboard holds only non-text formats (image, files, custom), capture_selection empties it and still returns restored_ok=True. desktop.py never reads context.had_other_formats. Measured: custom format present before, gone after, result (sel, True). Fix: when had_other_formats, skip the capture (or return restored_ok=False) and show a status note.",
+        "MINOR context.py:105-109,180: a failed OpenClipboard while saving (clipboard busy) returns None, which is treated as \"was empty\". The restore then empties the user's clipboard. Fix: tell \"save failed\" apart from \"empty\" and abort the capture when the save failed.",
+        "MINOR translation.py:28-33,71: for ask, RULES (\"Never add, summarize or omit information\"; \"Return only the final text\") are prepended, and TASKS[\"ask\"] overrides only the \"unchanged\" rule. With local gemma4:latest, \"嗯，台灣最高的山是哪一座？\" was echoed back cleaned instead of answered (1 of 8 real probes). The other 7 answered or applied the instruction correctly. Fix: state that for ask the clean-up rules apply only to interpreting the transcript and that the no-add/no-summarize rules do not constrain the answer.",
+        "MINOR translation.py:282-295: ask answers in Chinese skip OpenCC s2twp, unlike zh refine (line 316-317), so an LLM answer in Simplified Chinese is pasted as is.",
+        "MINOR scripts/check_context_capture.py:39-42,73 and scripts/check_wave_d.py:390,403: the checks overwrite the user's clipboard and never put back what was there before the test. After running check_context_capture the clipboard held \"prior-clipboard-1794529572\" (it was empty before); check_wave_d leaves \"pasted-answer\". The auditor cleared the clipboard back to empty afterwards."
+      ],
+      "notes": "All acceptance criteria are met. Minor findings only. check_context_capture runs the Entry in the same process. The cross-process capture was verified separately by the auditor (s2/e1 captured)."
+    },
+    "T15": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "unittest passes with >= 8 new tests, none touching audio devices or COM",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "test_learning_sounds.py: 11 tests ok; the sound test uses enabled=False (returns before winsound import)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "check_audiofocus.py ok=true: helper session found, muted, restored; own pid never muted; no child left",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\repo; python scripts\\check_audiofocus.py",
+          "observed": "{\"ok\": true, \"child_session_found\": true, \"getmute_before\": [false], \"sessions_seen\": 2, \"muted_pids\": [32908], \"getmute_during\": [true], \"getmute_after\": [false], \"errors\": [], \"child_running_after\": false}",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "python -c \"from voice2txt import sounds; sounds.play('start'); sounds.play('stop')\" exits 0; wav files exist",
+          "command": ".\\.build-venv\\Scripts\\python.exe -c \"from voice2txt import sounds; sounds.play('start'); sounds.play('stop')\"",
+          "observed": "exit 0; %LOCALAPPDATA%\\Voice2Txt\\sounds\\start.wav 4012 B, stop.wav 4012 B",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: learning.candidates adversarial cases",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\extra_pure.py",
+          "observed": "punctuation-only edit -> []; deletion-only -> []; 哈薩->海思科技公司 (6 CJK) accepted, 7 CJK rejected; github->GitHub (case only) -> candidate GitHub (acceptable as a preferred spelling); known_terms respected; digits-only -> []; 4-word latin phrase rejected; repeats counted (count 2); insertion-only -> []; merge cap 1000 chars, manual first, case-insensitive dedupe",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: sounds never raise when the device or path is missing",
+          "command": "same extra_pure.py",
+          "observed": "invalid LOCALAPPDATA -> False; unknown name -> False; PlaySound raising -> False; error tone 149.98 ms",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: audiofocus vtable indices, restore idempotent + atexit, own pid never muted, user-muted not unmuted, error path",
+          "command": "code review against the Windows SDK interface layouts; extra_pure.py (stubbed COM); C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\af_app.py (real COM through the App)",
+          "observed": "IMMDeviceEnumerator.GetDefaultAudioEndpoint=4, IMMDevice.Activate=3, IAudioSessionManager2.GetSessionEnumerator=5, IAudioSessionEnumerator GetCount=3/GetSession=4, IAudioSessionControl2 GetProcessId=14/IsSystemSoundsSession=15, ISimpleAudioVolume SetMute=5/GetMute=6: all correct. restore twice -> one SetMute+Release; stubbed sessions -> only pid 444 muted (own, system, already-muted, pid 0 skipped). Real: a session the user had muted -> handle [] and still muted after restore; App child exiting without close() -> atexit unmuted (during [true], after [false]). The error path releases vol/ctl2/ctl in finally. CoUninitialize is deliberately not called (documented).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "NIT audiofocus.py:205,226: _active collects every handle and never removes restored ones, a small leak that grows with each recording. CoInitializeEx is intentionally never balanced (documented at 111-114). A hard kill skips atexit, and Windows persists per-app session mute, so other apps would stay muted. That is inherent; consider documenting it in USER_MANUAL."
+      ],
+      "notes": "Python 3.9 syntax OK; stdlib + ctypes only. GUID and vtable constants are commented with method names."
+    },
+    "T16": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "unittest passes with >= 10 new tests; existing core tests pass",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "test_insights_theme.py: 12 tests ok; test_core 6 tests ok (sample conservation etc.)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Store schema backward compatible (old CREATE TABLE first, then prune/rows_for_stats)",
+          "command": "test_insights_theme.StoreTests.test_old_schema_prune_and_stats",
+          "observed": "ok",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "theme.apply works on a real withdrawn Tk root",
+          "command": "ThemeTests.test_apply_switches_on_withdrawn_root; extra_pure.py applies LIGHT->DARK->LIGHT",
+          "observed": "three applies OK; LIGHT values after DARK exactly equal the first LIGHT (root bg, Text bg, TLabel bg, TCombobox fieldbackground, Tab map)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: prune boundary, rows_for_stats order, update_text",
+          "command": "extra_pure.py (temp Store)",
+          "observed": "prune(7): 7d-1min kept, 7d+1min deleted (1 removed); prune(None)=0; prune(1) keeps today 00:00:01 and now; rows_for_stats ordered by id, shape (created, mode, seconds, text); update_text ok",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: streak edge dates, time_saved floor, heatmap all-zero, system_prefers_dark failure",
+          "command": "extra_pure.py",
+          "observed": "today active (3,3); today inactive (2,2); single day today (1,1); single old day (0,1); gap of one day (1,2); empty (0,0); time_saved floor 0.0 for 1 word/600 s; 40 words/0 s -> 60 s and wpm 0; heatmap all-zero levels [0], 180 cells ending today; winreg OpenKey error -> False -> LIGHT",
+          "result": "PASS"
+        }
+      ],
+      "defects": [],
+      "notes": "core.py otherwise unchanged in behaviour (MODES+ask, three new Store methods). Python 3.9 OK, stdlib only."
+    },
+    "T17": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "unittest discover passes (all suites)",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "Ran 117 tests OK",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "check_wave_d.py ok=true with every sub-result true",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\repo; python scripts\\check_wave_d.py",
+          "observed": "ok=true; all 14 results true (old_settings_defaults, dictate_session_insights, context_aware_toggle..., ask_session_and_history_filter, ask_skips_capture_in_own_window, auto_dictionary_candidates, mute_others_restore_paths, theme_switch, retention_prune, clipboard_restore, tk_thread_discipline, ...); identical to the repo verification file",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "smoke_desktop PASS; run_desktop --self-test ok/desktop_ui; check_desktop_settings; check_hotkey_hook; check_tray_indicator; check_single_instance",
+          "command": "cd copy; $env:PYTHONPATH='.'; python scripts\\smoke_desktop.py; run_desktop.py --self-test selftest\\st-ui.json; check_desktop_settings.py <tmp>; check_hotkey_hook.py; check_tray_indicator.py <tmp>; check_single_instance.py <tmp>",
+          "observed": "smoke PASS; self-test ok=true desktop_ui=true (and --mode ask ok); settings ok_roundtrip true; hotkey hook PASS (7 checks true); tray ok=true real_run_value_unchanged=true; single instance PASS no_process_left=true",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Old settings.json without new keys loads documented defaults",
+          "command": "check_wave_d old_settings_defaults + desktop.py:460-514 review",
+          "observed": "context_aware/hotkey_paste/sounds True, mute_others False, 系統, 永久, ask hotkey default kept when the old hotkeys dict lacks ask",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Tk only on the Tk thread; audiofocus restore on stop/close/overflow",
+          "command": "manual review of every thread entry (hook callback, tray callback, load, _decode, _begin_ask.work, sounddevice callback, atexit) + C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\af_app.py (real overflow by pushing 300 blocks into the 240-slot queue)",
+          "observed": "no Tk access off the Tk thread (_own_hwnd and editor selection are read on the Tk thread before the worker starts); real COM: overflow muted [true] -> stopped -> [false]; stop [true]->[false]; close while recording -> stop + restore [false], then closed; atexit restore in a child App",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra (planner point 3): ask with the hotkey still held, cross-process target with selected text",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\drive.py <copy> <combo> none|stub <out> (real App + LL hook, stub engine, injected LeftAlt down + key down, held 1.5 s); targets: target.py (Tk Entry, other process), target_edit.py (Win32 EDIT, AUDIT_TARGET env)",
+          "observed": "LeftAlt+F23: released [0xA4], Tk saw c state 0xc, selection captured (Tk and EDIT). Alt+F23 (generic, like RightAlt): released [], Tk saw c state 0x2000c alt_down=true -> Tk still copied, EDIT selection \"\" (not captured). LeftAlt+Space / Alt+Space: target system menu opened (#32768), Ctrl+C eaten, selection \"\" on Tk and EDIT; for Alt+Space the menu was still open at the end. Clipboard restored in every run.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "extra: ask without LLM does not paste into another window",
+          "command": "drive.py runs s1-s4/e1-e3 with translator=None",
+          "observed": "target text unchanged, no Ctrl+V; history row mode ask holding the transcript; the warning is overwritten by \"已完成\" (minor m1)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: hotkey sessions paste by default; button follows checkbox; clipboard restored around paste",
+          "command": "drive.py LeftAlt+F23 stub (s5) + C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\multipaste.py (x2)",
+          "observed": "s5: answer \"ANSWER-PASTED\" replaced the selection in the other process, clipboard back to prior, last_clipboard_restore=restored. multipaste: clipboard restored, but the pasted text was garbled (\"SEG-TWO SEG-THREE\"; \"SEG-ONE SEG-THREESEG-THREE\")",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "extra: context_aware off sends no title",
+          "command": "check_wave_d context_aware_off + desktop.py:660-669 review",
+          "observed": "zh/en/translate: context None when off (verified). ask: title/app still sent when off (minor m5)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: 洞察 numbers equal insights.compute on the same rows, ask excluded; retention keeps today; history filter ask",
+          "command": "check_wave_d (stats_match, ask_excluded_from_insights, retention_prune, filter_ask) + extra_pure prune(1)",
+          "observed": "all true; prune(1) keeps today rows",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: learning triggered only on FocusOut/save",
+          "command": "desktop.py:342,530,986-997 review + check_wave_d auto_dictionary",
+          "observed": "runs only from <FocusOut> and save_settings. FocusOut can fire during recording (window deactivation), but with no edits it yields no candidates and only rebases editor_outputs; not harmful",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra: theme switch leaves no ttk residue",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\theme_shot.py (PrintWindow captures)",
+          "observed": "dark settings/insights and light-after-dark screenshots consistent; only the popdown list and scrollbars are unthemed (nit m9)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "All: repo files outside task outputs unchanged; Python 3.9; no secrets; HKCU Run unchanged; no leftover processes",
+          "command": "bytecode comparison against build\\Voice2Txt\\PYZ-00.pyz (hotkeys, tray, keystore, startup, __init__ identical); mtimes; sha256 of the whole repo before/after the audit; reg query; Win32_Process; secret regex grep",
+          "observed": "only T14-T17 outputs changed after the wave C build; hotkeys.py unchanged (T17 did not need it); REPO_UNCHANGED, RUN_KEY_UNCHANGED; python process set unchanged; only the dummy \"sk-ant-test-roundtrip\" test key found",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "MAJOR desktop.py:641-642 (_begin_ask): held_keys excludes 0xA5/0x12, so a held Right Alt or generic Alt is never released before the injected Ctrl+C. The target receives Ctrl+Alt+C. Measured with ask combo Alt+F23 (generic Alt, LeftAlt physically held): the Tk target saw keysym c with state 0x2000c (Alt bit) and alt_down=true. Tk tolerates the extra modifier and still copied, but a standard Win32 EDIT control did not copy, so foreground_context returned selection=\"\" (probe e2). With LeftAlt+F23, 0xA4 is not excluded: LeftAlt was released with MARKER, the target saw Ctrl+C state 0xc, and the selection was captured on both targets (s2, e1). The default RightAlt+Space hits the failing branch for every user who is not running Typeless. Fix: release every held modifier that belongs to a configured combo, Alt included, with the same call the T10 paste path uses: release_held_modifiers(keys=self.ptt.relevant_keys()). It sends a MARKER key-up after a NOOP for Alt; the hook skips MARKER events, so the state machine still treats the key as held. The \"never inject Right Alt\" rule is a test-environment constraint (Typeless). The product paste path already sends a MARKER key-up for Right Alt.",
+        "MAJOR desktop.py:30-31 (DEFAULT_HOTKEYS ask = RightAlt+Space; set by the plan). Alt+Space reaches the target unswallowed because the hook never consumes keys. DefWindowProc opens the target window's system menu (#32768) on the Space key-down. The injected Ctrl+C then goes to the menu, so the selection is never captured. For Alt+Space the menu was still open after the session ended, so a later Ctrl+V paste would also land in the menu. Reproduced with LeftAlt+Space and Alt+Space against a Tk Entry (s1, s4: system_menu_seen=true, selection \"\") and against a standard EDIT control (e3). Fix (planner decision): pick a default ask combo that does not include Alt+Space; or let the hook consume the non-modifier key-down/up only when it completes a configured combo that contains Alt; or cancel the menu (Esc/WM_CANCELMODE) before Ctrl+C. Warn in the hotkey UI when the user sets Alt+Space.",
+        "MAJOR desktop.py:1148-1188 (_flush_pastes/_paste): consecutive deferred pastes write the clipboard and fire asynchronous keybd_event Ctrl+V in one synchronous loop. The target reads the clipboard later, so segments are lost or duplicated. Measured on a separate-process Tk Entry with three segments, expected \"SEG-ONE SEG-TWO SEG-THREE\". Run 1 got \"SEG-TWO SEG-THREE\"; run 2 got \"SEG-ONE SEG-THREESEG-THREE\". Hold-to-talk longer than one 8 s chunk queues several segments while the key is held and flushes them together on release. T17 made hotkey paste-back default on, so this is now the default path. The T10 loop had the same pattern, but T17 rewrote this path. Fix: concatenate all pending texts for the same target, then do one clipboard write and one Ctrl+V; or space the pastes out with after() (for example 250 ms apart) and schedule the restore after the last one.",
+        "MINOR desktop.py:838-844 vs 883: an ask with no LLM correctly does not paste back. But the warning \"沒有可用的 LLM，顯示原始轉錄\" only appears inside the per-segment status line, and _poll overwrites it with \"已完成。內容已儲存於本機歷史紀錄。\" when draining finishes (probe s1 final status). The raw question is also stored as an \"ask\" history row that looks like an answer. Fix: set session_error (or a persistent note) when mode==\"ask\" and backend==\"Whisper\".",
+        "MINOR desktop.py:662-663 (_session_context): with \"依前景 App 調整格式（傳送視窗標題與 App 名稱給 LLM）\" turned off, ask still sends the window title and app name to the LLM chain, including cloud backups. zh/en/translate correctly send none (check_wave_d context_aware_off). Fix: when the setting is off, strip app/title from the ask context and keep only the selection, or say so in the UI.",
+        "NIT theme.py:122-157: the Combobox popdown listbox (option_add \"*TCombobox*Listbox.*\") and the ttk scrollbars are not themed. Screenshots of dark mode and of dark->light show no other leftovers."
+      ],
+      "notes": "All listed acceptance commands pass. The FAIL comes from adversarial real-machine checks: ask selection capture fails with the default Alt-based combo (D1: Alt not released; D2: Alt+Space opens the target system menu), and consecutive pastes garble text (D3). On this machine Typeless swallows Right Alt, so the default RightAlt+Space cannot be exercised directly. The generic-Alt and LeftAlt runs reproduce the same code paths."
+    }
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T17: _begin_ask must release held Alt (incl. Right Alt) with MARKER before Ctrl+C, the same way the T10 paste path does (D1, desktop.py:641-642).",
+    "T17/PLAN: the default ask combo RightAlt+Space opens the target window system menu and eats Ctrl+C/Ctrl+V; change the default, or consume the Space key for Alt combos, or cancel the menu (D2, desktop.py:30-31).",
+    "T17: consecutive deferred pastes lose or duplicate segments; paste once with the joined text or serialize the pastes (D3, desktop.py:1148-1188)."
+  ],
+  "auditor_artifacts": [
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\drive.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\target.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\target_edit.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\multipaste.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\af_app.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\capture_edges.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\extra_pure.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\ask_llm.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\ask_llm2.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\theme_shot.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\s1.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\s2.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\s3.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\s4.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\s5.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\e1.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\e2.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\probe\\e3.json",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\cmp_old.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE\\shots"
+  ]
+}

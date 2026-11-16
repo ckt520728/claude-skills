@@ -1,0 +1,15 @@
+{
+  "stage": "completed",
+  "tk": "8.6.12",
+  "desktop_ui": true,
+  "input_devices": 12,
+  "model": "small",
+  "device": "cpu",
+  "text": "今天下午四點開會,請記得帶研究報告。",
+  "source": "",
+  "backend": "Whisper",
+  "fallback_warning": "",
+  "inference_seconds": 4.014999999955762,
+  "mode": "zh",
+  "ok": true
+}

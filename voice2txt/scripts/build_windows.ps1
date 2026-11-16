@@ -1,7 +1,7 @@
 ﻿param([switch]$IncludeGpu)
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
-$voice2txtBuildArgs = @('-m','PyInstaller','--noconfirm','--onedir','--windowed','--name','Voice2Txt','--collect-all','opencc','--collect-all','faster_whisper','--collect-all','ctranslate2','--exclude-module','torch','--exclude-module','tensorflow','--exclude-module','matplotlib','--exclude-module','pandas','--exclude-module','scipy','--exclude-module','IPython','--add-data','models\whisper-small;models\whisper-small')
+$voice2txtBuildArgs = @('-m','PyInstaller','--noconfirm','--onedir','--windowed','--name','Voice2Txt','--collect-all','opencc','--collect-all','faster_whisper','--collect-all','ctranslate2','--exclude-module','torch','--exclude-module','tensorflow','--exclude-module','matplotlib','--exclude-module','pandas','--exclude-module','scipy','--exclude-module','IPython','--add-data','models\whisper-small;models\whisper-small','--icon','voice2txt\assets\voice2txt.ico','--add-data','voice2txt\assets;voice2txt\assets')
 if ($IncludeGpu) {
     $voice2txtBuildArgs += @('--add-data','gpu\nvidia;gpu\nvidia')
     foreach ($voice2txtSize in @('medium','large-v3')) {

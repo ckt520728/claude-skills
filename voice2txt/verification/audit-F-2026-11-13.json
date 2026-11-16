@@ -1,0 +1,241 @@
+{
+  "audit_id": "AUDIT-F",
+  "date": "2026-11-13",
+  "auditor": "independent high-tier auditor (claude-opus-5-5); re-ran acceptance, changed no product files",
+  "scope": [
+    "T22",
+    "T18",
+    "T18b",
+    "T19"
+  ],
+  "environment": "Windows 11; Typeless.exe running (Right Alt never injected; LeftAlt/VK0x86/VK0x87/Space used); no cloud keys; local Ollama; dist built 2026-11-13 21:02:42; NumLock on. Auditor scratch (scripts and raw outputs): C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad",
+  "tasks": {
+    "T22": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "unittest discover passes with the new tests",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v (PYTHONDONTWRITEBYTECODE=1, temp LOCALAPPDATA)",
+          "observed": "Ran 136 tests in 0.553s OK; includes test_swallowed_key_without_repeat_is_never_timed_out, test_swallowed_key_with_repeats_then_silence_is_released, test_swallowed_key_with_lost_key_up_is_released_after_repeat_timeout, test_safe_int_coerces_hand_edited_hotkeys_version (log C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\unit.log)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "check_hotkey_hook.py PASS (8 checks), run on a copy",
+          "command": "copy voice2txt/scripts to C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\copy; bash: python -X utf8 scripts/check_hotkey_hook.py (x3); PowerShell Start-Process (x1); PowerShell & ... > file (x3)",
+          "observed": "bash 3/3 PASS and Start-Process 1/1 PASS with all 8 checks true; PowerShell &-with-redirect 3/3 FAIL at event_sequence only (defect D3; raw-hook diagnostics show all events arrive).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "real key: swallowed key, key-down only (no repeat, no key-up) held 3 s stays held until the real key-up",
+          "command": "python -B t22_realkey.py <copy> (combo ask=LeftAlt+VK0x87; observer LL hook installed first)",
+          "observed": "held_at_3s true, swallow_released [], GetAsyncKeyState down false, events start ask @0.00 s / stop @3.05 s = real key-up time, downstream hook saw no VK 0x87 event (down and up both swallowed), recovered [].",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "real key: repeats then silence releases after ~1.2 s",
+          "command": "same script, 30 injected repeats at 33 ms then silence",
+          "observed": "swallow_released [0x87], stop at 2.59 s after key-down; silence_to_release_s 1.20; the real key-up later passes through (D5 info).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "hand-edited settings.json hotkeys_version \"2\" starts the App",
+          "command": "python -B t22_settings.py <copy> (each case: fresh temp LOCALAPPDATA, tk root withdrawn, App(root), root.update(), app.close())",
+          "observed": "'2' -> rc 0, started true, ask ['RightAlt+Space'] kept, hook ok; 'oops' -> rc 0, migrated to ['RightAlt+RightCtrl']; [2] -> rc 0, migrated. stderr empty.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "smoke_desktop PASS",
+          "command": "cd copy; PYTHONPATH=. python -X utf8 scripts/smoke_desktop.py",
+          "observed": "exit 0, PASS line printed.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "check_wave_d.py ok=true",
+          "command": "cd copy; PYTHONPATH=. python -X utf8 scripts/check_wave_d.py (6 runs)",
+          "observed": "4/6 ok=true (19/19 results); 2/6 ok=false (D2; one of them is D1).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "MINOR scripts/check_hotkey_hook.py:68-90 (harness sensitivity): launched from PowerShell as `& python -X utf8 scripts\\check_hotkey_hook.py > out 2> err` it failed event_sequence 3/3 (3-4 of 6 events; the script then skips the other 7 checks); launched from bash (3/3) or Start-Process (1/1) it passed 8/8. Auditor raw-hook and instrumented PushToTalk runs under the same PowerShell host saw all 10 injected events and exactly the 6 expected events, so this is timing/launcher sensitivity of the check, not a product defect found.",
+        "INFO voice2txt/hotkeys.py:299-302 + :416-421: after a swallowed key is released by the repeat timeout, its later real key-up is no longer in _swallowed and is passed to the foreground app as an unpaired key-up (auditor observed WM_SYSKEYUP for VK 0x87 at 3.02 s in the downstream hook). Harmless for normal keys; noted only."
+      ],
+      "notes": "Code review: hotkeys.py:305-310 adds a vk to _swallow_repeated only on a non-new key-down; hotkeys.py:416 applies PHYSICAL_CHECK_SECONDS only to those; desktop.py:49-56 _safe_int (bool -> default) is used at desktop.py:531-532."
+    },
+    "T18": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "STATUS wave D rows: every number/claim traces to the cited file",
+          "command": "python: load context-capture, wave-d, audiofocus, hotkey-hook, audit-E/E2/E3, packaged-waveD JSONs and compare with STATUS.md:30-35",
+          "observed": "context-capture ok/selection_matches/clipboard_restored true, title V2T-context-check, had_other_formats false; wave-d ok true, 19 results all true, cross_process LeftAlt+VK0x86, hold 3.0, ask_stop 3.0, merged SEG-ONE/TWO/THREE, ctrl_v_count 1, skip_path_injected_keys []; hotkey-hook swallow_rule baseline flags 12 -> 0/0, alt_not_swallowed true, 2 return paths; audiofocus sessions_seen 2, mute false/true/false, errors []; audit-E T14/T15/T16 PASS T17 FAIL (117 tests, gemma4 7/8), E2 T20 FAIL (129), E3 T21 PASS replan [] (133). All match.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "隨便問 default documented = Right Alt + Right Ctrl, matches DEFAULT_HOTKEYS",
+          "command": "grep USER_MANUAL.md; desktop.py:30-31",
+          "observed": "USER_MANUAL.md:129 'Right Alt + Right Ctrl'; Right Alt + Space only as the migrated old default; desktop.py DEFAULT_HOTKEYS ask=['RightAlt+RightCtrl'].",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "swallow rule, clipboard skip, merged paste, mute caveat, 40 wpm stated",
+          "command": "grep USER_MANUAL.md",
+          "observed": "swallow rule :106; non-text skip :133/:146/:295; merged paste :109/:145; force-kill mute + 音量混音程式 :157/:294; 40 字/分 :166.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "no claim of UI Automation, learning from other apps, iOS compile, live Anthropic",
+          "command": "grep -i over USER_MANUAL/README/CLAUDE/STATUS/handoffs",
+          "observed": "every hit is a negation (manual :136/:262/:306/:323, README :7/:23, STATUS :16/:17/:22/:62/:63, handoffs :37/:41/:86/:103/:144, CLAUDE :10/:30/:55).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "handoffs table T14-T22 matches audit files",
+          "command": "read handoffs.md:12-26 and audit-E/E2/E3 JSON",
+          "observed": "E: T14/T15/T16 PASS, T17 FAIL -> T20; E2: T20 FAIL -> T21; E3: T21 PASS; T22 and T19 marked done and not yet audited. Matches.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "CLAUDE.md commands valid",
+          "command": "compile() every referenced script (13 files); run_desktop.py --help; download_models.py --help; the single unittest; grep build_windows.ps1 param",
+          "observed": "all compile; --help lists --mode {zh,en,translate,ask} and --cloud Anthropic:low...; download_models usage OK; single test OK; param([switch]$IncludeGpu) present; decode_segment signature and settings keys in CLAUDE.md match translation.py:281 and desktop.py:510-519,567-570.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "USER_MANUAL settings labels match desktop.py UI strings",
+          "command": "extract all 「...」 from USER_MANUAL.md (73) and test membership in desktop.py",
+          "observed": "all settings labels found (依前景 App 調整格式（傳送視窗標題與 App 名稱給 LLM）, 快捷鍵錄音完成後貼回原視窗, 互動聲音, 語音輸入時靜音其他音訊, 外觀, 保留歷史紀錄, 自動新增（候選）, history filters); the 28 non-matches are example sentences, Windows UI names, a hotkeys.py warning and an iOS-only label.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "MINOR USER_MANUAL.md:130 states the clipboard is restored right after the Ctrl+C read; false for targets answering after 0.4 s (root cause D1 in context.py; update the text together with the fix)."
+      ],
+      "notes": "The doc faithfully describes the intended behaviour; the inaccuracy comes from the D1 code defect."
+    },
+    "T18b": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "both files cite packaged-waveD-2026-11-13.json; no pending/in-progress wording for T19/T22",
+          "command": "grep -c / grep -n -i 'pending|in progress|修正中|進行中|尚未執行' STATUS.md handoffs.md",
+          "observed": "STATUS 3 hits, handoffs 4 hits; remaining 'pending' words refer to T18's own audit and 'audit F 尚未執行' (true before this audit); STATUS.md:58 says the non-repeating-key issue was fixed by T22.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "every added number traces to the cited JSON",
+          "command": "compare STATUS.md:35 / handoffs.md:30 with packaged-waveD JSON; STATUS.md:34 / handoffs.md:31 with hotkey-hook JSON",
+          "observed": "packaged: 161.3 s, 0 ERROR lines, 8276929974 bytes, 1330 files, 7f366fdd8467, 14.44.35211.0, icon true, five reports ok/completed with the stated backends, minimized 8 s + tray found, second instance 0.28 s exit 0, manual identical cb037cbd...: all match; hotkey-hook F24 1.5 s and F24+F23 stop 3.032 s match. Exception: the 136 test count (D4).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "MINOR STATUS.md:34 and handoffs.md:31 (T18b traceability): '單元測試 136 項皆通過' / '136 unit tests pass' cite verification/hotkey-hook-2026-11-13.json, which contains no unit-test count. The number is true (auditor rerun: 'Ran 136 tests ... OK') but does not trace to the cited file."
+      ],
+      "notes": ""
+    },
+    "T19": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "exe_sha256 equals Get-FileHash",
+          "command": "Get-FileHash dist\\Voice2Txt\\Voice2Txt.exe -Algorithm SHA256",
+          "observed": "7F366FDD8467D75F42D114E3255CDD5726FC7AD4A084050D51BF8B35C1A2A14B = JSON; LastWriteTime 2026-11-13 21:02:42 = JSON.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "dist_bytes equals os.walk",
+          "command": "python os.walk(r'dist\\Voice2Txt') sum of getsize",
+          "observed": "8276929974 bytes, 1330 files = JSON.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "no control characters in JSON",
+          "command": "python scan of the decoded text and every string value",
+          "observed": "0 control characters.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "manual byte-identical; msvcp140 not 14.27; icon present",
+          "command": "Get-FileHash USER_MANUAL.md and dist\\Voice2Txt\\使用者手冊.md; VersionInfo of _internal\\msvcp140.dll; Test-Path icon",
+          "observed": "both CB037CBD8AD999F0640DDF55C4B26B7C6262AF40CA385085324A52C7CF0E4C6E; 14.44.35211.0; voice2txt.ico True.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "packaged self-test UI-only",
+          "command": "& .\\dist\\Voice2Txt\\Voice2Txt.exe --self-test <scratch>\\auditF_pkg\\ui.json (temp LOCALAPPDATA)",
+          "observed": "exit 0, 16.2 s: stage completed, desktop_ui true, ok true.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "packaged self-test jfk en",
+          "command": "& exe --self-test ...\\en.json --audio tests\\fixtures\\jfk.wav --mode en",
+          "observed": "exit 0, 28.5 s: ok true, stage completed, backend Whisper, text 'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.'",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "packaged self-test --mode ask",
+          "command": "& exe --self-test ...\\ask.json --audio tests\\fixtures\\chinese.wav --mode ask",
+          "observed": "exit 0, 16.8 s: ok true, stage completed, mode ask, backend Whisper, fallback_warning '沒有可用的 LLM，顯示原始轉錄'.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "--minimized under a throwaway LOCALAPPDATA: tray window, second instance exits within 1 s, clean termination, nothing left",
+          "command": "python -B minlaunch.py (EnumWindows filtered by pid)",
+          "observed": "running after 8 s, tray window class 'Voice2TxtTray26bbfa08e50', no visible windows; second instance exit 0 in 0.30 s, first still running; taskkill /T without /F: still running after 5 s (D6 info) -> taskkill /T /F; tasklist Voice2Txt.exe empty afterwards.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "INFO packaged app: `taskkill /PID <pid> /T` (no /F) did not end Voice2Txt.exe --minimized within 5 s; only /F worked. Already a documented limitation (STATUS.md:25). Not counted."
+      ],
+      "notes": "A first attempt with Start-Process -ArgumentList returned exit 1 because PowerShell 5.1 does not quote paths containing spaces (auditor command error); re-run with the call operator."
+    }
+  },
+  "all_checks": [
+    {
+      "acceptance": "no secrets in new/changed files",
+      "command": "grep -E sk-ant-/sk-/AIza/api_key patterns over hotkeys.py, desktop.py, test_hotkeys.py, 5 docs, packaged-waveD/hotkey-hook/wave-d JSONs, dist manual",
+      "observed": "no match.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "repo files unchanged by the audit (hash before/after)",
+      "command": "snap.py: sha256 of 173 repo files (excluding dist/models/gpu/build/tools/venvs/__pycache__) + size/mtime of 1330 dist files, before and after",
+      "observed": "0 changed, 0 removed, dist unchanged; 2 files added under references/ at 23:04 ('LLM_Voice2Text_本機 AI 語音潤色.md', 'REA_Typeless_逆向語音代理.md') by another party (the audit never writes there). Only audit output: verification/audit-F-2026-11-13.json.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "HKCU Run 'Voice2Txt' unchanged",
+      "command": "Get-ItemProperty HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run before/after",
+      "observed": "absent before and after.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "no leftover processes",
+      "command": "Get-Process Voice2Txt; python PIDs vs baseline",
+      "observed": "Voice2Txt.exe 0; no python process started by the audit is alive (4 newer python processes are uv/hermes tools started 21:16, not from the audit).",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "clipboard restored",
+      "command": "clipboard text sha before/after; marker scan",
+      "observed": "Every audit clipboard write path reported restore (check_wave_d real_clipboard_restore equal_after_run true on each run; late_clip.py restores the text read at its start). The final clipboard differs from the baseline (len 33 -> 30) but contains none of the audit test strings; most likely a user copy during the audit (other external activity seen at 23:04); cannot be proven either way.",
+      "result": "PASS"
+    }
+  ],
+  "defects": [
+    "MAJOR voice2txt/context.py:201-205 (capture_selection, T14 code, wave D): when the target app writes the Ctrl+C selection to the clipboard after the 0.4 s timeout, the function returns ('', True) immediately; the late write then leaves the user's selection in the clipboard and the saved text is never restored, while restored=True is reported. Repro (auditor late_clip.py, Tk target delaying its clipboard write): delays 50/200/350 ms -> selection captured and clipboard restored 3/3; delays 500/700/1000 ms -> selection '' and clipboard left as the selection 3/3 (restored_to_prior false). The project's own check_wave_d.py hit it in 1 of 6 runs (cross_process.selection_obtained false, clipboard_restored_after_capture false). Contradicts USER_MANUAL.md:130 ('讀完立刻把剪貼簿還原'). Fix: on timeout keep watching GetClipboardSequenceNumber for a grace window (e.g. 1.5-2 s, off the Tk thread) and, if it advances, restore the saved CF_UNICODETEXT (only if the sequence changed once since the injected Ctrl+C); report restored=False/'late' instead of True on timeout; consider a 0.8-1 s timeout; add a delayed-responder real check like the auditor's; document the residual in USER_MANUAL/STATUS 已知限制.",
+    "MINOR scripts/check_wave_d.py:695-699 and :240-270 (real-UI check flakiness): 6 runs on a scratch copy -> 4 ok=true, 2 ok=false (run A: clipboard.entry_received_text false, the injected Ctrl+V did not reach the Tk entry; run B: cross_process failure = D1). T22 acceptance 'check_wave_d.py ok=true' is met but not reliably.",
+    "MINOR scripts/check_hotkey_hook.py:68-90 (harness sensitivity): launched from PowerShell as `& python -X utf8 scripts\\check_hotkey_hook.py > out 2> err` it failed event_sequence 3/3 (3-4 of 6 events; the script then skips the other 7 checks); launched from bash (3/3) or Start-Process (1/1) it passed 8/8. Auditor raw-hook and instrumented PushToTalk runs under the same PowerShell host saw all 10 injected events and exactly the 6 expected events, so this is timing/launcher sensitivity of the check, not a product defect found.",
+    "MINOR STATUS.md:34 and handoffs.md:31 (T18b traceability): '單元測試 136 項皆通過' / '136 unit tests pass' cite verification/hotkey-hook-2026-11-13.json, which contains no unit-test count. The number is true (auditor rerun: 'Ran 136 tests ... OK') but does not trace to the cited file.",
+    "INFO voice2txt/hotkeys.py:299-302 + :416-421: after a swallowed key is released by the repeat timeout, its later real key-up is no longer in _swallowed and is passed to the foreground app as an unpaired key-up (auditor observed WM_SYSKEYUP for VK 0x87 at 3.02 s in the downstream hook). Harmless for normal keys; noted only.",
+    "INFO packaged app: `taskkill /PID <pid> /T` (no /F) did not end Voice2Txt.exe --minimized within 5 s; only /F worked. Already a documented limitation (STATUS.md:25). Not counted."
+  ],
+  "overall": "FAIL",
+  "overall_reason": "All four scoped tasks pass their acceptance, but a MAJOR wave-D defect was found (D1: context.capture_selection late clipboard write leaves the user's clipboard overwritten and reports success). By the verdict rule overall is PASS only without blocker/major.",
+  "replan_needed": [
+    "NEW (follow-up to T14/T17, wave D): fix the context.capture_selection late-write race (D1, context.py:201-205): late restore within a grace window, honest restored flag, delayed-responder real check; then update USER_MANUAL.md:130 and STATUS 已知限制.",
+    "Optional (minor): make check_wave_d.py paste/cross-process steps and check_hotkey_hook.py event_sequence robust to timing (D2, D3); cite the unit-test count to a file that contains it (D4)."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "/": {
+    "status": 200,
+    "bytes": 3372
+  },
+  "/app.js": {
+    "status": 200,
+    "bytes": 7070
+  },
+  "/manifest.webmanifest": {
+    "status": 200,
+    "bytes": 307
+  },
+  "/icon.png": {
+    "status": 200,
+    "bytes": 988
+  },
+  "inference": {
+    "text": "今天下午四點開會,請記得帶研究報告。",
+    "source": "",
+    "error": "",
+    "backend": "Whisper",
+    "warning": ""
+  }
+}

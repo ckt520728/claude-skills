@@ -1,0 +1,157 @@
+{
+  "task_id": "T19",
+  "date": "2026-11-13",
+  "reports": [
+    {
+      "id": "a",
+      "args": "--self-test (UI only)",
+      "exit_code": 0,
+      "wall_seconds": 1.3,
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "ok": true
+      }
+    },
+    {
+      "id": "b",
+      "args": "--audio tests\\fixtures\\chinese.wav --mode zh --llm-model gemma4:latest",
+      "exit_code": 0,
+      "wall_seconds": 5.5,
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "llm_model": "gemma4:latest",
+        "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → Whisper 結果",
+        "prepare_warnings": [],
+        "text": "今天下午四點開會，請記得帶研究報告。",
+        "source": "今天下午四點開會,請記得帶研究報告。",
+        "backend": "Ollama gemma4:latest",
+        "fallback_warning": "",
+        "inference_seconds": 3.062000000005355,
+        "mode": "zh",
+        "ok": true
+      }
+    },
+    {
+      "id": "c",
+      "args": "--audio tests\\fixtures\\chinese.wav --mode translate --llm-model gemma4:latest --cloud Anthropic:low",
+      "exit_code": 0,
+      "wall_seconds": 5.5,
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "llm_model": "gemma4:latest",
+        "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → Whisper 結果",
+        "prepare_warnings": [],
+        "text": "The meeting is at four o'clock this afternoon, please remember to bring the research report.",
+        "source": "今天下午四點開會,請記得帶研究報告。",
+        "backend": "Ollama gemma4:latest",
+        "fallback_warning": "",
+        "inference_seconds": 2.7190000000118744,
+        "mode": "translate",
+        "ok": true
+      }
+    },
+    {
+      "id": "d",
+      "args": "--audio tests\\fixtures\\jfk.wav --mode en",
+      "exit_code": 0,
+      "wall_seconds": 5.8,
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "source": "",
+        "backend": "Whisper",
+        "fallback_warning": "",
+        "inference_seconds": 2.639999999984866,
+        "mode": "en",
+        "ok": true
+      }
+    },
+    {
+      "id": "e",
+      "args": "--audio tests\\fixtures\\chinese.wav --mode ask",
+      "exit_code": 0,
+      "wall_seconds": 6.1,
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "text": "今天下午四點開會,請記得帶研究報告。",
+        "source": "今天下午四點開會,請記得帶研究報告。",
+        "backend": "Whisper",
+        "fallback_warning": "沒有可用的 LLM，顯示原始轉錄",
+        "inference_seconds": 2.5,
+        "mode": "ask",
+        "ok": true
+      }
+    }
+  ],
+  "minimized_launch": {
+    "running": true,
+    "tasklist_line": "Voice2Txt.exe                42140 Console                    1     78,768 K",
+    "seconds_observed": 8,
+    "tray_window_class_found": true,
+    "tray_window_classes": [
+      "Voice2TxtTray1be00088e50"
+    ],
+    "second_instance_exit_code": 0,
+    "second_instance_seconds": 0.28,
+    "terminated_with_taskkill_F_T": true,
+    "voice2txt_left_in_tasklist": false,
+    "throwaway_localappdata": true,
+    "note": "Right Alt injection not attempted (Typeless running)."
+  },
+  "build_log_tail": [
+    "54152 INFO: Copying icon to EXE",
+    "54185 INFO: Copying 0 resources to EXE",
+    "54185 INFO: Embedding manifest in EXE",
+    "54214 INFO: Appending PKG archive to EXE",
+    "54300 INFO: Fixing EXE headers",
+    "54527 INFO: Building EXE from EXE-00.toc completed successfully.",
+    "54536 INFO: checking COLLECT",
+    "54598 INFO: Removing dir D:\\2026 Voice2Txt\\dist\\Voice2Txt",
+    "54935 INFO: Building COLLECT COLLECT-00.toc",
+    "157145 INFO: Building COLLECT COLLECT-00.toc completed successfully.",
+    "157161 INFO: Build complete! The results are available in: D:\\2026 Voice2Txt\\dist",
+    "dist\\Voice2Txt\\THIRD_PARTY_LICENSES"
+  ],
+  "build_notes": "exit 0, elapsed 161.3 s; build.log is UTF-16; PyInstaller ERROR lines: 0",
+  "dist_bytes": 8276929974,
+  "dist_file_count": 1330,
+  "exe_sha256": "7f366fdd8467d75f42d114e3255cdd5726fc7ad4a084050d51bf8b35c1a2a14b",
+  "exe_timestamp": "2026-11-13 21:02:42",
+  "msvcp140_version": "14.44.35211.0",
+  "icon_present": true,
+  "icon_path": "dist\\Voice2Txt\\_internal\\voice2txt\\assets\\voice2txt.ico",
+  "help_method": "Windowed exe prints nothing to console. Marshalled run_desktop bytecode extracted from Voice2Txt.exe via PyInstaller CArchiveReader, then exec with --help under python -X utf8 (voice2txt package imported from repo source, identical to bundled).",
+  "help_text": "usage: run_desktop.py [-h] [--self-test JSON_PATH] [--audio AUDIO]\r\n                      [--mode {zh,en,translate,ask}]\r\n                      [--model {base,small,medium,large-v3}]\r\n                      [--device {cpu,cuda}] [--llm-model LLM_MODEL]\r\n                      [--cloud {Anthropic:low,Anthropic:medium,Anthropic:high,OpenAI:low,OpenAI:medium,OpenAI:high,Gemini:low,Gemini:medium,Gemini:high}]\r\n                      [--vocabulary VOCABULARY] [--minimized]\r\n\r\nVoice2Txt 本機語音輸入\r\n\r\noptional arguments:\r\n  -h, --help            show this help message and exit\r\n  --self-test JSON_PATH\r\n  --audio AUDIO\r\n  --mode {zh,en,translate,ask}\r\n  --model {base,small,medium,large-v3}\r\n  --device {cpu,cuda}\r\n  --llm-model LLM_MODEL\r\n  --cloud {Anthropic:low,Anthropic:medium,Anthropic:high,OpenAI:low,OpenAI:medium,OpenAI:high,Gemini:low,Gemini:medium,Gemini:high}\r\n                        可重複，例如 --cloud Anthropic:low --cloud OpenAI:high\r\n                        --cloud Gemini:low；API key 讀取\r\n                        ANTHROPIC_API_KEY／OPENAI_API_KEY／GEMINI_API_KEY\r\n  --vocabulary VOCABULARY\r\n  --minimized           啟動後縮在系統匣（登入自動啟動時使用）\r\n",
+  "help_lists_Anthropic_low": true,
+  "help_lists_minimized": true,
+  "help_lists_ask": true,
+  "anthropic_key_in_env": false,
+  "manual_sha256": {
+    "USER_MANUAL.md": "cb037cbd8ad999f0640ddf55c4b26b7c6262af40ca385085324a52c7cf0e4c6e",
+    "dist_manual": "cb037cbd8ad999f0640ddf55c4b26b7c6262af40ca385085324a52c7cf0e4c6e",
+    "identical": true
+  }
+}

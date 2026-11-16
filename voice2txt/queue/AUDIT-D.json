@@ -1,0 +1,12 @@
+{
+  "audit_id": "AUDIT-D",
+  "scope": ["T05", "T09"],
+  "role": "Independent high-tier auditor; closing audit. Re-runs acceptance, never fixes. FAIL goes back to the planner.",
+  "verdict_file": "verification/audit-D-2026-11-13.json",
+  "verdict_schema": "same as queue/AUDIT-A.json",
+  "extra_checks": [
+    "T05 truthfulness: for every row/number added to STATUS.md on 2026-11-13, open the cited verification file and confirm the number or claim is actually in it; flag any claim without a file. Confirm no document says the iOS app compiles, that Anthropic was called live, or that hotkey/menu-bar suppression is guaranteed. Confirm the five known limitations from audit-C4 appear in STATUS.md. Confirm the handoffs.md table lists T01-T12 with the right audit outcomes (A1 PASS, A2 FAIL->T03b, C FAIL->T10, C2 FAIL->T11, C3 FAIL->T12, C4 PASS). Confirm USER_MANUAL.md describes behaviour that matches the code (hold >= 0.35 s, tap toggles, defaults RightAlt / RightAlt+RightShift / Alt+Shift+Space, close-to-tray default on, start-at-login default off, --minimized, single instance, deferred paste, Typeless warning text matches desktop.py). CLAUDE.md commands must still be valid (try each listed command's --help or a dry equivalent).",
+    "T09: verify verification/packaged-waveC-2026-11-13.json by re-running at least two of the packaged self-tests yourself against dist\\Voice2Txt\\Voice2Txt.exe (UI-only and the jfk en case) and comparing exe_sha256 with Get-FileHash; confirm 使用者手冊.md in dist is byte-identical to USER_MANUAL.md; confirm the icon asset is inside dist; launch `dist\\Voice2Txt\\Voice2Txt.exe --minimized` yourself under a throwaway LOCALAPPDATA, confirm a tray window exists (EnumWindows class prefix Voice2TxtTray) and that launching a second copy exits within 1 s, then terminate both cleanly and confirm no Voice2Txt.exe remains.",
+    "All: no secrets in any changed file; repo files outside the task outputs unchanged (hash before/after your checks); no leftover processes; real HKCU Run 'Voice2Txt' unchanged."
+  ]
+}

@@ -1,0 +1,240 @@
+{
+  "audit_id": "AUDIT-C",
+  "date": "2026-11-13",
+  "tasks": {
+    "T03b": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "grep: Refiner.swift contains 'import Combine'; RefinerChain is declared with @MainActor; no 'Date()' remains in the pause logic (systemUptime used).",
+          "command": "grep -n \"Date()\" ios/Voice2Txt/Refiner.swift; grep -n \"systemUptime\\|import Combine\\|@MainActor\" ios/Voice2Txt/*.swift",
+          "observed": "Refiner.swift:1 'import Combine'; :129 @MainActor (RefineSettings); :282-283 '@MainActor final class RefinerChain'; :291 clock default '{ ProcessInfo.processInfo.systemUptime }'; 'Date()' -> no match (rc=1).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep: Transcriber.swift contains '翻譯備援未產生譯文'; ContentView.swift contains a '儲存' Button for the key fields.",
+          "command": "grep -n \"翻譯備援未產生譯文\" ios/Voice2Txt/Transcriber.swift; grep -n \"儲存\" ios/Voice2Txt/ContentView.swift",
+          "observed": "Transcriber.swift:239-242 `if result.isEmpty { status = \"翻譯備援未產生譯文\"; sessionError = status }` inside the translate-mode `.translate` fallback; ContentView.swift:144 SecureField(... .onSubmit { saveKey() }) and :148 `Button(\"儲存\") { saveKey() }` in every ProviderSection.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe scripts\\check_ios_project.py` still reports ok=true; generator re-run is byte-identical if run.",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) .\\.build-venv\\Scripts\\python.exe -B scripts\\check_ios_project.py; cmp JSON vs repo; .\\.build-venv\\Scripts\\python.exe -B scripts\\generate_xcode_project.py twice + sha256sum + cmp vs repo project.pbxproj",
+          "observed": "check rc=0, ok=true, all 5 .swift in PBXFileReference/PBXBuildFile/Sources phase, orientation keys + TARGETED_DEVICE_FAMILY 1,2; JSON SAME_AS_REPO_JSON; pbxproj sha256 4f4c6d9e...22e2 before, after run 1 and run 2; PBX_IDENTICAL_TO_REPO.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "The RULES/TASKS prompt strings are unchanged (byte-identical to before this task).",
+          "command": ".\\.build-venv\\Scripts\\python.exe -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\cmp_prompt.py (parses Swift multi-line literals, strips closing-delimiter indent, asserts no escapes, compares with voice2txt.translation.RULES/TASKS); ls -la voice2txt/translation.py",
+          "observed": "RULES equal: True 1137 1137 (sha256 prefix 5f8fb094cc0a41c5); zh/en/translate equal: True. translation.py mtime 2026-11-13 01:33 (before AUDIT-A2 01:44, which already found them equal) -> prompts unchanged.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] each A2 defect addressed at the cited location (import Combine; @MainActor RefinerChain; systemUptime pause; empty translate fallback status; 儲存 button; refusal wording; README 8 s)",
+          "command": "cat -n ios/Voice2Txt/Refiner.swift Transcriber.swift ContentView.swift; grep -n \"秒\" ios/README.md; grep -n \"拒絕\" voice2txt/translation.py",
+          "observed": "major import Combine: fixed (Refiner.swift:1). RefinerChain @MainActor: fixed (:282). Date->systemUptime: fixed (:291,:306,:313). Empty translate fallback: fixed (Transcriber.swift:239-242). 儲存 button: fixed (ContentView.swift:148). Refusal: 'Anthropic 拒絕處理此內容（\\(category)）。' with '未知' default (Refiner.swift:232-235) as T03b(e) specifies (desktop omits the parentheses when no category; spec explicitly asks for 未知). README:5 '錄音最長 8 秒分段' (no '5 秒' left); AudioChunker.swift:6 maximum = 16000*8. The two remaining A2 minors (ContentView.swift:131-141 Binding closures under future strict concurrency; :59 Text concatenation type-check load) were outside the T03b objective and are unchanged.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] re-read the three Swift files for new compile hazards introduced by the fix (@MainActor RefinerChain callers, init from non-isolated context)",
+          "command": "grep -rn \"RefinerChain\\|Transcriber()\\|RefineSettings()\" ios/Voice2Txt/; cat -n ios/Voice2Txt/*.swift",
+          "observed": "RefinerChain() is only constructed as a stored-property default of the @MainActor Transcriber (Transcriber.swift:64), same pattern as the pre-existing RefineSettings() (:63); Transcriber's explicit init() is MainActor-isolated. All uses (configure/isEmpty/refine/lastBackend, :221-234) are inside `worker = Task { ... }` created in a @MainActor method, so the Task inherits MainActor; refine is awaited. RefinerChain.refine awaits CloudRefiner.refine (nonisolated, struct of Sendable members) - only Strings cross. ContentView's @StateObject Transcriber() is in a View that Swift 5 infers @MainActor via StateObject/ObservedObject wrappers. No new import, iOS 17 API or force unwrap. WhisperKit calls unchanged (DecodingTask/DecodingOptions still not provable from verification/WhisperKit-v0.9.4.swift, as A2 noted).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[All] no process left behind; no secrets in new files; no iOS compile claim; Python 3.9 syntax on every changed .py; repo untouched by the audit",
+          "command": "Get-Process python*,pythonw*,Voice2Txt* before/after; grep -nE 'sk-[A-Za-z0-9_-]{8,}|AIza…|sk-ant-|ghp_|xox[bp]-' on all T03b/T07/T08 outputs; grep compile claims; ast.parse(feature_version=(3,9)) on 11 files (interpreter 3.9.12); sha256 of 147 repo files before/after",
+          "observed": "same 14 pre-existing python PIDs before/after, none new; secret grep rc=1 (no match); only '尚未在 Xcode 編譯' / 'Never compiled' / '這不代表 App 可編譯' statements; py39 ok for all 11 files; REPO_UNCHANGED (all scripts that write into verification/ or assets/ were run on a copy under C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy; repo runs used python -B).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [],
+      "notes": "Swift 部分全為靜態審閱：此機器沒有 Swift/Xcode 工具鏈，未編譯、未在裝置上執行。A2 的 major（缺 import Combine）與 T03b 列出的 5 個 minor、README 8 秒都已在指定位置修正；RefinerChain 改 @MainActor 未引入新的隔離問題（唯一建構點與所有呼叫點都在 @MainActor 的 Transcriber/Task 內）。A2 另兩個 minor（ContentView.swift:131-141 Binding closure 在未來 strict concurrency 的隔離、:59 Text 串接的型別推斷負擔）不在 T03b objective，維持原狀，留作建議。WhisperKit 的 DecodingTask / DecodingOptions 標籤仍無法以本地摘錄證明（定義在 Models.swift）。"
+    },
+    "T07": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes; tests/test_hotkeys.py has at least 8 tests and none of them touch Win32.",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy, PYTHONDONTWRITEBYTECODE=1) .\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v; grep -c \"def test_\" tests/test_hotkeys.py; grep -n \"LowLevelKeyboardHook\\|_win32\\|send_key\\|TrayIcon\\|winreg\" tests/*.py",
+          "observed": "Ran 54 tests in 0.290s OK; test_hotkeys.py: 14 tests; grep for hook/Win32/registry symbols in tests -> no match (rc=1). hotkeys.py only binds Win32 lazily inside _win32().",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` writes verification/hotkey-hook-2026-11-13.json with ok=true and the observed event sequence [start dictate, stop, start dictate, stop, start translate, stop] and foreground_unchanged=true.",
+          "command": "(copy of repo in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy, so the repo JSON is not overwritten) .\\.build-venv\\Scripts\\python.exe scripts\\check_hotkey_hook.py  x4",
+          "observed": "4/4 runs rc=0 PASS: events == expected, foreground_unchanged true, keys_not_swallowed true (downstream hook saw the same sequence), noop_keys_injected 4, hook_stopped true. Repo copy of verification/hotkey-hook-2026-11-13.json has the same content.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` passes and `run_desktop.py --self-test` still reports ok=true, desktop_ui=true.",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) $env:PYTHONPATH='.'; .\\.build-venv\\Scripts\\python.exe scripts\\smoke_desktop.py; (in repo) .\\.build-venv\\Scripts\\python.exe -B run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\st\\selftest-plain.json",
+          "observed": "smoke: 'PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段…' rc=0, desktop-integration.json passed=true; self-test rc=0 {stage: completed, tk 8.6.12, desktop_ui: true, ok: true}.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep: desktop.py no longer calls RegisterHotKey; settings.json written by the app contains a 'hotkeys' object with the defaults; the capture UI exists ('設定' and '再加一個').",
+          "command": "grep -n RegisterHotKey voice2txt/*.py run_desktop.py; .\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\desktop_integration.py (throwaway LOCALAPPDATA, legacy settings.json, save_settings)",
+          "observed": "RegisterHotKey: no match. Legacy settings without 'hotkeys' load DEFAULT_HOTKEYS {'dictate': ['RightAlt','Alt+Shift+Space'], 'translate': ['RightAlt+RightShift']}; saved settings.json has 'hotkeys' object (+ dictation_language/close_to_tray/start_at_login). desktop.py:264-266 buttons 設定/再加一個/清除 per action; capture live label 'Right Ctrl …', done -> combo appended.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "No key is swallowed: the hook procedure always returns CallNextHookEx.",
+          "command": "cat -n voice2txt/hotkeys.py (lines 376-382); grep -n \"return \" voice2txt/hotkeys.py",
+          "observed": "proc(code, wparam, lparam): try/except around self._handle, single `return user32.CallNextHookEx(None, code, wparam, lparam)` (line 382); no other return in proc. Downstream-hook check in check_hotkey_hook.py confirms pass-through.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] read hotkeys.py end to end: HOOKPROC kept alive; WM_QUIT uninstall; injected events carry a marker the hook ignores; ctypes structures on 64-bit",
+          "command": "cat -n voice2txt/hotkeys.py; .\\.build-venv\\Scripts\\python.exe -B -c (ctypes.sizeof/offsets of KBDLLHOOKSTRUCT, INPUT, MSG, HOOKPROC types)",
+          "observed": "self._proc_ref = HOOKPROC(proc) (384) kept for hook lifetime; stop() PostThreadMessageW(thread_id, WM_QUIT) + join(2.0) then loop exits -> KillTimer + UnhookWindowsHookEx (398-400); noop thread stopped via None sentinel. _handle ignores dwExtraInfo == MARKER 0x56325454 (342); send_key sets dwExtraInfo (284). KBDLLHOOKSTRUCT size 24, dwExtraInfo@16 (ULONG_PTR as c_size_t); INPUT size 40, union@8 (KEYBDINPUT/MOUSEINPUT with c_size_t extra) == x64 SDK; HOOKPROC LRESULT(c_longlong)(c_int, WPARAM c_ulonglong, LPARAM c_longlong); MSG 48.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] state-machine semantics + adversarial cases with injectable clock (20 ms ticks like WM_TIMER)",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\sm_adversarial.py",
+          "observed": "RightAlt then RightShift after 0.10 s -> [start translate @0.26, stop] (no dictate start) PASS; RightAlt 0.2 s tap -> start dictate, recording stays on, second tap -> stop PASS; RightAlt held + 'A' down/up twice -> no stop, no second start, stop only on RightAlt release PASS; 'A' during grace (Alt+A shortcut) -> no events PASS; LeftAlt+LeftShift+Space generic -> start/stop PASS; key-up never seen down -> ([], False) PASS; auto-repeat while held ignored PASS; RightAlt+LeftShift does not trigger translate PASS; hold boundary 0.35 s -> stop. Observations: any configured combo stops a tap-started session (tap dictate, tap translate -> stop); case9: if something calls ptt.reset() while the key is still held (desktop.stop() does) the next auto-repeat key-down is taken as a new press -> spurious start ~0.5 s later.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] menu-bar check (best effort): menu_bar_suppressed",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\menu_bar_check.py and menu_bar_check2.py (Tk window with tk.Menu cascade, in-process hook); .\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\menu_native_probe.py (native CreateWindowEx+HMENU window, observer LL hook); .\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\menu_native_probe_ext.py (native window, hook hosted in a separate process with a Tk mainloop like the App). Detection = GetGUIThreadInfo GUI_INMENUMODE or GetMenuBarInfo(OBJID_MENU).fBarFocused.",
+          "observed": "Detector validated: control LeftAlt tap without hook activates the menu bar 3/3 (+2/2 afterwards) on the native window and 2/2 on Tk. Injected Right Alt never activates any menu bar even WITHOUT the hook (0/2 Tk vk, 0/2 vk+scan, 0/2 scancode E038; 0/2 native) and GetAsyncKeyState(VK_RMENU/VK_MENU) stays up while it is 'held': Typeless.exe is running on this machine (8 processes since 2026-11-12 07:47) and its win32 default dictate key is single Right Alt (verification/typeless-feature-inventory-2026-11-13.md), so its hook swallows Right Alt after our hook sees it -> the Right Alt result is confounded. Mechanism tested with LeftAlt as the configured key: separate-process hook + native window: 0/38 activations for 10-80 ms taps, 0/2 for 500 ms holds, 3/8 for 0-ms synthetic taps; negative control with no-op injection disabled: 2/2 activated; in-process Tk probe: 10/16 taps <=50 ms still activated (GIL/latency race of the async helper thread). menu_bar_suppressed = 'unverified' for the default Right Alt; for a bare-Alt key the suppression works for realistic taps but is not guaranteed (race).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] desktop integration: hotkey start with no model resets the state machine and shows the prompt; stop() resets ptt; settings round-trip of hotkeys and dictation_language; legacy settings without 'hotkeys' load defaults",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\desktop_integration.py (copy, throwaway LOCALAPPDATA, FakeStream mic, startup.enable/disable stubbed)",
+          "observed": "no model: ptt._pressed [165] -> [] after _hotkey_event('start','dictate'), status '請先載入模型再使用快捷鍵。', app not recording PASS. With fake engine + 口述語言 English: session_mode 'en', indicator '● 錄音中 · 口述（English）'; hotkey stop -> recording False, draining True, ptt._pressed [] and ptt.recording False, indicator '整理中…', hidden after drain; translate action -> session_mode 'translate', indicator '● 錄音中 · 翻譯'. Saved settings.json: hotkeys object + dictation_language 'English'; legacy settings -> defaults, close_to_tray True, start_at_login False, dictation_language 繁體中文, dictionary and OpenAI model kept.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[adversarial] paste-back behaviour kept and still correct with hold-to-talk",
+          "command": "read desktop.py:515-525, 668-683; .\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\paste_during_hold2.py leftalt|rightalt_scancode (probe Tk window foreground, hook installed, key held 0.6 s, then exactly the _paste keybd_event Ctrl+V sequence; clipboard untouched)",
+          "observed": "_paste runs on every 'result' event, including while recording (desktop.py:524-525). With the push-to-talk Alt key held, the target receives keysym 'v' with Tk state 0x2000c = Control(0x4)+Alt(0x20000), i.e. Ctrl+Alt+V, not Ctrl+V (GetAsyncKeyState VK_MENU/VK_LMENU down). Right Alt could not be measured here (Typeless swallows it), but a physical Right Alt on the US-based zh-TW layout (0x04040404) is an ordinary Alt modifier.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "[All] no process left behind; no secrets in new files; no iOS compile claim; Python 3.9 syntax on every changed .py; repo untouched by the audit",
+          "command": "Get-Process python*,pythonw*,Voice2Txt* before/after; grep -nE 'sk-[A-Za-z0-9_-]{8,}|AIza…|sk-ant-|ghp_|xox[bp]-' on all T03b/T07/T08 outputs; grep compile claims; ast.parse(feature_version=(3,9)) on 11 files (interpreter 3.9.12); sha256 of 147 repo files before/after",
+          "observed": "same 14 pre-existing python PIDs before/after, none new; secret grep rc=1 (no match); only '尚未在 Xcode 編譯' / 'Never compiled' / '這不代表 App 可編譯' statements; py39 ok for all 11 files; REPO_UNCHANGED (all scripts that write into verification/ or assets/ were run on a copy under C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy; repo runs used python -B).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[major] voice2txt/desktop.py:524-525 + :668-683 — 自動貼上在每個 'result' 事件都執行（錄音中也會），而 hold-to-talk 期間使用者仍按著 Alt 類快捷鍵（預設 Right Alt）；_paste 用 keybd_event 送 Ctrl+V，前景程式實際收到 Ctrl+Alt+V（實測以 LeftAlt 當快捷鍵：目標收到 'v' 的 Tk state 0x2000c = Control+Alt）。Word/Excel 會開「選擇性貼上」，多數 App 不貼上。T07 要求『keep the target-window capture and paste-back behaviour』，hold-to-talk 讓它失效。建議：按住期間把結果暫存，放開（或 ptt 停止）後再貼；或貼上前用 SendInput 暫時送出被按住修飾鍵的 key-up（帶 MARKER）再送 Ctrl+V，並在之後恢復。",
+        "[minor] voice2txt/hotkeys.py:356-370 — no-op（VK 0xFF）由輔助執行緒非同步注入，不保證在 Alt key-up 之前送出。實測（LeftAlt 當快捷鍵）：hook 在另一個行程時 10-80 ms 點按 0/38 次啟動選單列，但 0 ms 合成點按 3/8 次仍啟動；hook 與目標視窗同行程（Tk）時 ≤50 ms 點按 10/16 次仍啟動。預設 Right Alt 因本機 Typeless 吞鍵而無法驗證（menu_bar_suppressed=unverified）。建議：在 Alt key-up 到達 hook 時，若 no-op 尚未送出則同步等待輔助執行緒完成（有上限，例如 30 ms）或改在 key-up 前補送。",
+        "[minor] voice2txt/desktop.py:457（stop() 內 self.ptt.reset()）與 :616 — 在快捷鍵仍按住時重設狀態機，之後的 auto-repeat key-down 會被當成新的按下：先 tap 開始錄音、再長按（>~0.5 s）停止時，約 0.5 s 後又送出 ('start','dictate')（sm_adversarial case9：stop@2.16、start@2.652、stop@3.6）；若尾段已處理完會開出一段多餘的錄音，沒載入模型時則每 ~0.2 s 重複提示。建議：reset 時保留目前按住的鍵（只清 _active/_pending/_recording），或在 desktop 由快捷鍵觸發的 stop 不呼叫 reset。",
+        "[minor] voice2txt/hotkeys.py:130-137 + voice2txt/desktop.py:610-611 — 規格寫『tap 後同一組合再 tap 才停止』，實作是任何已設定組合都會停止（tap 口述後 tap 翻譯組合 -> stop）；以按鈕開始的錄音，第一次快捷鍵按下被忽略（start 事件時 self.recording 為真直接 return），要第二次才停止。行為可接受但與規格字面不同，建議在 USER_MANUAL 說明或統一。",
+        "[minor] voice2txt/hotkeys.py:155-175（整體設計） — 沒有遺失 key-up 的復原：若某鍵的 key-up 沒送到 hook（切到 UAC/安全桌面、提升權限視窗、hook 被系統因逾時靜默移除），該鍵會一直留在 _pressed，之後的按下都被當作 auto-repeat，快捷鍵失效直到再次收到 key-up；也沒有偵測 hook 被移除的 watchdog。建議：key-down 時用 GetAsyncKeyState 校正 _pressed，並定期檢查 hook 是否仍有事件。"
+      ],
+      "notes": "hook 程序只有一條 return CallNextHookEx；HOOKPROC 參考保存在 self._proc_ref；WM_QUIT 卸載；自注入的 no-op 帶 dwExtraInfo MARKER 並被略過；KBDLLHOOKSTRUCT/INPUT 在 x64 的大小與欄位位移正確。狀態機的對抗案例全部符合規格（見 checks）。executor 自述的偏離已核實：no-op 是在 bare Alt key-down 被消耗時交給輔助執行緒注入（不是在 hook 內同步、也不是『right before the Alt key-up』），選單列抑制對預設 Right Alt 在本機無法驗證。重要環境因素：本機 Typeless.exe 正在執行，其 Windows 預設口述鍵就是單一 Right Alt；注入的 Right Alt 在我們的 hook 之後被它吞掉（GetAsyncKeyState 看不到 Right Alt、任何視窗的選單列都不會因 Right Alt 啟動）。因此本次與 executor 的檢查腳本注入的 Right Alt 可能也觸發了 Typeless 的口述開始/停止；兩者同時執行時預設快捷鍵會互相衝突。"
+    },
+    "T08": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "unittest discover passes (tests/test_tray_startup.py adds at least 5 tests, none needing the real registry or a real tray).",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) .\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v; grep -c \"def test_\" tests/test_tray_startup.py",
+          "observed": "54 tests OK; test_tray_startup.py: 10 tests (build_run_command frozen/source/default, Run key constants, ICO header + entries + alpha + shipped==generator, menu id mapping). No winreg/TrayIcon/enable/disable call in tests.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_tray_indicator.py` writes ...json with ok=true, tray_added=true, indicator_foreground_unchanged=true, startup_roundtrip_ok=true, and the real HKCU Run 'Voice2Txt' value is unchanged (record before/after).",
+          "command": "Get-ItemProperty HKCU:\\...\\Run -Name Voice2Txt (before); (in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) .\\.build-venv\\Scripts\\python.exe scripts\\check_tray_indicator.py C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\tray-indicator-audit.json; Get-ItemProperty (after)",
+          "observed": "Run 'Voice2Txt' absent before (null) and after (null). rc=0, ok=true, tray_added true, tray_click_shows_window true, close_button_hides_to_tray true, tray_show_event_restores true, indicator fg unchanged (2362276 x4), viewable, centered, near_bottom, ex_styles 0x8000084/0x8080088 (NOACTIVATE|TOOLWINDOW), startup_roundtrip_ok true (temp subkey), settings_persisted, quit_event_closes_app, tray_deleted_nim_delete true, tray_thread_stopped true, minimized child: tray window found, no visible main window; no_zombie_python true. Found an older leftover key HKCU\\Software\\Voice2TxtCheck-abef8643\\Run (empty, LastWrite 2026-11-13 02:24:13 local, i.e. created by an executor run before this audit started at 02:28) - not touched.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "smoke_desktop.py passes; run_desktop.py --self-test ok=true, desktop_ui=true; run_desktop.py --help lists --minimized.",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) $env:PYTHONPATH='.'; .\\.build-venv\\Scripts\\python.exe scripts\\smoke_desktop.py; .\\.build-venv\\Scripts\\python.exe run_desktop.py --help; (repo) .\\.build-venv\\Scripts\\python.exe -B run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\st\\selftest-plain.json",
+          "observed": "smoke PASS rc=0; --help shows '--minimized  啟動後縮在系統匣（登入自動啟動時使用）'; self-test ok=true, desktop_ui=true.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "voice2txt/assets/voice2txt.ico exists and parses to 2 images (16x16, 32x32); build_windows.ps1 contains --icon and an --add-data for voice2txt\\assets.",
+          "command": "(in C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy) .\\.build-venv\\Scripts\\python.exe scripts\\make_icon.py; python -c struct-parse ICONDIR; LoadImageW 16/24/32; [Parser]::ParseFile(scripts\\build_windows.ps1) (syntax only, not run)",
+          "observed": "5430 bytes, reserved 0 type 1 count 2; entries (16,16,...,1,32,1128,38) and (32,32,...,1,32,4264,1166); regenerated file identical_to_repo True; LoadImageW returns a handle at 16/24/32. build_windows.ps1:4 has '--icon','voice2txt\\assets\\voice2txt.ico','--add-data','voice2txt\\assets;voice2txt\\assets'; parse errors: 0.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "The app exits cleanly: close() removes the tray icon (NIM_DELETE) and stops the tray thread; no zombie python process remains.",
+          "command": "check_tray_indicator.py fields; desktop_integration.py minimized_tray_ok; in-process TrayIcon start/close; Get-Process python* before vs after all checks",
+          "observed": "tray_deleted_nim_delete true, tray_thread_stopped true (check script); main(minimized=True) + close(): tray_deleted true, thread stopped; TrayIcon.close(): deleted True running False. Python PIDs identical before and after the audit (14 pre-existing, none new); no Voice2Txt.exe.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`run_desktop.py --self-test <tmp> --audio tests\\fixtures\\jfk.wav --mode en --cloud Anthropic:low` (no key, no --llm-model) -> ok=true, translator_chain '僅 Whisper'; no 'sk-ant' in scripts/check_desktop_settings.py.",
+          "command": "(repo, ANTHROPIC_API_KEY unset) .\\.build-venv\\Scripts\\python.exe -B run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\st\\selftest-anthropic-nokey.json --audio tests\\fixtures\\jfk.wav --mode en --cloud Anthropic:low; grep -n sk-ant scripts/check_desktop_settings.py",
+          "observed": "rc=0, ok=true, translator_chain '僅 Whisper', backend 'Whisper', text 'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.'; grep sk-ant -> no match (SECRET = 'FAKE-KEY-roundtrip-0123'). check_desktop_settings.py re-run on copy -> ok_roundtrip true (prints Tcl 'invalid command name \"..._poll\"' on stderr).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] read tray.py/startup.py end to end: NOTIFYICONDATAW 64-bit layout, class registered once, WndProc kept alive, TaskbarCreated re-add, NIM_DELETE, menu ids, thread join",
+          "command": "cat -n voice2txt/tray.py voice2txt/startup.py; .\\.build-venv\\Scripts\\python.exe -B -c (sizeof/offsets); in-process TrayIcon + SendMessageW(TaskbarCreated) while the icon exists",
+          "observed": "NOTIFYICONDATAW sizeof 976 (x64 SDK value); offsets hWnd 8, uID 16, uFlags 20, uCallbackMessage 24, hIcon 32, szTip 40 (WCHAR[128]), dwState 296, szInfo 304, uVersion 816, szInfoTitle 820, dwInfoFlags 948, guidItem 952, hBalloonIcon 968; WNDCLASSW 72. One RegisterClassW per TrayIcon with a per-instance name; self._proc = WNDPROC(...) kept; WM_CLOSE -> DestroyWindow -> WM_DESTROY NIM_DELETE + PostQuitMessage; close() joins with timeout 5 s. Menu ids 1001/1002/1003 -> show/toggle/quit, 0 -> None. Hidden top-level WS_EX_TOOLWINDOW window instead of message-only (executor deviation): accepted, message-only windows do not receive the TaskbarCreated broadcast. But TaskbarCreated while the icon still exists -> NIM_ADD fails -> added=False, error 'Shell_NotifyIcon NIM_ADD 失敗' (see minor defect).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] indicator never takes focus; close-to-tray default on; WM_DELETE_WINDOW hides; tray 結束 uses refuse-while-recording close(); --minimized starts withdrawn (iconify when the tray failed); Run command quoting",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\desktop_integration.py; unit test strings",
+          "observed": "In-process stronger test (our own root forced foreground, no foreground lock): GetForegroundWindow unchanged across show/set_text/hide (1969888 x4), GetActiveWindow stays the root, wrapper ex-style 0x8080088. Legacy settings -> close_to_tray True. tray quit while recording -> not closed, recording stopped, window shown (status later replaced by drain completion). main(minimized=True): tray OK -> 'withdrawn'; tray start failing -> 'iconic', and window close then exits (closed True). build_run_command -> '\"C:\\Program Files\\Voice2Txt\\Voice2Txt.exe\" --minimized' and '\"...pythonw.exe\" \"D:\\2026 Voice2Txt\\run_desktop.py\" --minimized' (both paths quoted). Tk thread rule: hook, tray, loader, decoder and audio callbacks only queue.put; all widget/indicator calls happen on the Tk thread (_poll, button commands).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[adversarial] second launch while the tray instance is running (start-at-login + manual launch)",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\s\\two_instances.py (two `run_desktop.py --minimized` from the copy, separate throwaway LOCALAPPDATA; then WM_CLOSE to their tray windows and taskkill /T)",
+          "observed": "instances_alive [true, true], one Voice2TxtTray window each -> both run, each with its own WH_KEYBOARD_LL hook; no single-instance guard (executor's stated deviation confirmed). Cleanup: 0 tray windows left, processes killed.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "[All] no process left behind; no secrets in new files; no iOS compile claim; Python 3.9 syntax on every changed .py; repo untouched by the audit",
+          "command": "Get-Process python*,pythonw*,Voice2Txt* before/after; grep -nE 'sk-[A-Za-z0-9_-]{8,}|AIza…|sk-ant-|ghp_|xox[bp]-' on all T03b/T07/T08 outputs; grep compile claims; ast.parse(feature_version=(3,9)) on 11 files (interpreter 3.9.12); sha256 of 147 repo files before/after",
+          "observed": "same 14 pre-existing python PIDs before/after, none new; secret grep rc=1 (no match); only '尚未在 Xcode 編譯' / 'Never compiled' / '這不代表 App 可編譯' statements; py39 ok for all 11 files; REPO_UNCHANGED (all scripts that write into verification/ or assets/ were run on a copy under C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy; repo runs used python -B).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[major] voice2txt/desktop.py:746-754（main）與 run_desktop.py:154-155 — 沒有單一執行個體保護。T08 讓 App 登入自動啟動並常駐系統匣，使用者之後再點捷徑會開第二個執行個體；實測兩個 `run_desktop.py --minimized` 同時存活、各有一個系統匣圖示，且各自安裝 WH_KEYBOARD_LL。舊版 RegisterHotKey 對同一組合是系統唯一的，第二個執行個體拿不到快捷鍵；改成 LL hook 後兩個都會對 Right Alt 反應：兩路麥克風、兩份辨識與歷史紀錄、兩個指示器，開啟自動貼上時重複貼上，settings.json 也可能互相覆寫。建議：啟動時用具名 mutex（例如 CreateMutexW 'Local\\\\Voice2Txt' + ERROR_ALREADY_EXISTS）判斷，已存在就通知原執行個體顯示視窗（例如 FindWindow 找 tray 類別後 PostMessage 一個自訂訊息）然後結束。",
+        "[minor] voice2txt/tray.py:142-146, 207-209 — 收到 TaskbarCreated 時直接 NIM_ADD；若圖示其實還在（非 explorer 重啟的廣播，例如 DPI/工作列重建），NIM_ADD 失敗並把 added 設為 False（實測：added False、error 'Shell_NotifyIcon NIM_ADD 失敗'），之後 on_window_close 會改走 close() 直接結束程式。建議：NIM_ADD 失敗時改試 NIM_MODIFY，或先 NIM_DELETE 再 NIM_ADD，成功任一即 added=True。",
+        "[minor] voice2txt/desktop.py:270-272, 303-304, 351-358 — 勾選「登入 Windows 時自動啟動」會立即寫入登錄，但 start_at_login 只有按「儲存設定與字典」才保存；勾選後未儲存就結束，下次啟動勾選框顯示未勾選、Run 值卻仍存在（App 仍會自動啟動）。建議：載入時以 startup.is_enabled() 決定勾選狀態，或在 _login_toggled 內同時保存設定。",
+        "[minor] voice2txt/desktop.py:161, 564, 743 — close() 直接 root.destroy()，沒有 after_cancel 尚未執行的 _poll，結束時 stderr 出現 Tcl `invalid command name \"..._poll\"`（check_desktop_settings.py 與本次 desktop_integration.py 都重現）。功能無害，但會讓檢查輸出出現假錯誤。建議保存 after id 並在 close() 先 after_cancel。",
+        "[minor] scripts/check_tray_indicator.py:243-256 — 暫存登錄子鍵的清除不在 finally 中，minimized_child_check() 或之前的步驟若拋例外就會留下 HKCU\\\\Software\\\\Voice2TxtCheck-xxxx。使用者登錄中目前已留有一個空的 HKCU\\\\Software\\\\Voice2TxtCheck-abef8643\\\\Run（LastWrite 2026-11-13 02:24:13，稽核開始前由 executor 的某次執行建立；稽核未刪除）。建議把清除放進 finally，並刪除這個殘留鍵。"
+      ],
+      "notes": "NOTIFYICONDATAW 在 x64 為 976 bytes、欄位位移與 SDK 一致；WNDPROC 參考有保存；NIM_DELETE 與執行緒結束皆實測成功；--minimized 在系統匣失敗時改為最小化而非隱藏（實測 'iconic'）。executor 的偏離已核實：tray 視窗是隱藏的 WS_EX_TOOLWINDOW 頂層視窗（因為 message-only 視窗收不到 TaskbarCreated 廣播，理由成立）；確實沒有單一執行個體保護（列為 major）；check_desktop_settings.py 結束時的 Tcl 訊息確實出現（minor）。真實 HKCU Run 'Voice2Txt' 在稽核前後都不存在（null -> null）。"
+    }
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T07: hold-to-talk 期間的自動貼上會送出 Ctrl+Alt+V（desktop.py:524-525/668-683），需改為放開後再貼或先釋放被按住的修飾鍵；可順帶處理 reset-while-held 與 no-op 競態兩個 minor。",
+    "T08: 缺單一執行個體保護（desktop.py:746-754），登入自動啟動後再開一次會出現兩個 hook 同時錄音；可順帶處理 TaskbarCreated、登入勾選未保存、after_cancel、檢查腳本 finally 與殘留登錄鍵。"
+  ],
+  "menu_bar_suppressed": "unverified",
+  "menu_bar_details": {
+    "default_RightAlt": "unverified: injected Right Alt never activates a menu bar on this machine even without the Voice2Txt hook (Typeless.exe running, default dictate key Right Alt, swallows it downstream)",
+    "mechanism_LeftAlt_proxy_separate_process_native_window": {
+      "taps_10_to_80ms": "0/38 activated",
+      "holds_500ms": "0/2",
+      "taps_0ms": "3/8 activated",
+      "control_no_hook": "3/3 + 2/2 activated",
+      "negative_noop_disabled_tk": "2/2 activated"
+    },
+    "mechanism_LeftAlt_proxy_in_process_tk": "10/16 taps <=50 ms still activated; holds 0/2",
+    "raw_results": [
+      "C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\menu_bar_result.json",
+      "C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\menu_bar_result2.json",
+      "C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\menu_native_result.json",
+      "C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\menu_native_result_ext.json"
+    ]
+  },
+  "real_run_key_voice2txt": {
+    "before": null,
+    "after": null,
+    "unchanged": true
+  },
+  "environment_notes": [
+    "Typeless.exe (commercial reference app) is running on this machine; its Windows default dictate key is single Right Alt. Every injected Right Alt (executor's and this audit's check scripts) may have toggled a Typeless dictation session.",
+    "All repo-writing scripts were run on a copy at C:\\Users\\User\\AppData\\Local\\Temp\\auditC\\copy; sha256 of 147 repo files identical before and after the audit (only this verdict file was added)."
+  ],
+  "notes": "Swift 部分（T03b）是靜態審閱，沒有編譯證據。桌面部分所有 acceptance 都在暫存副本上親自重跑，真機腳本 check_hotkey_hook.py（4 次）與 check_tray_indicator.py 皆 ok=true。overall FAIL 的原因是 T07 與 T08 各有一個 major：兩者都不是規格逐條驗收的失敗，而是對抗式審查發現的整合問題（hold-to-talk + 自動貼上；LL hook + 常駐/自動啟動卻無單一執行個體）。"
+}

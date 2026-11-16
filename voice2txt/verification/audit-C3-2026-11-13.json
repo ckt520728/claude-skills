@@ -1,0 +1,129 @@
+{
+  "audit_id": "AUDIT-C3",
+  "date": "2026-11-13",
+  "tasks": {
+    "T11": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with new tests: swallowed-key hold with auto-repeat -> exactly one start and one stop; genuine missed key-up recovers after 1.2 s; release_held_modifiers ignores unrelated Shift; watchdog liveness decision pure function.",
+          "command": ".\\.build-venv\\Scripts\\python.exe -B -m unittest discover -s tests -v   (cwd D:\\2026 Voice2Txt; -B only to avoid writing .pyc)",
+          "observed": "Ran 75 tests in 0.380s / OK. Present and ok: test_swallowed_key_hold_with_auto_repeat_is_one_start_and_one_stop, test_genuine_missed_key_up_without_repeats_recovers_after_1_2_seconds, test_key_down_shortly_after_a_sync_drop_is_a_continuation_not_a_new_press, test_release_held_modifiers_ignores_modifiers_outside_configured_combos, test_liveness_decision_is_independent_of_held_keys.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` PASS with the new swallowed-key scenario recording events == [start dictate, stop] and physical-sync drops == 0 during the hold; the existing scenarios unchanged; liveness probe counters show at least one probe observed by the hook.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\copy; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -B scripts\\check_hotkey_hook.py   (byte-identical copy of repo sources so the repo JSON is not overwritten)",
+          "observed": "exit 0, PASS, stderr 0 bytes. checks: event_sequence/watchdog_reinstall/swallowed_key_single_start_stop/idle_liveness_probe/deferred_paste_control_only all true. swallowed_key: events [[start,dictate],[stop,null]], key_downs_injected 34, swallowed_by_downstream_hook 35, async_state_down_during_hold false, physical_sync_drop_count 0. liveness_probe: probes_sent 4, probes_observed 6, liveness_reinstalls 0. paste_check: v state ['0xc'] (Control+NumLock), baseline 0x2000c. diff --strip-trailing-cr vs the T10 script audited in C2: only additions (SwallowHook, swallowed_key_check, liveness_check, docstring lines 12-14, report/ok wiring); sequence/watchdog/paste scenarios unchanged.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_single_instance.py` ok=true as before.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\copy; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -B scripts\\check_single_instance.py",
+          "observed": "exit 0, stderr 0 bytes; ok true; second_instance_exit_code 0 in 0.36 s; tray_windows_total 1; first_window_shown_by_broadcast true; after_terminate leftover_tree_pids [] and mutex_exists false.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok=true.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\copy (models = junction to repo models); $env:PYTHONPATH='.'; python -B scripts\\smoke_desktop.py ; $env:LOCALAPPDATA='C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\selftest-lad'; python -B run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\out\\selftest.json --audio tests\\fixtures\\chinese.wav --mode zh --model small",
+          "observed": "smoke exit 0: 'PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段、畫面、SQLite、字典儲存。' stderr 0 bytes. self-test exit 0: stage completed, desktop_ui true, text '今天下午四點開會,請記得帶研究報告。', ok true.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Single CallNextHookEx return path still holds; no key swallowed.",
+          "command": "grep -n 'CallNextHookEx\\|return 1' voice2txt/*.py; read hotkeys.py:631-638 and _handle 556-587; downstream observers in check_hotkey_hook and live_checks.py",
+          "observed": "Only return in proc is hotkeys.py:638 `return user32.CallNextHookEx(None, code, wparam, lparam)`; _handle (incl. new PROBE_MARKER branch 557-561) returns nothing to the OS. keys_not_swallowed true; in every live_checks session the downstream observer received every injected event (e.g. R1 35/35).",
+          "result": "PASS"
+        }
+      ],
+      "adversarial_checks": [
+        {
+          "name": "C2 major reproduced independently (single swallowed key + auto-repeat)",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\s\\live_checks.py  -> out\\live_checks.json",
+          "observed": "R1 control (no swallow, hold 1.5 s, 33 ms repeats): [start 0.0, stop 1.515]. R2 downstream hook swallows F24, same hold: [start 0.0, stop 1.515], recovered [], GetAsyncKeyState true 0/33. R2b swallow, 0.5 s typematic delay then 33 ms for 2.5 s: [start 0.0, stop 3.047], recovered [].",
+          "result": "FIXED (C2: 8 flapping events)"
+        },
+        {
+          "name": "Genuine missed key-up (key-down only, no repeats, no key-up seen)",
+          "observed": "R3: [start 0.0, stop 1.203], recovered ['0x87'].",
+          "result": "PASS"
+        },
+        {
+          "name": "Two-key combo whose FIRST key is swallowed (mirror of default translate RightAlt+RightShift under Typeless)",
+          "command": "live_checks.py R4 (combos dictate F24, translate F24+F23; downstream swallows F24; F24 down, F23 down 30 ms later, F23 auto-repeat 33 ms, hold 3 s) and pure_checks.py P1 (DEFAULT combos, is_physically_down = vk != RightAlt)",
+          "observed": "R4: [start translate 0.031, stop 1.218] while both keys still held, recovered ['0x87']; control without swallow: [start translate 0.047, stop 3.063]. P1 (pure, real default combos): [start translate 0.18, stop 1.2], recovered ['0xa5']; control [stop 3.0].",
+          "result": "FAIL -> defect 1"
+        },
+        {
+          "name": "Normal tap / re-press within 0.3 s after a real key-up (continuation must not apply)",
+          "observed": "R5 live (swallowed F24): tap, tap 0.25 s later, hold 0.6 s, release, re-press 0.28 s later -> [start 0.0, stop 0.328, start 1.0, stop 1.641, start 1.938, stop 2.594], recovered []. P2/P2b pure identical. Code: key-up path hotkeys.py:271 pops _dropped_at, and _dropped_at is set only at :308 after a sync-drop, so ordinary key-up then re-press is never a continuation.",
+          "result": "PASS"
+        },
+        {
+          "name": "Continuation after a GENUINE missed key-up",
+          "observed": "P3 pure: drop at 1.2 s, then a real new tap at 2.05 s (0.85 s after the drop) -> no start (treated as continuation); events stay [start, stop].",
+          "result": "minor -> defect 3 (spec-inherent)"
+        },
+        {
+          "name": "release_held_modifiers keys filter (live)",
+          "observed": "R6: only LeftAlt configured, LAlt+LShift held: released ['0xa4'], after LShift still down (true). Default generic Alt+Shift+Space: released ['0xa0','0xa4'] (generic Shift/Alt cover both sides, as specified). Cleanup all up.",
+          "result": "FIXED"
+        },
+        {
+          "name": "Liveness probe isolation / re-entrancy",
+          "observed": "R7: machine.key spy saw no vk at all during 4 probes (PROBE_MARKER returns at hotkeys.py:557-561 before the state machine); max _handle depth 1; liveness_reinstalls 0. probes_observed counts key events (8 for 4 probes = down+up).",
+          "result": "PASS"
+        },
+        {
+          "name": "Liveness probe vs system idle timer (GetLastInputInfo)",
+          "command": "live_checks.py R7 and C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\s\\idle_prod.py (default liveness_seconds 10, 25 s, no other injection)",
+          "observed": "Single PROBE_MARKER VK 0xFF key-down/up: idle 3156 ms -> 63 ms. With liveness 1 s: idle max 1031 ms over 4.5 s. Production default 10 s: idle 55.75 s -> reset at first probe, next reset at 9.86 s; idle_ms_max is capped near 10 s while the hook runs.",
+          "result": "FAIL -> defect 2"
+        },
+        {
+          "name": "unhook/reinstall event loss (code read)",
+          "observed": "hotkeys.py:669-674 unhook then SetWindowsHookExW back-to-back on the hook thread; events in that microsecond gap bypass us. A lost key-up is recovered by _sync_physical after 1.2 s; a lost key-down is a missed press. Liveness reinstall only fires when the probe is unseen for 150 ms (hook already dead/slow), so not listed as a defect. Not verified: whether UIPI (elevated foreground) or the secure desktop blocks the probe and causes a reinstall every ~10.15 s.",
+          "result": "no defect"
+        },
+        {
+          "name": "CreateMutexW NULL fallback (code read, no elevation)",
+          "observed": "desktop.py:71-77: handle NULL -> find_tray_window() (EnumWindows, class prefix 'Voice2TxtTray'; tray.py:117 class name has an id() suffix so FindWindowW by exact name is impossible -> acceptable deviation; tray.py:167 window is top-level so EnumWindows can see it) -> PostMessageW(show) and return False (exit 0), else return True. Matches spec (c). PostMessageW to an elevated instance is filtered by UIPI (tray.py has no ChangeWindowMessageFilterEx) and its return value is ignored.",
+          "result": "FIXED as specified; residual -> defect 4"
+        },
+        {
+          "name": "Tk thread rule",
+          "observed": "New 'warning' from the hook thread goes only through events.put (desktop.py:207-209) and is applied in _poll on the Tk thread (desktop.py:616-617). release_held_modifiers runs inside _paste on the Tk thread. No Tk call from hook/noop/worker threads found in the diff.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[major] voice2txt/hotkeys.py:292-309（_sync_physical，判斷在 :299）+ voice2txt/desktop.py:26（DEFAULT_HOTKEYS translate = RightAlt+RightShift）— 吞鍵造成的誤判只修了單鍵：Windows 只對『最後按下』的鍵送 auto-repeat；多鍵組合中先按、又被下游 hook 吞掉的那個鍵，_last_seen 停在按下時，GetAsyncKeyState 也一直是放開，所以 1.2 s 後一定被補做 key-up，按住說話在仍按著時被 stop。實測：下游 hook 吞 F24，F24+F23 按住 3 s（F23 每 33 ms auto-repeat）-> [start translate 0.031, stop 1.218]；不吞鍵的對照組 stop 3.063。純狀態機套用真正的預設組合（RightAlt 被吞、RightShift 正常）-> [start translate 0.18, stop 1.2]。本機 Typeless 正是吞 Right Alt：預設的翻譯快捷鍵按住說話，1.2 s 後就會被截斷，之後的語音遺失（T10 之前不會）。AutoHotkey/PowerToys 吞掉組合中第一個鍵時也一樣。建議：GetAsyncKeyState 在這次按住期間從沒回報過『按下』的鍵（代表被下游吞掉，非同步狀態不可信）不做實體校正；或只要組合中任何仍按住的鍵還有 auto-repeat，就把同一組合的其他鍵視為仍按住。並補上『組合第一鍵被吞、第二鍵 auto-repeat』的單元測試與真機情境。",
+        "[major] voice2txt/hotkeys.py:657-663（liveness_decision 'probe' 排程）+ :614-618（send_key(NOOP_VK, PROBE_MARKER)）+ :96（LIVENESS_SECONDS 10）— 閒置存活探測用 SendInput 注入按鍵，而注入的輸入會重設系統閒置計時器：只要 App 在執行、10 s 沒有鍵盤事件，就注入一次，系統閒置時間永遠不會超過約 10 s。實測 GetLastInputInfo：單一探測讓 idle 從 3156 ms 變成 63 ms；用預設 10 s 跑 25 s，idle 在 55.75 s 時被歸零，下一次在 9.86 s 又被歸零。後果：螢幕保護程式、閒置自動鎖定（安全性）、關閉螢幕與睡眠（耗電）在使用者離開時都不會觸發，也會讓 Teams 等程式的『離開』狀態失效，跟 Caffeine 這類防睡眠工具的效果相同。這是 T11 規格(b)字面要求的做法，但會造成嚴重副作用。尚未實測幾分鐘後的實際鎖定，只量了 GetLastInputInfo。建議：只在使用者確實有輸入、hook 卻沒有收到任何 callback 時才探測（GetLastInputInfo 的 idle 小於 interval，但 now - last_callback 大於等於 interval），系統閒置時不注入；或改用不產生輸入的存活判斷。",
+        "[minor] voice2txt/hotkeys.py:250-258（CONTINUATION_SECONDS 分支）— continuation 只看『1.5 s 內曾被補做 key-up』，無法分辨『被吞鍵的持續按住』和『真的遺失 key-up 後，使用者重新按下』。真的遺失 key-up 後 1.5 s 內重新按下時，start 會被吞掉，要再按一次才有反應（純狀態機 P3：補做 key-up 在 1.2 s，2.05 s 的新點按沒有 start）。這是規格本身的取捨，發生機率低（要先真的遺失 key-up）。若採用 defect 1 的『非同步狀態曾確認按下』做法，continuation 可以只套用在從未確認按下的鍵。",
+        "[minor] voice2txt/desktop.py:71-77 — CreateMutexW 回傳 NULL 的回退會找到較高權限執行個體的系統匣視窗，但一般權限送出的 PostMessageW 會被 UIPI 過濾（tray.py 沒有呼叫 ChangeWindowMessageFilterEx），而且沒檢查回傳值。第二個執行個體照樣 exit 0，第一個視窗卻沒有顯示，使用者看起來就是『點了沒反應』。單一執行個體本身仍然成立，所以列為 minor。此項只讀程式碼判斷，沒有提升權限實測。"
+      ],
+      "notes": "5 條 acceptance 都親自重跑，全部通過：測試 75 個 OK；check_hotkey_hook 5/5；check_single_instance ok；smoke PASS；self-test ok；只有一條 CallNextHookEx。C2 的 major 在稽核情境（單鍵、33 ms auto-repeat）獨立重現確認已修正（[start, stop]，沒有任何補做 key-up）；真的遺失 key-up 在 1.203 s 復原；點按後 0.25-0.28 s 內再按不會被當成持續按住。但對抗式審查發現兩個新的 major：(1) 吞鍵修正沒有涵蓋多鍵組合：先按的鍵不會 auto-repeat，所以預設翻譯組合 RightAlt+RightShift 在 Typeless 下仍會在 1.2 s 被截斷（真機 F24+F23 重現）；(2) 規格(b)的閒置探測會讓系統閒置計時器每約 10 s 歸零，自動鎖定和睡眠因此失效。依規則，有 major 就判 T11 FAIL。另外：hook.probes_observed 計的是按鍵事件數，每次探測算 2（down+up），所以 check JSON 裡 observed 會大於 sent，不影響判定。規格寫用 FindWindowW，實作改用 EnumWindows 比對類別名稱前綴，因為類別名稱帶有 id() 後綴，這個偏差合理。所有會寫入 verification/ 的腳本都在 C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\copy（repo 原始碼的位元組一致副本，models 用 junction）執行。repo 在排除 models/gpu/dist/build/tools/venv/__pycache__ 後，133 個檔案的 sha256 前後一致；repo 只新增本 verdict。HKCU Run 稽核前後都沒有 Voice2Txt 值，整個 Run 機碼前後 diff 無差異。稽核前後 python.exe 的 PID 集合相同，沒有殘留程序。真機鍵盤一律用 F24/F23/LeftAlt/LeftShift/0xFF，沒有注入 Right Alt。"
+    }
+  },
+  "original_defects_status": {
+    "C2-major hotkeys.py _sync_physical flapping on swallowed key": "FIXED for the audited single-key scenario (hotkeys.py:90-94,247-258,299,308; live R2/R2b [start, stop], 0 drops) — but the multi-key variant remains (new major, defect 1)",
+    "C2-minor release_held_modifiers releases unrelated modifiers": "FIXED (hotkeys.py:417-437, desktop.py:766; live R6: only LeftAlt configured -> LShift stays down; unit test present)",
+    "C2-minor watchdog never fires when idle / no UI notice": "FIXED functionally (hotkeys.py:115-126,557-561,614-618,657-678; warning routed via events queue -> desktop.py:207-209,616) — but the probe defeats the system idle timer (new major, defect 2)",
+    "C2-minor CreateMutexW NULL lets a second instance run": "FIXED as specified (desktop.py:36-53,71-77, code read) — residual UIPI show-message filtering (defect 4, minor)"
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T11: (1) 吞鍵修正沒有涵蓋多鍵組合：預設翻譯鍵 RightAlt+RightShift 在 Typeless 下會在 1.2 s 被截斷（hotkeys.py:299）。實體校正要排除這次按住期間 GetAsyncKeyState 從沒回報過按下的鍵，或用同一組合其他鍵的 auto-repeat 證明仍按住，並補測試。(2) 閒置存活探測注入的按鍵會讓系統閒置計時器每約 10 s 歸零，自動鎖定和睡眠因此失效（hotkeys.py:657-663）。改成只在使用者有輸入、hook 卻沒收到 callback 時才探測。可以一併處理：continuation 只套用在被吞的鍵；UIPI 下顯示訊息被過濾的問題。"
+  ],
+  "real_run_key_voice2txt": {
+    "before": null,
+    "after": null,
+    "unchanged": true
+  },
+  "environment_notes": [
+    "Typeless.exe running (PIDs 12400, 8232); NumLock on (paste Tk state 0xc = Control 0x4 | NumLock 0x8).",
+    "HKCU Control Panel\\Keyboard: KeyboardDelay 1 (~0.5 s), KeyboardSpeed 31 (~33 ms) — matches the 33 ms repeat model used.",
+    "Raw outputs: C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\out\\ (unittest.txt, check_hotkey_hook.stdout, single.stdout, smoke.stdout, selftest.json, pure_checks.json, live_checks.json, idle_prod.json, repo-hash diff); scripts: C:\\Users\\User\\AppData\\Local\\Temp\\auditC3\\s\\ (pure_checks.py, live_checks.py, idle_prod.py, write_verdict.py).",
+    "Pre-existing leftover verification\\tmp3l6vce8l\\ (from an earlier smoke_desktop run, dated Oct 18) was present before this audit; not touched."
+  ]
+}

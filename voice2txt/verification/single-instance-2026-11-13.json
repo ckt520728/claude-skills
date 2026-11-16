@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "preflight": {
+    "mutex_exists": false,
+    "tray_windows": 0,
+    "project_processes": []
+  },
+  "first": {
+    "pid": 42008,
+    "tree_pids": [
+      40672,
+      42008
+    ],
+    "tray_windows": 1,
+    "mutex_exists": true,
+    "main_window_visible_before": false
+  },
+  "second_instance_exit_code": 0,
+  "second_instance_exit_seconds": 0.34,
+  "after_second": {
+    "first_alive": true,
+    "tray_windows_total": 1,
+    "tray_window_owner_pids": [
+      40672
+    ],
+    "second_tree_alive_pids": [],
+    "project_processes": [
+      [
+        42008,
+        "python.exe"
+      ],
+      [
+        40672,
+        "python.exe"
+      ]
+    ],
+    "mutex_exists": true
+  },
+  "first_window_shown_by_broadcast": true,
+  "first_visible_window_titles": [
+    "Voice2Txt · 自在說，本機寫"
+  ],
+  "one_instance_remaining": true,
+  "after_terminate": {
+    "leftover_tree_pids": [],
+    "tray_windows": 0,
+    "mutex_exists": false,
+    "project_processes": []
+  },
+  "no_process_left": true
+}

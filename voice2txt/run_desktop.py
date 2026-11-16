@@ -27,7 +27,10 @@ def verify(output, audio=None, mode='en', model='small', device='cpu', llm_model
         app = App(root)
         root.update()
         report['tk'] = root.tk.call('info', 'patchlevel')
-        report['desktop_ui'] = bool(app.text.winfo_exists() and app.history.winfo_exists())
+        from voice2txt.desktop import DEFAULT_HOTKEYS
+        report['desktop_ui'] = bool(app.text.winfo_exists() and app.history.winfo_exists()
+                                    and app.insights_tab.winfo_exists() and app.heatmap.winfo_exists()
+                                    and 'ask' in DEFAULT_HOTKEYS and 'ask' in app.hotkeys)
         app.close()
         report['input_devices'] = sum(d['max_input_channels'] > 0 for d in sd.query_devices())
         if audio:
@@ -48,7 +51,8 @@ def verify(output, audio=None, mode='en', model='small', device='cpu', llm_model
                         chain.append((provider, '', key, effort))
                 translator, warnings = build_translator(llm_model or '', chain)
                 report['llm_model'] = llm_model
-                report['translator_chain'] = 'Whisper 轉錄 → ' + translator.name + ' → Whisper 結果'
+                report['translator_chain'] = ('Whisper 轉錄 → ' + translator.name + ' → Whisper 結果'
+                                              if translator else '僅 Whisper')
                 report['prepare_warnings'] = warnings
             checkpoint('before_audio_decode')
             samples = decode_audio(audio, sampling_rate=16000)
@@ -75,17 +79,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Voice2Txt 本機語音輸入')
     parser.add_argument('--self-test', metavar='JSON_PATH')
     parser.add_argument('--audio')
-    parser.add_argument('--mode', choices=['zh', 'en', 'translate'], default='en')
+    parser.add_argument('--mode', choices=['zh', 'en', 'translate', 'ask'], default='en')
     parser.add_argument('--model', choices=['base', 'small', 'medium', 'large-v3'], default='small')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cpu')
     parser.add_argument('--llm-model')
-    parser.add_argument('--cloud', action='append', default=[], metavar='PROVIDER:EFFORT',
-                        choices=[f'{p}:{e}' for p in ('OpenAI', 'Gemini') for e in ('low', 'medium', 'high')],
-                        help='可重複，例如 --cloud OpenAI:high --cloud Gemini:low；API key 讀取 OPENAI_API_KEY／GEMINI_API_KEY')
+    parser.add_argument('--cloud', action='append', default=[],
+                        choices=[f'{p}:{e}' for p in ('Anthropic', 'OpenAI', 'Gemini') for e in ('low', 'medium', 'high')],
+                        help='可重複，例如 --cloud Anthropic:low --cloud OpenAI:high --cloud Gemini:low；API key 讀取 ANTHROPIC_API_KEY／OPENAI_API_KEY／GEMINI_API_KEY')
     parser.add_argument('--vocabulary', default='')
+    parser.add_argument('--minimized', action='store_true', help='啟動後縮在系統匣（登入自動啟動時使用）')
     args = parser.parse_args()
     if args.self_test:
         raise SystemExit(verify(args.self_test, args.audio, args.mode, args.model, args.device, args.llm_model,
                                 args.cloud, args.vocabulary))
     from voice2txt.desktop import main
-    main()
+    raise SystemExit(main(minimized=args.minimized))

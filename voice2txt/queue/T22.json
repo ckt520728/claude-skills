@@ -1,0 +1,16 @@
+{
+  "task_id": "T22",
+  "objective": "Two small fixes from audit E3 (verification/audit-E3-2026-11-13.json). (1) hotkeys.py N2 rule (swallowed-key repeat timeout, ~:404-413): apply the 1.2 s timeout only to swallowed keys for which at least one auto-repeat key-down has been observed since the swallowed key-down; a swallowed key that never repeats is never timed out (it is released by its real key-up, or by the 10 s watchdog path if that exists). Unit tests: swallowed key held 3 s with no repeats stays held; with repeats then silence 1.2 s is released; the earlier lost-key-up test still passes. (2) desktop.py (~:521-524): coerce settings['hotkeys_version'] with a safe int() (fallback 1) so a hand-edited string value cannot crash startup; unit test via the pure migration helper or a small settings-parsing function. Re-run check_hotkey_hook.py and refresh its JSON.",
+  "inputs": ["verification/audit-E3-2026-11-13.json", "voice2txt/hotkeys.py", "voice2txt/desktop.py", "tests/test_hotkeys.py", "scripts/check_hotkey_hook.py"],
+  "outputs": ["voice2txt/hotkeys.py", "voice2txt/desktop.py", "tests/test_hotkeys.py", "verification/hotkey-hook-2026-11-13.json"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with the new tests.",
+    "`scripts\\check_hotkey_hook.py` PASS (all 8 checks).",
+    "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok; `scripts\\check_wave_d.py` ok=true."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T21"],
+  "max_output_tokens": 5000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Minimal diffs. Python 3.9. Never inject Right Alt. Restore the real clipboard after checks. Do not touch docs/iOS/dist. Do not run git."
+}

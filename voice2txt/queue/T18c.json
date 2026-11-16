@@ -1,0 +1,30 @@
+{
+  "task_id": "T18c",
+  "objective": "After audit G: update STATUS.md and handoffs.md so the final wave D packaged evidence is verification/packaged-waveD3-2026-11-14.json (post-T24 rebuild; take every number from that JSON), keeping packaged-waveD and packaged-waveD2 as superseded; add audit-F (T22/T18/T18b/T19 PASS, overall FAIL on D1 -> T23) and audit-G outcome to the audit chain rows and the handoffs table (T23, T19b, T18c rows); remove any remaining 'audit F 尚未執行' / 'audit F not yet run' wording. Do not change anything else. Also record audit-G (T23/T19b PASS, 4 minors -> T24) and T24 (closed G1-G3; verified by the planner's own hash/test checks, no further audit) in the chain and the table (rows T23, T19b, T24, T19c, T18c).",
+  "inputs": [
+    "verification/packaged-waveD3-2026-11-14.json",
+    "verification/audit-F-2026-11-13.json",
+    "verification/audit-G-2026-11-13.json",
+    "STATUS.md",
+    "handoffs.md"
+  ],
+  "outputs": [
+    "STATUS.md",
+    "handoffs.md"
+  ],
+  "acceptance": [
+    "grep: both files contain 'packaged-waveD3-2026-11-14.json' and 'audit-G-2026-11-13.json'; neither contains '尚未執行' or 'not yet run' about audit F.",
+    "Every number added traces to the cited JSON."
+  ],
+  "capabilities": [
+    "read",
+    "local_write"
+  ],
+  "depends_on": [
+    "T24",
+    "T19c"
+  ],
+  "max_output_tokens": 3000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Traditional Chinese for STATUS.md, English for handoffs.md. Do not run git."
+}

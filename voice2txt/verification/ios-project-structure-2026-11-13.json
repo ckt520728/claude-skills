@@ -1,0 +1,39 @@
+{
+  "task": "T03",
+  "note": "結構檢查，未編譯；不代表 App 可在 Xcode 建置。",
+  "swift_files": {
+    "AudioChunker.swift": {
+      "PBXFileReference": true,
+      "PBXBuildFile": true,
+      "in_sources_build_phase": true
+    },
+    "ContentView.swift": {
+      "PBXFileReference": true,
+      "PBXBuildFile": true,
+      "in_sources_build_phase": true
+    },
+    "Refiner.swift": {
+      "PBXFileReference": true,
+      "PBXBuildFile": true,
+      "in_sources_build_phase": true
+    },
+    "Transcriber.swift": {
+      "PBXFileReference": true,
+      "PBXBuildFile": true,
+      "in_sources_build_phase": true
+    },
+    "Voice2TxtApp.swift": {
+      "PBXFileReference": true,
+      "PBXBuildFile": true,
+      "in_sources_build_phase": true
+    }
+  },
+  "targeted_device_family_1_2_count": 2,
+  "checks": {
+    "every_swift_in_pbxproj": true,
+    "orientation_ipad_key": true,
+    "orientation_iphone_key": true,
+    "targeted_device_family_1_2": true
+  },
+  "ok": true
+}

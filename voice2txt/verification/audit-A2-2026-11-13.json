@@ -1,0 +1,80 @@
+{
+  "audit_id": "AUDIT-A2",
+  "date": "2026-11-13",
+  "tasks": {
+    "T03": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe scripts\\generate_xcode_project.py` succeeds and is idempotent (a second run produces a byte-identical pbxproj).",
+          "command": "copy scripts/generate_xcode_project.py, scripts/check_ios_project.py, ios/ -> C:\\Users\\User\\AppData\\Local\\Temp\\auditA2; sha256sum ios/Voice2Txt.xcodeproj/project.pbxproj (repo); .\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditA2\\scripts\\generate_xcode_project.py run twice with sha256sum after each; cmp temp pbxproj vs repo pbxproj",
+          "observed": "repo sha256 4f4c6d9e51ddffe39e59df05b2bc6ff3fd5f49e66bd2cecac4665cfa2edc22e2; run1 rc=0 sha256 4f4c6d9e...22e2; run2 rc=0 sha256 4f4c6d9e...22e2; cmp => IDENTICAL_TO_REPO",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "verification/ios-project-structure-2026-11-13.json, written by scripts/check_ios_project.py, lists every .swift file under ios/Voice2Txt and confirms each appears in project.pbxproj (PBXFileReference and PBXBuildFile), and that both orientation INFOPLIST keys and TARGETED_DEVICE_FAMILY '1,2' are present; ok=true.",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditA2\\scripts\\check_ios_project.py; cmp temp JSON vs verification/ios-project-structure-2026-11-13.json; independent parser C:\\Users\\User\\AppData\\Local\\Temp\\auditA2\\indep_pbx.py (PBXFileReference, PBXBuildFile, PBXSourcesBuildPhase, Voice2Txt PBXGroup); grep -n 'Orientations|TARGETED_DEVICE_FAMILY|SWIFT_VERSION|DEPLOYMENT_TARGET' project.pbxproj",
+          "observed": "rc=0, ok=true; all 5 files (AudioChunker, ContentView, Refiner, Transcriber, Voice2TxtApp) PBXFileReference/PBXBuildFile/in_sources_build_phase=true; JSON byte-identical to repo copy (SAME_AS_REPO_JSON); independent parser: every file 'ref True build True inPhase True inGroup True'; pbxproj lines 181-182/202-203 orientation keys, 185/206 TARGETED_DEVICE_FAMILY = \"1,2\"; IPHONEOS_DEPLOYMENT_TARGET 16.0; SWIFT_VERSION 5.0; no SWIFT_STRICT_CONCURRENCY (minimal)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep: Refiner.swift contains the exact substrings 'A contrast or negation is information, NOT a self-correction', 'anthropic-version' and '2026-10-21'; Transcriber.swift declares `source` on Record and has a translate fallback path using `.translate`.",
+          "command": "grep -c 'A contrast or negation is information, NOT a self-correction' ios/Voice2Txt/Refiner.swift; grep -n 'anthropic-version|2026-10-21' Refiner.swift; grep -n 'let source|.translate' Transcriber.swift",
+          "observed": "count=1; Refiner.swift:197 headers[\"anthropic-version\"] = \"2026-10-21\"; Transcriber.swift:20 `let source: String?` (inside struct Record, lines 14-23); Transcriber.swift:236-238 catch branch `if sessionMode == .translate { result = try await decode(audio, task: .translate, language: \"zh\", pipe: pipe) }`",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep: no 'iPhone 設定' remains in Swift sources; the ios/README.md first heading mentions iPad.",
+          "command": "grep -rn 'iPhone 設定' ios/Voice2Txt/; grep -n -m3 '^#' ios/README.md",
+          "observed": "no matches (rc=1); README line 1 '# iPhone / iPad 版', plus '## iPad 注意事項' (line 7)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "No claim anywhere that the app compiles; README keeps the '尚未在 Xcode 編譯' warning.",
+          "command": "grep -n '尚未在 Xcode 編譯' ios/README.md ios/Voice2Txt/*.swift; grep -rniE 'compiles|已編譯|可編譯|編譯成功|builds successfully|build succeeded' ios/ scripts/generate_xcode_project.py scripts/check_ios_project.py verification/ios-project-structure-2026-11-13.json; grep -niE '(ios|iphone|ipad|swift|xcode).{0,40}(已編譯|可編譯|編譯成功|編譯通過|compiles|compiled)' STATUS.md README.md handoffs.md ios/README.md USER_MANUAL.md",
+          "observed": "ios/README.md:3 '**尚未在 Xcode 編譯或 iPhone / iPad 實測，不能視為可安裝完成品。**'; Refiner.swift:7 '此檔尚未在 Xcode 編譯'; check_ios_project.py:3 '這不代表 App 可編譯'; structure JSON note '結構檢查，未編譯'; only other hit handoffs.md:43 '**Never compiled.**'; STATUS.md:16 '尚未編譯、簽署、安裝或實機驗證'",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] T03: RULES/TASKS prompt text in Refiner.swift equals translation.py RULES/TASKS after normalising string-literal escaping",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditA2\\cmp_prompt.py  (parses each Swift multi-line literal, strips closing-delimiter indentation, asserts no backslash escapes, compares with voice2txt.translation.RULES / TASKS)",
+          "observed": "RULES equal: True 1137 1137; zh equal: True; en equal: True; translate equal: True. instructions(): Swift rules + newline + tasks[task] + glossary matches Python f'{RULES}\\n{TASKS[mode]}{glossary}', glossary prefix 500 identical",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] T03: request/parse parity with desktop CloudTranslator; chain order Anthropic -> OpenAI -> Gemini; 60 s pause; translate-mode Whisper fallback; zh Hans->Hant",
+          "command": "manual side-by-side read: Refiner.swift:188-275 vs translation.py:118-171; Refiner.swift:50-51,165-174,281-317 vs translation.py:174-232; Transcriber.swift:217-250 vs translation.py:244-269",
+          "observed": "Anthropic: same URL, x-api-key + anthropic-version 2026-10-21 + Content-Type, body {model, max_tokens 1024, system, messages[{role:user,content}], output_config{effort}}, no temperature/thinking; parse text blocks, complete iff stop_reason nil/end_turn, refusal throws before text. OpenAI: /v1/responses, Bearer, {model, instructions, input, reasoning{effort}}; output[type=message].content[type=output_text], status nil/completed. Gemini: v1beta/models/{model}:generateContent, x-goog-api-key, systemInstruction/contents/generationConfig.thinkingConfig.thinkingLevel; candidates[0].content.parts without thought, finishReason nil/STOP. HTTP error -> 'HTTP <code> <error.message[:160]>'. Timeout 30 s (request + resource). CloudProvider.allCases = anthropic, openai, gemini; activeRefiners() keeps enabled+key in that order; RefinerChain cooldown default 60 s, pause keyed by name, lastBackend/errors exposed. Transcriber: chain present -> Whisper .transcribe (zh for chinese/translate, en for english), Hans-Hant on non-English raw (desktop: OpenCC inside zh transcribe), refine, Hans-Hant again on chinese output; on chain failure chinese/english keep raw, translate re-decodes with .translate; empty raw -> nothing (desktop returns ''). Small parity gaps listed as minor defects.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] T03: Swift 5 / iOS 16 compile & runtime hazard review of Refiner.swift / Transcriber.swift / ContentView.swift (imports, @MainActor, Sendable, Record Codable, iOS 17 APIs, WhisperKit names, force unwraps)",
+          "command": "cat -n of all 5 Swift files; grep -rn import ios/Voice2Txt/*.swift; grep -n 'ObservableObject|@Published' Refiner.swift; grep of verification/WhisperKit-v0.9.4.swift for init / transcribe / WhisperKitConfig / DecodingOptions / DecodingTask",
+          "observed": "Refiner.swift imports only Foundation + Security (lines 1-2) but line 129 `final class RefineSettings: ObservableObject` and lines 134/137 `@Published` need Combine (Transcriber.swift imports Combine, ContentView imports SwiftUI; top-level names do not leak across files). Record (Transcriber.swift:14-23): `let source: String?`, `let backend: String?` -> synthesized Decodable uses decodeIfPresent, old history.json decodes with nil; sole memberwise call site (253-254) passes both. No iOS 17-only API (NavigationStack/ShareLink/URL.documentsDirectory are iOS 16). Only force unwraps are constant URL literals (Refiner.swift:195,202); JSON uses as? casts. Keychain calls use correct types (CFDictionary, CFTypeRef?). WhisperKit excerpt confirms WhisperKit(WhisperKitConfig) init (line 55), WhisperKitConfig(model:...verbose:...) labels with defaults (lines 89-123), transcribe(audioArray:decodeOptions:callback:) -> [TranscriptionResult] (line 804; non-deprecated overload selected by the explicit annotation). DecodingTask and DecodingOptions(task:language:skipSpecialTokens:withoutTimestamps:concurrentWorkerCount:) are defined in WhisperKit Models.swift, which is NOT in the excerpt (grep 'DecodingTask' -> 0 hits); consistent with upstream 0.9.x (public enum DecodingTask { transcribe, translate }, language: String?) but not locally provable. Text concat (ContentView:59) and Form with multi-Section custom View (ContentView:102-121) are valid SwiftUI (body is @ViewBuilder; Form flattens TupleView).",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "[extra] All: no file claims iOS compiles or that Anthropic was called live; no API key or secret-looking string (sk-, AIza, sk-ant-) in new/changed files",
+          "command": "grep -nE 'sk-|AIza|sk-ant-' on all T03 outputs; grep -nE 'sk-[A-Za-z0-9_-]{8,}|AIza[0-9A-Za-z_-]{10,}|sk-ant-' on every file modified on 2026-11-13 (find -newermt) plus STATUS/README/USER_MANUAL/handoffs; grep -niE 'anthropic.{0,60}(實測成功|live|已驗證|verified|呼叫成功)' docs",
+          "observed": "T03 outputs: no matches (rc=1). Outside T03 scope: scripts/check_desktop_settings.py:22 SECRET = 'sk-ant-test-roundtrip-0123456789' (T02 fixture, obviously fake) and tests/test_translation.py:253-255 'sk-測試' (fixture). No live-Anthropic claims; ios/README.md:20 says '雲端呼叫尚未以真實 API key 驗證'.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[major] ios/Voice2Txt/Refiner.swift:1-2 (used at :129, :134, :137) — 只 import Foundation 與 Security，卻宣告 `RefineSettings: ObservableObject` 與 `@Published`；這兩者屬於 Combine，Foundation 並未公開 re-export Combine 的頂層型別（'Cannot find type AnyCancellable/ObservableObject in scope' 是常見錯誤），且 Swift 頂層名稱不會從 Transcriber.swift 的 import Combine 跨檔洩漏 → 很可能出現 'cannot find type ObservableObject in scope' / 'unknown attribute Published'。修法：在 Refiner.swift 加 `import Combine`（或 import SwiftUI）。",
+        "[minor] ios/Voice2Txt/Refiner.swift:281,301-317 + Transcriber.swift:221,232,234 — RefinerChain 是非 Sendable、非隔離的 class，其 async refine 由 MainActor 的 Transcriber 呼叫後在 generic executor 上修改 paused/lastBackend/errors，回主執行緒再讀 lastBackend。目前單一 worker 序列執行，無實際競爭，SWIFT_VERSION 5.0 預設 minimal 檢查下可編譯；改 Swift 6 或 strict concurrency=complete 會報 'sending ... risks causing data races'。建議 RefinerChain 標 @MainActor（網路仍在 CloudRefiner.refine 的非隔離 async 執行）或改為 actor。",
+        "[minor] ios/Voice2Txt/ContentView.swift:131-141 — Binding(get:set:) closure 直接呼叫 @MainActor 的 RefineSettings.settings(for:)/update；iOS 16/17 SDK + Swift 5 下 closure 繼承 body 的 MainActor 隔離可編譯，但較新 SDK 若將 Binding closure 標為 @Sendable，strict concurrency 下會出現隔離警告/錯誤。建議日後以 Swift 6 模式驗證。",
+        "[minor] ios/Voice2Txt/ContentView.swift:59 — `Text(\"\\(date) · \\(mode)\" + (record.backend.map { \" · \\($0)\" } ?? \"\"))` 合法（String + String → Text(StringProtocol)，verbatim 不本地化），但含 closure、?? 與多個 Text 多載，增加型別推斷負擔。建議先在 helper 算出 String 再用 Text(verbatim:)。",
+        "[minor] ios/Voice2Txt/Transcriber.swift:236-238,251 — 中翻英備援的 Whisper .translate 若回傳空字串，該段被靜默丟棄；桌面 decode_segment 會設定 error 'Whisper 未產生譯文'（translation.py:262-263）。建議空結果時設定 sessionError/status。",
+        "[minor] ios/Voice2Txt/Refiner.swift:231-234 — refusal 訊息為 '模型拒絕處理（unknown）。'，無 category 時填 'unknown'；桌面為 'Anthropic 拒絕處理此內容（category）。' 且無 category 時省略括號（translation.py:150）。行為等價（皆 throw），僅文字不一致。",
+        "[minor] ios/Voice2Txt/Refiner.swift:287-289,304,311 — 暫停計時用 Date（牆鐘），桌面用 time.monotonic；系統時間調整會延長或縮短 60 秒暫停。可改用 ProcessInfo.processInfo.systemUptime 當 clock。",
+        "[minor] ios/Voice2Txt/ContentView.swift:144-149 — API key 只在按 Return（onSubmit）時存入鑰匙圈；輸入後直接切換分頁會靜默遺失。符合 T03 'saved to Keychain on commit' 字面要求，但建議加明確『儲存』按鈕或 onDisappear 儲存。"
+      ],
+      "notes": "這是靜態審閱與結構檢查，不是編譯證據：此機器沒有 Swift/Xcode 工具鏈，Swift 檔僅逐行閱讀判斷。T03 的 5 條 acceptance 全部重跑通過（generator 兩次 sha256 相同且與 repo 中 pbxproj 位元組一致；check_ios_project.py ok=true，另以獨立 parser 確認 5 個 .swift 都在 PBXFileReference/PBXBuildFile/Sources phase/Voice2Txt group；grep 條件皆符合）。generator 與 checker 在 C:\\Users\\User\\AppData\\Local\\Temp\\auditA2 的副本上執行，未改動 repo 內任何既有檔案。RULES/TASKS 正規化後與 translation.py 逐字相同；三種 provider 的 URL/headers/body/完成條件/refusal/HTTP 錯誤處理、鏈順序 Anthropic→OpenAI→Gemini、60 秒暫停、中翻英 Whisper .translate 備援、zh 的 Hans-Hant 轉換皆與桌面等價。FAIL 原因：Refiner.swift 缺 `import Combine`（major，很可能編譯失敗）。WhisperKit 的 DecodingTask 型別名與 DecodingOptions(task:language:skipSpecialTokens:withoutTimestamps:concurrentWorkerCount:) 標籤不在 verification/WhisperKit-v0.9.4.swift 摘錄內（定義於 Models.swift），依上游 0.9.x 判斷一致，但無法以本地原始碼證明；Text 串接與 Form 內多 Section 的自訂 View 經審閱為合法寫法。另觀察（非 T03 範圍，未計入）：ios/README.md:5 寫『每約 5 秒分段』，但 AudioChunker.swift 最長 8 秒（既有不一致）；scripts/check_desktop_settings.py:22 有明顯假的 'sk-ant-test-roundtrip-…' 測試字串（T02）。"
+    }
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T03: Refiner.swift 缺 `import Combine`，RefineSettings 的 ObservableObject/@Published 很可能無法編譯（一行修正）；可順帶處理 minor 項目（RefinerChain 隔離、空譯文錯誤提示）。"
+  ]
+}

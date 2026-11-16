@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-15",
+  "browser": "Chrome via Playwright CLI",
+  "public_https": true,
+  "pairing_verified": true,
+  "upload_to_transcript_ui_verified": true,
+  "chinese_result": "????????,?????????",
+  "width_checks": [
+    {
+      "viewport": 390,
+      "scroll_width": 375
+    },
+    {
+      "viewport": 820,
+      "scroll_width": 805
+    }
+  ],
+  "screenshots": [
+    "output/playwright/mobile-390.png",
+    "output/playwright/tablet-820.png"
+  ],
+  "secure_context": true,
+  "media_devices_api_present": true,
+  "real_iphone_ipad_microphone_verified": false,
+  "home_screen_install_verified": false,
+  "native_ios_compiled": false,
+  "unit_tests_run": 148,
+  "unit_tests_skipped": 1
+}

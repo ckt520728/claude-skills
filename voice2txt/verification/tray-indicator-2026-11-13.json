@@ -1,0 +1,75 @@
+{
+  "real_run_value_before": null,
+  "tray_added": true,
+  "tray_thread_alive": true,
+  "tray_window_class": "Voice2TxtTray227939f8220",
+  "tray_error": null,
+  "tray_click_shows_window": true,
+  "close_button_hides_to_tray": true,
+  "tray_show_event_restores": true,
+  "indicator": {
+    "foreground_before": 2362276,
+    "foreground_shown": 2362276,
+    "foreground_processing": 2362276,
+    "foreground_after": 2362276,
+    "viewable_when_shown": true,
+    "hidden_after": true,
+    "text_while_processing": "整理中…",
+    "geometry_xywh": [
+      634,
+      710,
+      268,
+      44
+    ],
+    "screen": [
+      1536,
+      864
+    ],
+    "horizontally_centered": true,
+    "near_bottom": true,
+    "ex_styles_hex": [
+      "0x8000084",
+      "0x8080088"
+    ],
+    "has_noactivate_toolwindow": true
+  },
+  "indicator_foreground_unchanged": true,
+  "startup_steps": {
+    "initial": false,
+    "after_enable": true,
+    "value_matches_command": true,
+    "after_disable": false,
+    "run_command": "\"D:\\2026 Voice2Txt\\.build-venv\\Scripts\\pythonw.exe\" \"D:\\2026 Voice2Txt\\run_desktop.py\" --minimized"
+  },
+  "startup_roundtrip_ok": true,
+  "settings_persisted": true,
+  "quit_event_closes_app": true,
+  "tray_deleted_nim_delete": true,
+  "tray_thread_stopped": true,
+  "tray_added_after_close": false,
+  "minimized_tray_window_found": true,
+  "minimized_visible_windows": [],
+  "minimized_no_main_window": true,
+  "temp_key_removed": true,
+  "leftover_key_cleanup": {
+    "key": "HKCU\\Software\\Voice2TxtCheck-abef8643",
+    "existed_before": true,
+    "tree_before": {
+      "values": 0,
+      "subkeys": {
+        "Run": {
+          "values": 0,
+          "subkeys": {}
+        }
+      }
+    },
+    "was_empty": true,
+    "exists_after": false,
+    "carried_over_from_previous_run": true
+  },
+  "real_run_value_after": null,
+  "real_run_value_unchanged": true,
+  "new_python_processes_after": [],
+  "no_zombie_python": true,
+  "ok": true
+}

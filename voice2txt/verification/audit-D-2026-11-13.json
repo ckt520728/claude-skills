@@ -1,0 +1,164 @@
+{
+  "audit_id": "AUDIT-D",
+  "date": "2026-11-13",
+  "auditor": "independent Opus auditor (closing audit); re-ran checks, changed no repo file",
+  "tasks": {
+    "T05": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "grep: USER_MANUAL.md, README.md and CLAUDE.md each mention 'Anthropic' and 'claude-sonnet-5-5'; STATUS.md contains 'packaged-anthropic-2026-11-13.json' and a sentence stating no live Anthropic call was verified; the top handoffs.md entry is dated 2026-11-13.",
+          "command": "cat USER_MANUAL.md README.md CLAUDE.md STATUS.md; sed -n 1,60p handoffs.md",
+          "observed": "All three docs name Anthropic + claude-sonnet-5-5 (USER_MANUAL 5.2 table, README LLM 順序, CLAUDE.md translation.py bullet). STATUS.md Anthropic row: '沒有進行任何 live Anthropic 呼叫（…anthropic_key_in_env false）'; 已知限制 bullet 5. handoffs.md top entry '## 2026-11-13 — JEV session …'.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "No document claims the iOS app compiles or that Anthropic latency/quality was measured; no claim that hotkey/menu-bar suppression is guaranteed.",
+          "command": "grep -n -i -E '已編譯|可編譯|編譯成功|compiles|compiled successfully|guarantee|保證|...' USER_MANUAL.md README.md CLAUDE.md STATUS.md handoffs.md ios/README.md",
+          "observed": "Only negations matched (USER_MANUAL:200 '不保證', STATUS:39 '不得宣稱 Anthropic 已驗證'). iOS described as 尚未編譯 in README, ios/README, USER_MANUAL §11, STATUS; menu-bar suppression described as 盡力而為 / best-effort in USER_MANUAL:104, STATUS:29, handoffs:41, CLAUDE.md hotkeys bullet.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Every number in the new STATUS.md rows traces to a file under verification/ named in the same row.",
+          "command": "python json dumps of audit-A1/A2/C/C2/C3/C4, desktop-anthropic-ui, packaged-anthropic, ios-project-structure, packaged-waveC, hotkey-hook, tray-indicator, single-instance (all -2026-11-13.json)",
+          "observed": "30 tests: audit-A1 'Ran 30 tests in 0.154s / OK'. providers_in_ui ['Anthropic','OpenAI','Gemini'], ok true. packaged-anthropic: dist_bytes 8276871866, msvcp140 14.44.35211.0, exe 01:38:06, 4 reports ok, report b backend Whisper + 'timed out', notes '(cold model load, 20 s timeout)', anthropic_key_in_env false. ios-structure: 5 swift files all in PBXFileReference/PBXBuildFile/Sources, targeted_device_family_1_2 true, ok true. audit-C T03b PASS. packaged-waveC: 173.0 s, 8276868380, CB1FBD18CBC3..., 07:37:34, icon_present true, 6.125/12.5/5.25 s, second instance 0.41 s exit 0, identical true. hotkey-hook: ok, keys_not_swallowed true, noop_keys_injected 4, swallowed_key / two_key_swallowed events = expected. audit-C4 'Ran 80 tests ... OK'. tray-indicator: indicator_foreground_unchanged true, has_noactivate_toolwindow true, startup_roundtrip_ok true. single-instance: second_instance_exit_seconds 0.34, exit 0, tray_windows_total 1, no_process_left true, after_terminate.mutex_exists false. audit-C menu bar: 'taps_10_to_80ms': '0/38 activated', 'taps_0ms': '3/8 activated'. Every number found in the cited file. Caveats in defects (dist_bytes/sha in source file; LeftAlt proxy; 10/16 omission).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "The five audit-C4 residual limitations appear in STATUS.md.",
+          "command": "sed -n '/## 已知限制/,$p' STATUS.md; python: audit-C4 tasks.T12.defects",
+          "observed": "STATUS.md 已知限制 lists: (1) key-up lost before first 20 ms sample stays held; (2) re-press within 1.5 s after a lost key-up ignored once; (3) Typeless intercepts Right Alt (warning); (4) iOS uncompiled; (5) no live Anthropic call. Matches audit-C4 defects 1-2 and T05 spec items 3-5.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "handoffs.md table lists T01-T12 with A1 PASS, A2 FAIL->T03b, C FAIL->T10, C2 FAIL->T11, C3 FAIL->T12, C4 PASS.",
+          "command": "sed -n 1,60p handoffs.md; python: verdict/overall of each verification/audit-*-2026-11-13.json",
+          "observed": "audit files: A1 overall PASS (T01 PASS, T02 PASS); A2 FAIL (T03 FAIL); C FAIL (T03b PASS, T07 FAIL, T08 FAIL); C2 FAIL (T10); C3 FAIL (T11); C4 PASS (T12). handoffs table rows T01,T02,T03,T03b,T05,T06,T07,T08,T09,T10,T11,T12 with matching outcomes; 'No T04 exists in queue/' (confirmed: queue has no T04.json). Row T09 is malformed (5 cells) and T05b is absent from the table (see defects).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "USER_MANUAL.md behaviour matches code (hold >= 0.35 s, tap toggles, defaults, close-to-tray on, start-at-login off, --minimized, single instance, deferred paste, Typeless warning text).",
+          "command": "grep hotkeys.py (HOLD_SECONDS, GRACE_SECONDS, PHYSICAL_CHECK_SECONDS, CONTINUATION_SECONDS, MAX_COMBOS, TYPELESS_WARNING, _NAMES), desktop.py (DEFAULT_HOTKEYS, close_to_tray, start_at_login, deferred_pastes/_flush_pastes, claim_single_instance, main(minimized)), run_desktop.py --minimized, tray.py MENU_ITEMS, startup.py",
+          "observed": "hotkeys.py:68 HOLD_SECONDS = 0.35; :69 GRACE_SECONDS = 0.15; :93 PHYSICAL_CHECK_SECONDS = 1.2; :94 CONTINUATION_SECONDS = 1.5; :70 MAX_COMBOS = 2; :100 TYPELESS_WARNING = '偵測到 Typeless 正在執行，Right Alt 會被它攔截；請改設其他快捷鍵或關閉 Typeless。' (identical to USER_MANUAL 快捷鍵 Typeless 衝突 bullet; desktop.py:687-688 shows it). desktop.py:27 DEFAULT_HOTKEYS = {'dictate': ['RightAlt','Alt+Shift+Space'], 'translate': ['RightAlt+RightShift']}; :191 close_to_tray True; :192 start_at_login False; :195/600-601/752-758 deferred paste until held_keys released; :849-858 single instance + --minimized withdraw; run_desktop.py:87 --minimized; tray.py:24 menu 開啟視窗/開始・停止錄音/結束; LBUTTONUP -> show; startup.py:15 '\"<exe>\" --minimized' under value Voice2Txt; PushToTalk._activate: only the starting combo stops by tap, button start -> any combo. All match the manual.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "CLAUDE.md commands must still be valid (--help or dry equivalent).",
+          "command": "PYTHONDONTWRITEBYTECODE=1 .build-venv/Scripts/python.exe -m unittest discover -s tests; ... -m unittest tests.test_core.CoreTests.test_chunker_preserves_every_sample_and_flushes_tail; run_desktop.py --help; scripts/download_models.py --help; ast.parse on benchmark_refine/check_hotkey_hook/check_tray_indicator/check_single_instance/check_desktop_settings/check_ios_project/make_icon (no argparse -> --help would execute them and write verification/); PowerShell Parser.ParseFile scripts/build_windows.ps1",
+          "observed": "'Ran 80 tests in 0.367s OK'; single test 'Ran 1 test OK'; run_desktop --help lists --cloud {Anthropic:low,...} and --minimized; download_models usage {base,small,medium,large-v3}; all 7 scripts exist and parse; benchmark_refine reads sys.argv[1] (small); tests/fixtures/disfluent-*.wav present; build_windows.ps1 0 parse errors, param IncludeGpu, line 4 bundles --icon voice2txt\\assets\\voice2txt.ico, line 26 copies USER_MANUAL.md -> 使用者手冊.md. Full build and check scripts deliberately not executed.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[minor] handoffs.md:48 — literal backspace byte (0x08) in 'scripts<0x08>enchmark_refine.py' (a Python '\\b' escape); the command as written is broken. Should read scripts\\benchmark_refine.py (CLAUDE.md:23 has it right).",
+        "[minor] handoffs.md:23 — the T09 table row has 5 cells ('| — | — | done: ...') in a 4-column table, so it renders misaligned; T05b (which edited STATUS/handoffs) is not in the T01–T12 table, and the T05 row (handoffs.md:19) still says 'not yet audited | pending'.",
+        "[minor] USER_MANUAL.md:104, STATUS.md:29, handoffs.md:41 — the menu-bar numbers (0/38 at 10–80 ms, 3/8 at 0 ms) come from audit-C, which measured the T07 implementation before the T10–T12 no-op changes. The docs present them as current behaviour without saying so, and leave out audit-C's other result: with the hook in the same process as the focused window (Tk), taps of 50 ms or less activated the menu 10/16 times. 'Best-effort' stays accurate, but 'works at normal tapping speed' has not been re-measured on the current code.",
+        "[minor] STATUS.md:26 — the hotkey row is titled 'Right Alt 口述、Right Alt + Right Shift 翻譯' and cites hotkey-hook-2026-11-13.json, but that file's configured_keys is 'LeftAlt / LeftAlt+LeftShift' (Typeless swallows Right Alt) plus F24/F23. The row does not say a Left Alt stand-in was used, so the default Right Alt path itself has no injected-key evidence on this machine.",
+        "[nit] USER_MANUAL.md (快捷鍵 section, '舊的 Alt + Shift + Space（按下切換、再按一次停止）') — in code this combo goes through the same PushToTalk machine (desktop.py:27, hotkeys.py _activate/key-up), so holding it 0.35 s or longer acts as hold-to-talk, not a pure toggle."
+      ],
+      "notes": "Truthfulness holds: every number in the 2026-11-13 STATUS rows appears in the verification file named in the same row. No forbidden claims (iOS compile, live Anthropic, guaranteed suppression). The five C4 limitations are listed. Defects are presentation or precision issues only."
+    },
+    "T05b": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "grep: STATUS.md and handoffs.md contain 'packaged-waveC-2026-11-13.json'; neither contains a sentence saying T09 or the final rebuild is pending/尚未完成.",
+          "command": "grep -n 'packaged-waveC-2026-11-13.json\\|pending\\|尚未完成' STATUS.md handoffs.md",
+          "observed": "Both cite packaged-waveC-2026-11-13.json (STATUS.md:25 and 下一步 3; handoffs.md:23, :42, :47). Nothing says the rebuild is pending. STATUS.md:41 / handoffs.md:47 list only the *audit* of T09/T05 as next, which this audit now covers. handoffs.md:19 marks T05 (not T09) as 'pending'.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Every number added traces to packaged-waveC-2026-11-13.json.",
+          "command": "python: json.load(packaged-waveC-2026-11-13.json); compare with STATUS.md:25 and handoffs.md:42",
+          "observed": "exit 0 / 173.0 s (build_notes), dist_bytes 8276868380, sha prefix CB1FBD18CBC3, 07:37:34, msvcp140 14.44.35211.0, icon_present true, inference 6.125/12.5/5.25 s, backends, minimized running + tray class found, second instance 0.41 s exit 0, manual identical true, help lists --minimized/Anthropic:low, WM_CLOSE caveat: all present in the file. dist_bytes does not match the artifact (see T09 defects). The prefix CB1FBD18CBC3 does match the real exe hash.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[minor] STATUS.md:25, handoffs.md:42 — dist_bytes 8,276,868,380 is copied faithfully from packaged-waveC-2026-11-13.json:112, but the current dist\\Voice2Txt measures 8,276,858,735 bytes (1329 files, Get-ChildItem -Recurse -File -Force | Measure-Object Length -Sum; du -sb agrees), 9,645 bytes less. No file in dist is newer than the evidence file, so the recorded value does not reproduce (it was a hand-typed literal in the T09 aggregation script). '8.28 GB' is still correct."
+      ],
+      "notes": "T05b did what its spec asked; the only inaccuracy it carries comes from the T09 evidence file."
+    },
+    "T09": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "packaged-waveC-2026-11-13.json exists; all four reports ok=true and stage='completed'; (a) desktop_ui=true; (c) translator_chain has no 'Anthropic' unless a key was found.",
+          "command": "powershell -File scratchpad\\auditD\\st.ps1 (throwaway LOCALAPPDATA=%TEMP%\\v2t_auditD_<guid>): Voice2Txt.exe --self-test ra.json; --self-test rd.json --audio tests\\fixtures\\jfk.wav --mode en; --self-test rc.json --audio tests\\fixtures\\chinese.wav --mode translate --llm-model gemma4:latest --cloud Anthropic:low",
+          "observed": "File has 4 reports, all ok true / completed. Re-run by auditor: (a) exit 0, 4.7 s, {stage completed, desktop_ui true, ok true}; (d) exit 0, 12.1 s, text 'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.', backend Whisper, ok true; (c) exit 0, 29.3 s, translator_chain 'Whisper 轉錄 → Ollama gemma4:latest → Whisper 結果' (no Anthropic; no ANTHROPIC/OPENAI/GEMINI env vars set), backend Ollama gemma4:latest, text 'The meeting is at four o'clock this afternoon, please remember to bring the research report.', ok true.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "exe_sha256 matches Get-FileHash of dist\\Voice2Txt\\Voice2Txt.exe.",
+          "command": "Get-FileHash dist\\Voice2Txt\\Voice2Txt.exe -Algorithm SHA256; LastWriteTime",
+          "observed": "Actual CB1FBD18CBC3EE07461334AEBB84DC07661B902EA7048ECD7C5F3C7775945E82 (64 hex), LastWriteTime 2026-11-13 07:37:34. Recorded value is CB1FBD18CBC3EE07461334AEB84DC07661B902EA7048ECD7C5F3C7775945E82: 63 hex, one 'B' missing at position 27 ('AEB84' vs 'AEBB84'). Prefix and timestamp match, so it is the same exe and the recorded hash has a transcription error.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "minimized_launch.running=true and the process was terminated (no Voice2Txt.exe left); auditor relaunch under throwaway LOCALAPPDATA: tray window class prefix Voice2TxtTray, second copy exits within 1 s, clean termination, none left.",
+          "command": "powershell -File scratchpad\\auditD\\mini.ps1 (EnumWindows class prefix Voice2TxtTray; OpenMutexW Local\\Voice2Txt-SingleInstance; Start-Process Voice2Txt.exe --minimized; second Start-Process Voice2Txt.exe; taskkill /PID; taskkill /F /T /PID)",
+          "observed": "pre: no processes, no tray window, no mutex. Tray window 'Voice2TxtTray2abb1496280|pid=16792' found after 0.8 s; no visible window before the second launch (minimized); mutex present. Second copy exited in 0.455 s with exit code 0; first still alive, still 1 tray window, and its main window became visible ('TkTopLevel:Voice2Txt · 自在說，本機寫'). Plain taskkill (WM_CLOSE) did not end it (close-to-tray by design); taskkill /F /T did. After: no Voice2Txt.exe ('INFO: No tasks are running...'), no tray window, no mutex. Throwaway LOCALAPPDATA held only Voice2Txt\\history.sqlite3 and was deleted. (A first attempt with a broken Add-Type also launched and was force-killed; it left nothing behind.)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "help_text lists --minimized and Anthropic:low; icon_present=true; msvcp140_version not 14.27.x; build_log_tail shows no error.",
+          "command": "read packaged-waveC json; Get-ChildItem dist\\Voice2Txt\\_internal\\voice2txt\\assets; (Get-Item dist\\Voice2Txt\\_internal\\msvcp140.dll).VersionInfo.FileVersion; run_desktop.py --help (source)",
+          "observed": "help_lists_minimized true, help_lists_Anthropic_low true (text is cp950 mojibake but the option names are readable). voice2txt.ico is in dist\\...\\_internal\\voice2txt\\assets (5430 bytes). msvcp140 14.44.35211.0. build_log_tail ends 'Build complete!' with no ERROR lines.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "dist\\Voice2Txt\\使用者手冊.md SHA-256 equals USER_MANUAL.md SHA-256.",
+          "command": "Get-FileHash USER_MANUAL.md; Get-FileHash dist\\Voice2Txt\\使用者手冊.md",
+          "observed": "Both A58538E981DA7609112266381405D9840F07049FB7F101AD5F18F96691B1ACB7 (21395 bytes, 07:33:26). This is the post-T05 manual (contains Anthropic, Right Alt, 系統匣, --minimized).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[minor] verification/packaged-waveC-2026-11-13.json:113 — exe_sha256 has 63 hex characters (one 'B' missing at position 27). The real SHA-256 is CB1FBD18CBC3EE07461334AEBB84DC07661B902EA7048ECD7C5F3C7775945E82. It was hand-typed into the aggregation script instead of computed.",
+        "[minor] verification/packaged-waveC-2026-11-13.json:112 — dist_bytes 8276868380 does not reproduce; the current dist measures 8276858735 and no dist file is newer than the evidence (hand-typed literal).",
+        "[nit] verification/packaged-waveC-2026-11-13.json:18,40,62,117 — non-raw Python string literals turned '\\f' into a form feed in the args fields ('tests<FF>ixtures') and '\\v'/'\\a' into control characters in icon_path. The recorded paths are corrupted.",
+        "[nit] verification/packaged-waveC-2026-11-13.json:124 — help_text is cp950 bytes decoded with the wrong codec (mojibake); option names are still readable.",
+        "[observation, not a defect] The tray quit command is only reachable from the interactive popup menu (TPM_RETURNCMD), so no external graceful-exit path exists. WM_CLOSE on the tray window destroys only the tray icon and leaves the process running with no icon (tray.py:212-218). Automation therefore needs taskkill /F."
+      ],
+      "notes": "The packaged build is the 07:37:34 exe and works: UI-only, jfk en and translate self-tests re-run green, --minimized creates the tray window, the single instance shows the first window and the second copy exits in 0.455 s. Evidence-file defects are transcription and encoding problems; none changes a pass/fail outcome."
+    }
+  },
+  "global_checks": [
+    {
+      "acceptance": "No secrets in any changed file.",
+      "command": "grep -n -o -a -E 'sk-ant-[A-Za-z0-9_-]{8,}|sk-(proj-)?[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{30,}|ghp_[A-Za-z0-9]{20,}' over the 69 repo files with mtime 2026-11-13 (venvs excluded)",
+      "observed": "Only the fake fixture 'sk-ant-test-roundtrip-0123456789' quoted inside audit-A1/A2 verdict text (already flagged there as made up). No match in the T05/T05b/T09 outputs (USER_MANUAL.md, README.md, CLAUDE.md, STATUS.md, handoffs.md, packaged-waveC json). No cloud-key env vars present.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "Repo files unchanged by the audit (hash before/after).",
+      "command": "find (excluding dist/models/gpu/build/tools/.build-venv/.venv/__pycache__) | xargs sha256sum > before.sha / after.sha; diff",
+      "observed": "140 files before and after; 'REPO IDENTICAL'. The only repo write is this verdict file (written after the after-hash). Tests ran with PYTHONDONTWRITEBYTECODE=1.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "No leftover processes.",
+      "command": "tasklist | grep -i voice2txt (after every run)",
+      "observed": "0 Voice2Txt.exe at the end; mutex and tray window gone.",
+      "result": "PASS"
+    },
+    {
+      "acceptance": "Real HKCU Run 'Voice2Txt' unchanged.",
+      "command": "reg query HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run (before/after, diff); reg query ... /v Voice2Txt",
+      "observed": "Whole Run key output identical before and after ('RUN KEY IDENTICAL'); no Voice2Txt value before or after (Typeless.exe value present, untouched).",
+      "result": "PASS"
+    }
+  ],
+  "environment_notes": [
+    "Typeless.exe running; no Right Alt injected and no keyboard injection of any kind in this audit.",
+    "No ANTHROPIC/OPENAI/GEMINI API keys in env; Ollama reachable at 127.0.0.1:11434.",
+    "Raw outputs: C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\auditD\\ (ra.json, rd.json, rc.json, st.log, mini.json, before.sha, after.sha, run_before.txt, run_after.txt, st.ps1, mini.ps1)."
+  ],
+  "overall": "PASS",
+  "replan_needed": [],
+  "recommended_cleanup_optional": [
+    "handoffs.md:48 fix the 0x08 byte -> scripts\\benchmark_refine.py; handoffs.md:23 fix the T09 row cell count; add T05b and the AUDIT-D outcome to the table.",
+    "packaged-waveC-2026-11-13.json: recompute exe_sha256 / dist_bytes programmatically and fix the control characters (or add a correction note, since evidence files should not be silently rewritten); update dist_bytes in STATUS.md:25 / handoffs.md:42 accordingly.",
+    "Re-measure menu-bar activation on the current (T12) hook code, including the in-process (Voice2Txt window focused) case, before repeating the 0/38 figure as current behaviour; say in STATUS.md:26 that the hotkey evidence used a Left Alt stand-in."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "stage": "completed",
+  "tk": "8.6.12",
+  "desktop_ui": true,
+  "input_devices": 12,
+  "ok": true,
+  "providers_in_ui": [
+    "Anthropic",
+    "OpenAI",
+    "Gemini"
+  ],
+  "key_is_dpapi_protected": true,
+  "settings_roundtrip_ok": true,
+  "env_fallback_ok": true
+}

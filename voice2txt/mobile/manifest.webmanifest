@@ -1,0 +1,11 @@
+{
+  "name": "Voice2Txt 語音筆記",
+  "short_name": "Voice2Txt",
+  "lang": "zh-Hant",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f5f1",
+  "theme_color": "#275b4c",
+  "icons": [{"src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}]
+}

@@ -1,7 +1,7 @@
 """比較「僅 Whisper」與「Whisper + LLM 整理」：含贅詞、重複、口誤更正的合成語音。
 
 每段只跑一次 Whisper，再把同一份原始轉錄交給各 LLM，結果可直接比較。
-雲端 LLM 的 API key 讀取 OPENAI_API_KEY／GEMINI_API_KEY；沒有就略過。
+雲端 LLM 的 API key 讀取 ANTHROPIC_API_KEY／OPENAI_API_KEY／GEMINI_API_KEY；沒有就略過。
 """
 import json
 import os

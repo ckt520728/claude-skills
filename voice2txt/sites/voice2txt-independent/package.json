@@ -1,0 +1,9 @@
+{
+  "name": "voice2txt-independent",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"build": "node build.mjs", "test": "node --test tests/*.test.mjs"},
+  "dependencies": {"@huggingface/transformers": "3.8.1", "opencc-js": "1.0.5"},
+  "devDependencies": {"esbuild": "0.25.12"}
+}

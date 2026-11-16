@@ -1,0 +1,318 @@
+{
+  "ok": true,
+  "configured_keys": "LeftAlt / LeftAlt+LeftShift（Typeless.exe 在本機執行並吞掉 Right Alt，故以 LeftAlt 代替）",
+  "checks": {
+    "event_sequence": true,
+    "watchdog_reinstall": true,
+    "swallowed_key_single_start_stop": true,
+    "two_key_swallowed_single_start_stop": true,
+    "idle_timer_not_reset_no_probe": true,
+    "active_user_liveness_probe": true,
+    "deferred_paste_control_only": true,
+    "alt_combo_swallow_no_system_menu": true
+  },
+  "hook_installed": true,
+  "events": [
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "translate"
+    ],
+    [
+      "stop",
+      null
+    ]
+  ],
+  "expected": [
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "translate"
+    ],
+    [
+      "stop",
+      null
+    ]
+  ],
+  "foreground_unchanged": true,
+  "downstream_hook_events": [
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "dictate"
+    ],
+    [
+      "stop",
+      null
+    ],
+    [
+      "start",
+      "translate"
+    ],
+    [
+      "stop",
+      null
+    ]
+  ],
+  "keys_not_swallowed": true,
+  "noop_keys_injected": 4,
+  "noop_waits_when_not_yet_injected": 0,
+  "noop_waits_satisfied_within_25ms": 0,
+  "physical_sync_installed": true,
+  "physical_sync_false_drops": [],
+  "hook_stopped": true,
+  "watchdog": {
+    "events": [
+      [
+        "start",
+        "dictate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "reinstalls": 3,
+    "error": null
+  },
+  "swallowed_key": {
+    "configured_key": "F24",
+    "hold_seconds": 1.5,
+    "repeat_interval_seconds": 0.033,
+    "async_state_down_during_hold": false,
+    "events": [
+      [
+        "start",
+        "dictate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "expected": [
+      [
+        "start",
+        "dictate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "key_downs_injected": 34,
+    "swallowed_by_downstream_hook": 35,
+    "physical_sync_false_drops": [],
+    "physical_sync_drop_count": 0,
+    "held_after": []
+  },
+  "two_key_swallowed": {
+    "configured_combo": "F24+F23",
+    "swallowed_key": "F24",
+    "repeating_key": "F23",
+    "hold_seconds": 3.0,
+    "repeat_interval_seconds": 0.033,
+    "async_state_f24_down_during_hold": false,
+    "async_state_f23_down_during_hold": true,
+    "events": [
+      [
+        "start",
+        "translate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "event_times_seconds": [
+      0.016,
+      3.032
+    ],
+    "released_at_seconds": 3.032,
+    "expected": [
+      [
+        "start",
+        "translate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "physical_sync_false_drops": []
+  },
+  "idle_timer": {
+    "liveness_seconds": 0.5,
+    "duration_seconds": 3.0,
+    "idle_samples_seconds": [
+      0.406,
+      0.515,
+      0.609,
+      0.718,
+      0.828,
+      0.937,
+      1.047,
+      1.156,
+      1.265,
+      1.375,
+      1.484,
+      1.593,
+      1.703,
+      1.812,
+      1.906,
+      2.015,
+      2.125,
+      2.234,
+      2.343,
+      2.453,
+      2.562,
+      2.672,
+      2.781,
+      2.89,
+      3.0,
+      3.109,
+      3.218,
+      3.328
+    ],
+    "first_idle": 0.406,
+    "last_idle": 3.328,
+    "idle_monotonic_increasing": true,
+    "probes_sent": 0,
+    "reinstalls": 0,
+    "liveness_reinstalls": 0,
+    "error": null
+  },
+  "liveness_probe": {
+    "liveness_seconds": 0.5,
+    "user_activity": "滑鼠微移 1 px 來回（每 100 ms）",
+    "probes_sent": 4,
+    "probes_observed": 8,
+    "liveness_reinstalls": 0,
+    "reinstalls": 0,
+    "error": null
+  },
+  "paste_check": {
+    "configured_keys": "LeftAlt（本機 Typeless.exe 會吞 Right Alt，故以 LeftAlt 代替）",
+    "modal_menu_hang_escapes": 0,
+    "target_is_foreground": true,
+    "held_keys_while_pressed": [
+      164
+    ],
+    "deferred_while_held": 1,
+    "v_events_while_held": [],
+    "text_while_held": "",
+    "deferred_after_release": 0,
+    "v_events_after_release": [
+      [
+        "v",
+        "0xc"
+      ]
+    ],
+    "text_after_release": "測試貼上文字",
+    "observed_tk_state_hex": [
+      "0xc"
+    ],
+    "control_only": true,
+    "state_exactly_0x4": false,
+    "modifiers_released_by_paste": [],
+    "baseline_raw_ctrl_v_with_alt_held_state_hex": [
+      "0x2000c"
+    ],
+    "baseline_has_alt_bit": true,
+    "alt_physically_down_before_paste": true,
+    "direct_paste_with_alt_held_released_vks": [
+      164
+    ],
+    "direct_paste_tk_state_hex": [
+      "0xc"
+    ],
+    "direct_paste_control_only": true,
+    "alt_up_after_cleanup": true,
+    "ok": true
+  },
+  "swallow_rule": {
+    "configured_keys": "LeftAlt+Space (ask)",
+    "return_paths": {
+      "swallow_return_1": 1,
+      "call_next_hook": 1
+    },
+    "modifiers_never_swallowed": true,
+    "child_foreground": true,
+    "baseline_menu_flags_during_hold": 12,
+    "baseline_menu_flags_after": 12,
+    "baseline_menu_closed": true,
+    "menu_flags_during_hold": 0,
+    "menu_flags_after_release": 0,
+    "bare_space_events": [
+      {
+        "keysym": "space",
+        "state": 8
+      }
+    ],
+    "bare_space_reaches_window": true,
+    "swallowed_count_combo": 15,
+    "swallowed_count_after_bare_space": 15,
+    "events": [
+      [
+        "start",
+        "ask"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "window_keys_during_combo": [],
+    "space_hidden_from_window": true,
+    "downstream_events": [
+      [
+        "start",
+        "dictate"
+      ],
+      [
+        "stop",
+        null
+      ]
+    ],
+    "alt_not_swallowed": true,
+    "ask_started": true,
+    "ok": true
+  }
+}

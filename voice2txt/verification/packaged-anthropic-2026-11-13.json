@@ -1,0 +1,109 @@
+{
+  "task_id": "T06",
+  "date": "2026-11-13",
+  "reports": [
+    {
+      "id": "a",
+      "args": "--self-test (UI only)",
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "ok": true
+      }
+    },
+    {
+      "id": "b",
+      "args": "--audio tests\fixtures\\chinese.wav --mode zh --llm-model gemma4:latest",
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "llm_model": "gemma4:latest",
+        "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → Whisper 結果",
+        "prepare_warnings": [],
+        "text": "今天下午四點開會,請記得帶研究報告。",
+        "source": "今天下午四點開會,請記得帶研究報告。",
+        "backend": "Whisper",
+        "fallback_warning": "Ollama gemma4:latest：timed out",
+        "inference_seconds": 23.4690000000046,
+        "mode": "zh",
+        "ok": true
+      }
+    },
+    {
+      "id": "c",
+      "args": "--audio tests\fixtures\\chinese.wav --mode translate --llm-model gemma4:latest --cloud Anthropic:low",
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "llm_model": "gemma4:latest",
+        "translator_chain": "Whisper 轉錄 → Ollama gemma4:latest → Whisper 結果",
+        "prepare_warnings": [],
+        "text": "The meeting is at four o'clock this afternoon, please remember to bring the research report.",
+        "source": "今天下午四點開會,請記得帶研究報告。",
+        "backend": "Ollama gemma4:latest",
+        "fallback_warning": "",
+        "inference_seconds": 15.234000000004016,
+        "mode": "translate",
+        "ok": true
+      }
+    },
+    {
+      "id": "d",
+      "args": "--audio tests\fixtures\\jfk.wav --mode en",
+      "report": {
+        "stage": "completed",
+        "tk": "8.6.12",
+        "desktop_ui": true,
+        "input_devices": 12,
+        "model": "small",
+        "device": "cpu",
+        "text": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+        "source": "",
+        "backend": "Whisper",
+        "fallback_warning": "",
+        "inference_seconds": 2.2659999999959837,
+        "mode": "en",
+        "ok": true
+      }
+    }
+  ],
+  "build_log_tail": [
+    "55212 INFO: Copying icon to EXE",
+    "55252 INFO: Copying 0 resources to EXE",
+    "55253 INFO: Embedding manifest in EXE",
+    "55280 INFO: Appending PKG archive to EXE",
+    "55351 INFO: Fixing EXE headers",
+    "55530 INFO: Building EXE from EXE-00.toc completed successfully.",
+    "55540 INFO: checking COLLECT",
+    "55575 INFO: Removing dir D:\\2026 Voice2Txt\\dist\\Voice2Txt",
+    "56089 INFO: Building COLLECT COLLECT-00.toc",
+    "163155 INFO: Building COLLECT COLLECT-00.toc completed successfully.",
+    "163172 INFO: Build complete! The results are available in: D:\\2026 Voice2Txt\\dist",
+    "dist\\Voice2Txt\\THIRD_PARTY_LICENSES"
+  ],
+  "build_notes": "exit code 0, elapsed ~168.6 s. The only \"error\"-like text in build.log is the PowerShell wrapper (NativeCommandError) around a benign PyInstaller WARNING about conda-meta; no PyInstaller ERROR lines.",
+  "dist_bytes": 8276871866,
+  "exe_sha256": "2B3CF8F6CBBB43E9A33572DC596AFE6A24C7258A94CB51744B4D0F1502A124F0",
+  "exe_timestamp": "2026-11-13 01:38:06",
+  "msvcp140_version": "14.44.35211.0",
+  "help_method": "Windowed exe prints nothing to console (Voice2Txt.exe --help > file produced an empty file). Help text was therefore produced by extracting the run_desktop entry from the packaged Voice2Txt.exe PYZ/CArchive (PyInstaller CArchiveReader) and executing that bytecode with --help. Corroboration: self-test (c) with --cloud Anthropic:low was accepted by the packaged exe (argparse choices enforced, exit 0).",
+  "help_text": "usage: Voice2Txt.exe [-h] [--self-test JSON_PATH] [--audio AUDIO]\n                     [--mode {zh,en,translate}]\n                     [--model {base,small,medium,large-v3}]\n                     [--device {cpu,cuda}] [--llm-model LLM_MODEL]\n                     [--cloud {Anthropic:low,Anthropic:medium,Anthropic:high,OpenAI:low,OpenAI:medium,OpenAI:high,Gemini:low,Gemini:medium,Gemini:high}]\n                     [--vocabulary VOCABULARY]\n\nVoice2Txt 本機語音輸入\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --self-test JSON_PATH\n  --audio AUDIO\n  --mode {zh,en,translate}\n  --model {base,small,medium,large-v3}\n  --device {cpu,cuda}\n  --llm-model LLM_MODEL\n  --cloud {Anthropic:low,Anthropic:medium,Anthropic:high,OpenAI:low,OpenAI:medium,OpenAI:high,Gemini:low,Gemini:medium,Gemini:high}\n                        可重複，例如 --cloud Anthropic:low --cloud OpenAI:high\n                        --cloud Gemini:low；API key 讀取\n                        ANTHROPIC_API_KEY／OPENAI_API_KEY／GEMINI_API_KEY\n  --vocabulary VOCABULARY\n",
+  "help_lists_Anthropic_low": true,
+  "anthropic_key_in_env": false,
+  "notes": [
+    "Report (c): no Anthropic key in env, so translator_chain has no Anthropic; backend=Ollama gemma4:latest.",
+    "Report (b): Ollama gemma4:latest timed out (cold model load, 20 s timeout) so zh fell back to raw Whisper; backend=Whisper, fallback_warning recorded. ok=true. Not a regression.",
+    "dist\\Voice2Txt\\使用者手冊.md timestamp (2026-10-18 18:11) equals USER_MANUAL.md timestamp: the build copied the current USER_MANUAL.md, which predates T05 (T05 not yet applied). Rebuild/recopy after T05.",
+    "Live Anthropic API calls not verified (no key)."
+  ]
+}

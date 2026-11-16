@@ -1,0 +1,431 @@
+{
+  "scope": "同一組合成音訊、Windows Chrome、WASM；不是 iPhone/iPad 真人準確度。標點、數字格式及 mg/dL 單位拼法正規化後計算中文 CER、英文 WER。",
+  "profiles": [
+    {
+      "model": "tiny",
+      "cases": [
+        {
+          "id": "meeting",
+          "mode": "zh",
+          "reference": "今天下午四點開會，請記得帶研究報告。",
+          "output": "今天下午4點開會,請記得戴研究報告",
+          "wall_seconds": 1.545,
+          "status": "本機轉錄完成 · 1.5 秒。可編輯、複製或分享。",
+          "edit_distance": 1,
+          "reference_units": 16
+        },
+        {
+          "id": "negation",
+          "mode": "zh",
+          "reference": "請不要在星期五開會。報告有三份，不是四份。",
+          "output": "請不要再星期五開會報告有三分,不是四分",
+          "wall_seconds": 1.526,
+          "status": "本機轉錄完成 · 1.5 秒。可編輯、複製或分享。",
+          "edit_distance": 3,
+          "reference_units": 18
+        },
+        {
+          "id": "hospital",
+          "mode": "zh",
+          "reference": "我明天上午九點到醫院，下午兩點回家。",
+          "output": "我們今天上午9點到1月,下午2點回家",
+          "wall_seconds": 1.51,
+          "status": "本機轉錄完成 · 1.5 秒。可編輯、複製或分享。",
+          "edit_distance": 4,
+          "reference_units": 16
+        },
+        {
+          "id": "english",
+          "mode": "en",
+          "reference": "The meeting starts at four in the afternoon. Please bring the research report.",
+          "output": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+          "wall_seconds": 1.459,
+          "status": "本機轉錄完成 · 1.4 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        }
+      ],
+      "profile": "baseline-tiny",
+      "aggregate": {
+        "zh": {
+          "edits": 8,
+          "reference_units": 50,
+          "error_rate": 0.16
+        },
+        "en": {
+          "edits": 0,
+          "reference_units": 13,
+          "error_rate": 0.0
+        }
+      }
+    },
+    {
+      "model": "base",
+      "model_label": "base · 較大模型，需要更多記憶體",
+      "cases": [
+        {
+          "id": "meeting",
+          "mode": "zh",
+          "reference": "今天下午四點開會，請記得帶研究報告。",
+          "output": "今天下午4點開會,請記得戴研究報告。",
+          "wall_seconds": 2.984,
+          "status": "本機轉錄完成 · 2.9 秒。可編輯、複製或分享。",
+          "edit_distance": 1,
+          "reference_units": 16
+        },
+        {
+          "id": "negation",
+          "mode": "zh",
+          "reference": "請不要在星期五開會。報告有三份，不是四份。",
+          "output": "請不要再新期五開會報告有三份,不是四份",
+          "wall_seconds": 2.859,
+          "status": "本機轉錄完成 · 2.8 秒。可編輯、複製或分享。",
+          "edit_distance": 2,
+          "reference_units": 18
+        },
+        {
+          "id": "hospital",
+          "mode": "zh",
+          "reference": "我明天上午九點到醫院，下午兩點回家。",
+          "output": "我明天上午9點到醫院下午2點回家",
+          "wall_seconds": 2.861,
+          "status": "本機轉錄完成 · 2.8 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "english",
+          "mode": "en",
+          "reference": "The meeting starts at four in the afternoon. Please bring the research report.",
+          "output": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+          "wall_seconds": 2.873,
+          "status": "本機轉錄完成 · 2.8 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "negation-en",
+          "file": "accuracy-negation-en.wav",
+          "mode": "en",
+          "reference": "Do not start the medicine today. The appointment is next Thursday, November nineteenth, at nine thirty.",
+          "output": "Do not start the medicine today. The appointment is next Thursday, November 19th, at 9.30.",
+          "wall_seconds": 3.104,
+          "status": "本機轉錄完成 · 3.1 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "renal-en",
+          "file": "accuracy-renal-en.wav",
+          "mode": "en",
+          "reference": "The creatinine concentration increased from one point two to one point eight milligrams per deciliter.",
+          "output": "The creatinine concentration increased from 1.2 to 1.8 mg/dL.",
+          "wall_seconds": 2.943,
+          "status": "本機轉錄完成 · 2.9 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "diagnoses-en",
+          "file": "accuracy-diagnoses-en.wav",
+          "mode": "en",
+          "reference": "The patient has chronic kidney disease and type two diabetes, but no history of heart failure.",
+          "output": "The patient has chronic kidney disease and type 2 diabetes, but no history of heart failure.",
+          "wall_seconds": 2.894,
+          "status": "本機轉錄完成 · 2.9 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        }
+      ],
+      "profile": "baseline-base",
+      "aggregate": {
+        "zh": {
+          "edits": 3,
+          "reference_units": 50,
+          "error_rate": 0.06
+        },
+        "en": {
+          "edits": 0,
+          "reference_units": 58,
+          "error_rate": 0.0
+        }
+      }
+    },
+    {
+      "model": "base",
+      "model_label": "base 品質版 · 約 136 MB",
+      "cases": [
+        {
+          "id": "meeting",
+          "mode": "zh",
+          "reference": "今天下午四點開會，請記得帶研究報告。",
+          "output": "今天下午4點開會,請記得戴研究報告。",
+          "wall_seconds": 3.692,
+          "status": "本機轉錄完成 · 3.6 秒。可編輯、複製或分享。",
+          "edit_distance": 1,
+          "reference_units": 16
+        },
+        {
+          "id": "negation",
+          "mode": "zh",
+          "reference": "請不要在星期五開會。報告有三份，不是四份。",
+          "output": "請不要再新其五開會報告有三份,不是四份",
+          "wall_seconds": 3.309,
+          "status": "本機轉錄完成 · 3.3 秒。可編輯、複製或分享。",
+          "edit_distance": 3,
+          "reference_units": 18
+        },
+        {
+          "id": "hospital",
+          "mode": "zh",
+          "reference": "我明天上午九點到醫院，下午兩點回家。",
+          "output": "我明天上午9點到醫院下午兩點回家",
+          "wall_seconds": 3.426,
+          "status": "本機轉錄完成 · 3.4 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "english",
+          "mode": "en",
+          "reference": "The meeting starts at four in the afternoon. Please bring the research report.",
+          "output": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+          "wall_seconds": 3.444,
+          "status": "本機轉錄完成 · 3.4 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "negation-en",
+          "file": "accuracy-negation-en.wav",
+          "mode": "en",
+          "reference": "Do not start the medicine today. The appointment is next Thursday, November nineteenth, at nine thirty.",
+          "output": "Do not start the medicine today. The appointment is next Thursday, November 19th, at 9.30.",
+          "wall_seconds": 3.492,
+          "status": "本機轉錄完成 · 3.5 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "renal-en",
+          "file": "accuracy-renal-en.wav",
+          "mode": "en",
+          "reference": "The creatinine concentration increased from one point two to one point eight milligrams per deciliter.",
+          "output": "The creatinine concentration increased from 1.2 to 1.8 mg/dL.",
+          "wall_seconds": 3.373,
+          "status": "本機轉錄完成 · 3.3 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "diagnoses-en",
+          "file": "accuracy-diagnoses-en.wav",
+          "mode": "en",
+          "reference": "The patient has chronic kidney disease and type two diabetes, but no history of heart failure.",
+          "output": "The patient has chronic kidney disease and type 2 diabetes, but no history of heart failure.",
+          "wall_seconds": 3.491,
+          "status": "本機轉錄完成 · 3.5 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        }
+      ],
+      "profile": "base-mixed",
+      "aggregate": {
+        "zh": {
+          "edits": 4,
+          "reference_units": 50,
+          "error_rate": 0.08
+        },
+        "en": {
+          "edits": 0,
+          "reference_units": 58,
+          "error_rate": 0.0
+        }
+      }
+    },
+    {
+      "model": "small",
+      "model_label": "small 品質優先版 · 約 510 MB，較慢",
+      "cases": [
+        {
+          "id": "meeting",
+          "mode": "zh",
+          "reference": "今天下午四點開會，請記得帶研究報告。",
+          "output": "今天下午四點開會,請記得帶研究報告。",
+          "wall_seconds": 11.528,
+          "status": "本機轉錄完成 · 11.5 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "negation",
+          "mode": "zh",
+          "reference": "請不要在星期五開會。報告有三份，不是四份。",
+          "output": "請不要在星期五開會。報告有三分,不是四分。",
+          "wall_seconds": 11.375,
+          "status": "本機轉錄完成 · 11.3 秒。可編輯、複製或分享。",
+          "edit_distance": 2,
+          "reference_units": 18
+        },
+        {
+          "id": "hospital",
+          "mode": "zh",
+          "reference": "我明天上午九點到醫院，下午兩點回家。",
+          "output": "我明天上午9點到醫院,下午2點回家。",
+          "wall_seconds": 11.341,
+          "status": "本機轉錄完成 · 11.3 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "english",
+          "mode": "en",
+          "reference": "The meeting starts at four in the afternoon. Please bring the research report.",
+          "output": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+          "wall_seconds": 11.121,
+          "status": "本機轉錄完成 · 11.1 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "negation-en",
+          "file": "accuracy-negation-en.wav",
+          "mode": "en",
+          "reference": "Do not start the medicine today. The appointment is next Thursday, November nineteenth, at nine thirty.",
+          "output": "Do not start the medicine today. The appointment is next Thursday, November 19, at 9.30.",
+          "wall_seconds": 11.441,
+          "status": "本機轉錄完成 · 11.3 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "renal-en",
+          "file": "accuracy-renal-en.wav",
+          "mode": "en",
+          "reference": "The creatinine concentration increased from one point two to one point eight milligrams per deciliter.",
+          "output": "The creatinine concentration increased from 1.2 to 1.8 mg/dL.",
+          "wall_seconds": 11.257,
+          "status": "本機轉錄完成 · 11.2 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "diagnoses-en",
+          "file": "accuracy-diagnoses-en.wav",
+          "mode": "en",
+          "reference": "The patient has chronic kidney disease and type two diabetes, but no history of heart failure.",
+          "output": "The patient has chronic kidney disease and type 2 diabetes, but no history of heart failure.",
+          "wall_seconds": 11.842,
+          "status": "本機轉錄完成 · 11.7 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        }
+      ],
+      "profile": "small-mixed",
+      "aggregate": {
+        "zh": {
+          "edits": 2,
+          "reference_units": 50,
+          "error_rate": 0.04
+        },
+        "en": {
+          "edits": 0,
+          "reference_units": 58,
+          "error_rate": 0.0
+        }
+      }
+    },
+    {
+      "model": "small-q8",
+      "model_label": "small 平衡版 · 約 249 MB",
+      "cases": [
+        {
+          "id": "meeting",
+          "mode": "zh",
+          "reference": "今天下午四點開會，請記得帶研究報告。",
+          "output": "今天下午四點開會,請記得帶研究報告。",
+          "wall_seconds": 9.656,
+          "status": "本機轉錄完成 · 9.6 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "negation",
+          "mode": "zh",
+          "reference": "請不要在星期五開會。報告有三份，不是四份。",
+          "output": "請不要在星期五開會。報告有三分,不是四分。",
+          "wall_seconds": 9.424,
+          "status": "本機轉錄完成 · 9.4 秒。可編輯、複製或分享。",
+          "edit_distance": 2,
+          "reference_units": 18
+        },
+        {
+          "id": "hospital",
+          "mode": "zh",
+          "reference": "我明天上午九點到醫院，下午兩點回家。",
+          "output": "我明天上午9點到醫院,下午2點回家。",
+          "wall_seconds": 9.225,
+          "status": "本機轉錄完成 · 9.2 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "english",
+          "mode": "en",
+          "reference": "The meeting starts at four in the afternoon. Please bring the research report.",
+          "output": "The meeting starts at 4 in the afternoon. Please bring the research report.",
+          "wall_seconds": 9.342,
+          "status": "本機轉錄完成 · 9.3 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "negation-en",
+          "file": "accuracy-negation-en.wav",
+          "mode": "en",
+          "reference": "Do not start the medicine today. The appointment is next Thursday, November nineteenth, at nine thirty.",
+          "output": "Do not start the medicine today. The appointment is next Thursday, November 19, at 9.30.",
+          "wall_seconds": 9.243,
+          "status": "本機轉錄完成 · 9.2 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        },
+        {
+          "id": "renal-en",
+          "file": "accuracy-renal-en.wav",
+          "mode": "en",
+          "reference": "The creatinine concentration increased from one point two to one point eight milligrams per deciliter.",
+          "output": "The creatinine concentration increased from 1.2 to 1.8 mg/dL.",
+          "wall_seconds": 9.058,
+          "status": "本機轉錄完成 · 9.0 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 13
+        },
+        {
+          "id": "diagnoses-en",
+          "file": "accuracy-diagnoses-en.wav",
+          "mode": "en",
+          "reference": "The patient has chronic kidney disease and type two diabetes, but no history of heart failure.",
+          "output": "The patient has chronic kidney disease and type 2 diabetes, but no history of heart failure.",
+          "wall_seconds": 9.21,
+          "status": "本機轉錄完成 · 9.2 秒。可編輯、複製或分享。",
+          "edit_distance": 0,
+          "reference_units": 16
+        }
+      ],
+      "profile": "small-q8",
+      "aggregate": {
+        "zh": {
+          "edits": 2,
+          "reference_units": 50,
+          "error_rate": 0.04
+        },
+        "en": {
+          "edits": 0,
+          "reference_units": 58,
+          "error_rate": 0.0
+        }
+      }
+    }
+  ]
+}

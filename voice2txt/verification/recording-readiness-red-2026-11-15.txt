@@ -1,0 +1,2 @@
+﻿### Error
+Error: REPRODUCED: 模型檔案已備妥但未 ready，開始錄音仍是灰色。

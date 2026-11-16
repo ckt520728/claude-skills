@@ -1,0 +1,15 @@
+{
+  "task_id": "T18b",
+  "objective": "After T19 and T22: update STATUS.md and handoffs.md with (1) the T19 packaged evidence from verification/packaged-waveD-2026-11-13.json (five self-tests ok/stage/backend incl. the ask case, dist_bytes + file count, exe sha256 prefix, msvcp140 version, --minimized + second-instance result, icon_present, manual byte-identity) and (2) T22 completed (136 tests; swallowed-key timeout now applies only after an auto-repeat was observed; hotkeys_version coerced safely), removing every 'in progress' / 'pending' wording about T19 and T22. Do not change anything else.",
+  "inputs": ["verification/packaged-waveD-2026-11-13.json", "verification/hotkey-hook-2026-11-13.json", "STATUS.md", "handoffs.md"],
+  "outputs": ["STATUS.md", "handoffs.md"],
+  "acceptance": [
+    "grep: both files contain 'packaged-waveD-2026-11-13.json'; neither says T19 or T22 is pending/in progress/修正中; the 已知限制 line about non-repeating keys says it was fixed by T22.",
+    "Every number added traces to the cited JSON."
+  ],
+  "capabilities": ["read", "local_write"],
+  "depends_on": ["T19", "T22"],
+  "max_output_tokens": 3000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Traditional Chinese for STATUS.md, English for handoffs.md. Do not run git."
+}

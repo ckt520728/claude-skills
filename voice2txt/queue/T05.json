@@ -1,0 +1,62 @@
+{
+  "task_id": "T05",
+  "objective": "Update the user-facing and project documents for the 2026-11-13 changes, in Traditional Chinese where the file is Chinese. USER_MANUAL.md: the LLM chain is now (1) 本機 Ollama (2) Anthropic（Claude）(3) OpenAI (4) Gemini, then Whisper; add Anthropic setup (API key from console.anthropic.com, default claude-sonnet-5-5 / low, claude-opus-5-5 as an option, pay-per-use, sends transcript text only), mention OpenAI model alternatives gpt-6-luna (default) and gpt-6.1-terra, and the ANTHROPIC_API_KEY environment fallback; add an iPhone/iPad section describing the optional cloud LLM 整理 setting, off by default and fully offline when off. README.md: update the translation-engine table and chain order, the --cloud examples, and the iOS summary (iPhone / iPad; optional cloud stage 2). CLAUDE.md: update the CLOUD order sentence, the --cloud example, the iOS architecture paragraph (Refiner.swift, Record.source, settings, check_ios_project.py), and add a short JEV note (planner specs live in queue/, executors on Sonnet, auditor on Opus). STATUS.md: add rows for (1) Anthropic provider: unit tests + packaged self-test evidence file names, explicitly stating that no live Anthropic call was made because no key was available on 2026-11-13; (2) iOS iPad + stage 2: structural evidence only, still uncompiled; (3) rebuild evidence verification/packaged-anthropic-2026-11-13.json; update 下一步 (the user supplies ANTHROPIC_API_KEY and runs scripts/benchmark_refine.py; real-microphone test; Mac build). handoffs.md: add a new top entry for 2026-11-13 (done / findings / next / risks) in the existing style, including the JEV roles used and the auditor verdicts (read verification/audit-*.json). Keep all existing content that is still true; do not delete history. WAVE C ADDITION: also document the new Typeless-style features from T07/T08 in USER_MANUAL.md (快捷鍵 section: 口述 Right Alt hold-to-talk or tap-to-toggle, 翻譯 Right Alt+Right Shift, legacy Alt+Shift+Space, how to capture a custom combo, the AltGr note that no key is swallowed and a no-op key prevents the menu bar from activating; 系統匣 section: close-to-tray, tray menu, floating indicator, --minimized, 登入時自動啟動), README.md (feature list, Typeless comparison pointer to verification/typeless-feature-inventory-2026-11-13.md), CLAUDE.md (hotkeys.py, tray.py, startup.py, assets/ico, build flags, new check scripts), STATUS.md rows for hotkeys (verification/hotkey-hook-2026-11-13.json) and tray/indicator/start-at-login (verification/tray-indicator-2026-11-13.json) with the remaining gaps vs Typeless listed under 下一步 (insert-anywhere + context capture + 隨便問, auto dictionary, audio options, dashboard), and handoffs.md covering waves A and C with all auditor verdicts (verification/audit-*.json). T10 ADDITION: USER_MANUAL.md must also state (a) if Typeless is running it intercepts Right Alt, the app shows a warning, and the user should pick another combo or close Typeless; (b) only one Voice2Txt instance runs at a time (a second launch just shows the existing window); (c) paste-back waits until the hotkey is released; (d) the menu-bar suppression for a bare Alt tap works at normal tapping speed but is best-effort (audit measured 0/38 activations at 10-80 ms taps, 3/8 with instantaneous synthetic taps). STATUS.md must cite verification/audit-C-2026-11-13.json and the follow-up verification/audit-C2-2026-11-13.json plus verification/single-instance-2026-11-13.json. FINAL ADDITION: the audit trail is audit-A1 (T01/T02 PASS), audit-A2 (T03 FAIL -> fixed by T03b), audit-C (T07/T08 FAIL -> T10), audit-C2 (T10 FAIL -> T11), audit-C3 (T11 FAIL -> T12), audit-C4 (T12 PASS). STATUS.md must list the accepted residual limitations from audit-C4 as known issues: (1) a key whose key-up is lost before the first 20 ms sampling stays held until the user presses it again; (2) after a genuinely lost key-up, re-pressing within 1.5 s is ignored once; (3) with Typeless running, Right Alt is intercepted by Typeless (warning shown; choose another combo); (4) iOS still uncompiled; (5) no live Anthropic call verified. handoffs.md must summarise all tasks T01-T12 with their audit outcomes in one table.",
+  "inputs": [
+    "USER_MANUAL.md",
+    "README.md",
+    "CLAUDE.md",
+    "STATUS.md",
+    "handoffs.md",
+    "ios/README.md",
+    "voice2txt/translation.py",
+    "verification/packaged-anthropic-2026-11-13.json",
+    "verification/ios-project-structure-2026-11-13.json",
+    "verification/desktop-anthropic-ui-2026-11-13.json",
+    "verification/audit-*.json",
+    "queue/PLAN-2026-11-13.md",
+    "voice2txt/hotkeys.py",
+    "voice2txt/tray.py",
+    "voice2txt/startup.py",
+    "verification/hotkey-hook-2026-11-13.json",
+    "verification/tray-indicator-2026-11-13.json",
+    "verification/typeless-feature-inventory-2026-11-13.md",
+    "verification/audit-C-2026-11-13.json",
+    "verification/single-instance-2026-11-13.json",
+    "verification/audit-C2-2026-11-13.json",
+    "verification/audit-C3-2026-11-13.json",
+    "verification/audit-C4-2026-11-13.json"
+  ],
+  "outputs": [
+    "USER_MANUAL.md",
+    "README.md",
+    "CLAUDE.md",
+    "STATUS.md",
+    "handoffs.md"
+  ],
+  "acceptance": [
+    "grep: USER_MANUAL.md, README.md and CLAUDE.md each mention 'Anthropic' and 'claude-sonnet-5-5'; STATUS.md contains the exact file name 'packaged-anthropic-2026-11-13.json' and a sentence stating no live Anthropic call was verified; the top handoffs.md entry is dated 2026-11-13.",
+    "No document claims the iOS app compiles or that Anthropic latency/quality was measured.",
+    "Every number in the new STATUS.md rows traces to a file under verification/ named in the same row.",
+    "dist/Voice2Txt/使用者手冊.md: do NOT copy it yourself; T09 rebuild will refresh it and verify byte-identity.",
+    "grep: USER_MANUAL.md mentions 'Right Alt', '系統匣' and '--minimized'; STATUS.md contains 'hotkey-hook-2026-11-13.json' and 'tray-indicator-2026-11-13.json'; the 下一步 section lists the remaining Typeless gaps."
+  ],
+  "capabilities": [
+    "read",
+    "local_write"
+  ],
+  "depends_on": [
+    "T01",
+    "T02",
+    "T03",
+    "T06",
+    "T07",
+    "T08",
+    "T10",
+    "T10",
+    "T11",
+    "T12"
+  ],
+  "max_output_tokens": 9000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Traditional Chinese for README/STATUS/USER_MANUAL; CLAUDE.md and handoffs.md stay in English. Do not edit code. Do not run git."
+}

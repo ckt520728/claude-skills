@@ -1,0 +1,231 @@
+{
+  "audit_id": "AUDIT-G",
+  "date": "2026-11-14",
+  "auditor": "JEV independent auditor (Claude Opus 5.5), read-only on repo except this verdict",
+  "scope": "Wave D final narrow audit: T23 (fix of audit-F D1/D4) and T19b (post-T23 packaged rebuild, verification/packaged-waveD2-2026-11-13.json).",
+  "environment": {
+    "os": "Windows 11 Home 10.0.26200",
+    "python": "3.9.12 (.build-venv)",
+    "typeless_running": true,
+    "right_alt_injected": false,
+    "real_clipboard": "saved before the audit (no text, no other formats) and verified equal after every scripted phase and at the end",
+    "hkcu_run_voice2txt": "absent before and after (reg query /v Voice2Txt: not found)",
+    "repo_integrity": "sha256 of 179 repo files (excluding models/dist/gpu/build/venvs/tools/__pycache__) identical before and after the audit runs",
+    "scratch": "check scripts that write verification/* were run on a scratch copy of voice2txt/, scripts/, tests/, run_desktop.py: C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\repo",
+    "leftover_processes": "none (no new python.exe PIDs vs baseline; no Voice2Txt.exe)"
+  },
+  "tasks": {
+    "T23": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "unittest discover passes with new tests (timeout -> ('', False) reason 'late'; watcher restores on single late advance; does nothing on double advance) using an injectable stub",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v  (repo root, PYTHONDONTWRITEBYTECODE=1, temp LOCALAPPDATA)",
+          "observed": "Ran 141 tests in 2.992s OK. New: test_capture_selection_timeout_returns_false_with_late_reason, test_late_watch_restores_on_single_advance, test_late_watch_does_nothing_on_double_advance, test_late_watch_does_nothing_without_advance, test_late_watch_cancel_and_exceptions all ok (stubs: injectable get_sequence/write, mocked _api/_read_clipboard/send_key).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "scripts\\check_context_capture.py ok=true for fast and delayed 700 ms; real clipboard restored after the run",
+          "command": "3x: .\\.build-venv\\Scripts\\python.exe -X utf8 scripts\\check_context_capture.py  (on scratch copy)",
+          "observed": "3/3 ok=true. fast: returned [selection, True], capture 0.78/0.14/0.11 s, clipboard_restored true. delayed_700ms: returned ['', False], last_skip_reason 'late', capture 0.422 s, restored_within_seconds_after_return 0.906/0.906/1.093, last_late_restore true. real_clipboard_equal_after_run true 3/3. Note: the delayed scenario calls capture_selection(timeout=0.4), not the product default 0.9 (defect G3).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "$env:PYTHONPATH='.'; scripts\\smoke_desktop.py PASS",
+          "command": "PYTHONPATH=. .\\.build-venv\\Scripts\\python.exe -X utf8 scripts\\smoke_desktop.py  (scratch copy)",
+          "observed": "exit 0; 'PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段、畫面、SQLite、字典儲存。'; desktop-integration passed true, 8 checks.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "scripts\\check_wave_d.py ok=true at least 2 of 2 runs",
+          "command": "3x .\\.build-venv\\Scripts\\python.exe -X utf8 scripts\\check_wave_d.py (scratch copy) + 14x an instrumented scratch copy (wraps capture_selection/_read_text/_read_clipboard, records edit text after capture)",
+          "observed": "Plain: 2/3 ok (run 1 failed only cross_process_edit_capture_and_merged_paste: selection_obtained false). Instrumented: 13/14 ok (run 14 same failure). Total 15/17 ok; consecutive passes exist (plain runs 2-3), so '2 of 2' is met but not reliably (defect G4). Paste path with the new GetDesktopWindow owner: results.clipboard_restore 17/17, entry_received_text 17/17, merged_paste_exact 17/17, clipboard_restored_after_paste 17/17, real clipboard equal after run 17/17.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "run_desktop --self-test ok",
+          "command": ".\\.build-venv\\Scripts\\python.exe run_desktop.py --self-test <scratch>\\src_selftest.json  (temp LOCALAPPDATA)",
+          "observed": "exit 0; {stage: completed, tk 8.6.12, desktop_ui true, input_devices 12, ok true}",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep: USER_MANUAL.md no longer says the clipboard is restored 立刻 unconditionally; STATUS.md cites audit-F-2026-11-13.json for the 136 test count and the clipboard limitation",
+          "command": "grep -n '立刻\\|立即' USER_MANUAL.md; grep -n 'audit-F' STATUS.md; grep 'Ran 136' verification/audit-F-2026-11-13.json",
+          "observed": "USER_MANUAL.md:130 now '等目標程式回應複製後（通常是立即，最多等約 0.9 秒）就把剪貼簿還原；如果目標程式太慢…'; the only other 立刻 is :63 (appearance). STATUS.md:34 cites audit-F for 136 tests (audit-F contains 'Ran 136 tests in 0.553s OK'); STATUS.md:60 cites audit-F D1 for the clipboard limitation; handoffs.md:32 cites audit-F for 136. Current count is 141 (auditor rerun); no document claims 141, which is consistent.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Auditor D1 repro (other-process Tk target delaying its clipboard write after Ctrl+C), 3 reps each",
+          "command": ".\\.build-venv\\Scripts\\python.exe -X utf8 C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\d1\\d1_repro.py (target C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\d1\\late_target.py)",
+          "observed": "Default timeout 0.9 s: 50/200/500/700 ms -> selection captured and clipboard = prior immediately, 12/12; 1000 ms -> ('', False) 'late' 3/3, target's late write seen 0.09-0.13 s after return (clipboard held the selection), watcher restored prior at 0.52-0.55 s after return, last_late_restore true, final = prior 3/3. Forced timeout 0.4 s (audit-F conditions): 500/700/1000 ms -> ('', False) 'late' 9/9, all restored to prior within 0.42 s of the late write (<= 1.03 s after return). User copies 0.25 s after the late write (before settle): no overwrite 5/5 (0.4 s/700 ms x3, default/1000 ms x2), final = user copy, last_late_restore false. User copy 0.6 s after the late write: watcher restored first, user copy kept 1/1. Edge: user copy 0.08 s after the late write (inside the 0.15 s merge window) is reverted to prior 2/2 (defect G1).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Adversarial: watcher thread only touches clipboard APIs, never Tk; a new capture cancels the old watcher",
+          "command": ".\\.build-venv\\Scripts\\python.exe -X utf8 C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\cancel_test.py (mocked _api/_read_clipboard/_write_text/send_key, real threads) + AST names of _late_watch",
+          "observed": "1st capture -> ('', False) 'late', daemon thread ctx-late-restore alive; 2nd capture -> 1st cancel Event set, 1st thread dead within 50 ms; a later single advance -> exactly one write ['prior'] (2nd watcher only), last_late_restore true. _late_watch references only cancel.is_set, get_sequence, write, time.monotonic/sleep, LATE_GRACE, last_late_restore; context.py does not import tkinter; the late status reaches the UI via the events queue and _poll (desktop.py:852-854).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Python 3.9 syntax",
+          "command": "ast.parse(..., feature_version=(3,9)) + compile under 3.9.12 for context.py, desktop.py, check_context_capture.py, test_context.py",
+          "observed": "all parse/compile; no walrus/match/PEP604 unions",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "G1 MINOR voice2txt/context.py:188-211 (_late_watch) with :244-249: the watcher identifies the 'target late write' only by GetClipboardSequenceNumber, so any single clipboard write inside LATE_GRACE+settle is reverted to the saved text. (a) No selection: Ctrl+C in an app with nothing selected writes nothing, so every no-selection 隨便問 takes the 'late' path; a single user copy 1.0 s after return was reverted to the pre-ask text 2/2 (C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\d1\\nosel.json). (b) A user copy within 0.15 s (merge) of a target's late write is reverted 2/2. Both contradict USER_MANUAL.md:130 '這段時間內你自己另外複製了東西則不會動它' and STATUS.md:60 '使用者在這段時間另外複製則不動剪貼簿'. Low probability (the user is usually holding the hotkey and speaking) and recoverable, but the documented guarantee is false. Suggested fix: before restoring, require GetClipboardOwner's process id to equal the target window's process id (or document the residual).",
+        "G2 MINOR voice2txt/context.py:170 + voice2txt/desktop.py:852-854: because no selection is indistinguishable from a late target, every 隨便問 without a selection now waits ~0.9 s (was <=0.4 s) before recording starts and shows '選取文字擷取逾時，未取得選取；剪貼簿將在目標回應後自動還原' (auditor: 3/3 no-selection captures returned in 0.906-0.922 s with reason 'late'). The message is spec-mandated (T23 item 4) but misleading for the most common ask case, and USER_MANUAL.md:130 describes it only for slow apps. Stale: desktop.py:657 docstring still says '約 0.4 秒'.",
+        "G3 MINOR scripts/check_context_capture.py:91: the delayed 700 ms scenario forces capture_selection(timeout=0.4) instead of the product default 0.9, and verification/context-capture-2026-11-13.json does not record the timeout used (only capture_seconds 0.422). STATUS.md:60 places that evidence next to '約 0.9 秒', implying the default path. With the default 0.9 s a 700 ms target is captured normally (auditor 3/3); the watcher at the default timeout was verified by the auditor with a 1000 ms target (3/3), so behaviour is fine but traceability is not.",
+        "G4 MINOR scripts/check_wave_d.py:184-262 (cross_process_check): selection_obtained false in 2/17 runs. Instrumented failing run 14: capture_selection WAS entered (fg_before == target hwnd 11997446), the EDIT child logged WM_KEYDOWN 'C' without Alt, its text was unchanged afterwards, but the clipboard sequence did not advance (9553 -> 9553) within 0.907 s -> ('', False) 'late'; clipboard_restored_after_capture true. This refutes the T23 executor note that failures happen without entering capture_selection. The same native EDIT target driven without the App/hook captured 60/60 (max 0.063 s). Root cause not determined (target did not copy in time under App+hook+injected F23 repeat); the product behaved per T23 (honest 'late', clipboard intact). Not a proven product defect; the check remains flaky.",
+        "INFO STATUS.md:34 still ends with 'audit F 尚未執行' although the same cell cites audit-F (already in T18c scope).",
+        "INFO voice2txt/context.py:258 foreground_context docstring lists capture_skipped as '' / 'busy' / 'non_text' only; 'late' is now also returned.",
+        "INFO tests/test_context.py:162: three with-items collapsed onto one long line with 14-space gaps (lost backslash continuations); valid Python, cosmetic.",
+        "INFO handoffs.md:169: T23 entry appended inside the 2026-10-18 'Risks / constraints' list of the oldest session rather than a wave D section; T23/T19b not yet in the handoffs table (T18c scope).",
+        "INFO voice2txt/context.py:198-207: a cancel between the loop's is_set() check and write(saved) is not atomic (window of microseconds); not reproduced."
+      ],
+      "notes": "D1 is fixed: timeout now returns ('', False)/'late' honestly and a late target write is restored (default 0.9 s with a 1000 ms target 3/3; audit-F conditions 0.4 s with 500/700/1000 ms 9/9, versus audit-F 0/9). D4 fixed (136 traced to audit-F). No blocker/major found; four minors (G1-G4)."
+    },
+    "T19b": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "Rebuilt exe contains the T23 code and matches the recorded hash",
+          "command": "sha256sum dist\\Voice2Txt\\Voice2Txt.exe; PyInstaller CArchiveReader/ZlibArchiveReader extract voice2txt.context and voice2txt.desktop from PYZ.pyz and compare const/name sets with compile() of the source",
+          "observed": "sha256 23787eee2448d370215715d360a764f14ea5ba56aabb370e850ef980e4f72e8a (= packaged-waveD2 exe_sha256); exe mtime 23:42:47 after context.py 23:39:50; packaged context has _late_watch, GetDesktopWindow, 'ctx-late-restore'; const/name sets equal to source for context and desktop (symmetric difference 0).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Packaged self-test UI-only ok",
+          "command": "dist\\Voice2Txt\\Voice2Txt.exe --self-test <scratch>\\pk_ui.json  (LOCALAPPDATA=<scratch>\\lad_pk1)",
+          "observed": "exit 0, 3 s; {stage completed, tk 8.6.12, desktop_ui true, input_devices 12, ok true}",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Packaged self-test --mode ask ok",
+          "command": "dist\\Voice2Txt\\Voice2Txt.exe --self-test <scratch>\\pk_ask.json --audio tests\\fixtures\\chinese.wav --mode ask  (LOCALAPPDATA=<scratch>\\lad_pk2)",
+          "observed": "exit 0, 7 s; stage completed, mode ask, model small/cpu, backend Whisper, text '今天下午四點開會,請記得帶研究報告。', fallback_warning '沒有可用的 LLM，顯示原始轉錄', ok true (matches packaged-waveD2 report e).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "--minimized: tray window, second instance exits, clean termination",
+          "command": ".\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\claude\\b51f5512bc03461d\\387748d2-868b-4f3b-b7d3-186341f655fa\\scratchpad\\tray_probe.py (Popen exe --minimized with temp LOCALAPPDATA; EnumWindows; second instance; taskkill /PID /T /F; tasklist)",
+          "observed": "running after 8 s; window class Voice2TxtTray1a172508fa0 owned by the launched pid 50828; second instance exit 0 in 0.27 s while the first kept running; after taskkill /F no Voice2Txt.exe in tasklist; HKCU Run 'Voice2Txt' still absent.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Manual byte-identity",
+          "command": "sha256sum USER_MANUAL.md dist\\Voice2Txt\\使用者手冊.md",
+          "observed": "both 429ee2cc798ff1c5... (= packaged-waveD2 manual_sha256). dist_bytes vs os.walk, Get-FileHash and JSON control characters were independently confirmed by the planner and not repeated.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [],
+      "notes": "Right Alt not injected (Typeless running). Ollama-backed self-tests b/c of packaged-waveD2 were not rerun (outside the requested scope)."
+    }
+  },
+  "d1_repro_table": [
+    {
+      "delay_ms": 50,
+      "timeout_s": 0.9,
+      "reps": 3,
+      "returned": "selection, True",
+      "final_clipboard": "prior 3/3"
+    },
+    {
+      "delay_ms": 200,
+      "timeout_s": 0.9,
+      "reps": 3,
+      "returned": "selection, True",
+      "final_clipboard": "prior 3/3"
+    },
+    {
+      "delay_ms": 500,
+      "timeout_s": 0.9,
+      "reps": 3,
+      "returned": "selection, True",
+      "final_clipboard": "prior 3/3"
+    },
+    {
+      "delay_ms": 700,
+      "timeout_s": 0.9,
+      "reps": 3,
+      "returned": "selection, True",
+      "final_clipboard": "prior 3/3"
+    },
+    {
+      "delay_ms": 1000,
+      "timeout_s": 0.9,
+      "reps": 3,
+      "returned": "('', False) late",
+      "final_clipboard": "prior 3/3, restored 0.52-0.55 s after return"
+    },
+    {
+      "delay_ms": 500,
+      "timeout_s": 0.4,
+      "reps": 3,
+      "returned": "('', False) late",
+      "final_clipboard": "prior 3/3, restored 0.53-0.55 s after return"
+    },
+    {
+      "delay_ms": 700,
+      "timeout_s": 0.4,
+      "reps": 3,
+      "returned": "('', False) late",
+      "final_clipboard": "prior 3/3, restored 0.72-0.74 s after return"
+    },
+    {
+      "delay_ms": 1000,
+      "timeout_s": 0.4,
+      "reps": 3,
+      "returned": "('', False) late",
+      "final_clipboard": "prior 3/3, restored 1.03 s after return"
+    },
+    {
+      "delay_ms": 700,
+      "timeout_s": 0.4,
+      "reps": 3,
+      "user_copy_after_late_write_s": 0.25,
+      "final_clipboard": "user copy 3/3 (watcher did not overwrite)"
+    },
+    {
+      "delay_ms": 1000,
+      "timeout_s": 0.9,
+      "reps": 2,
+      "user_copy_after_late_write_s": 0.25,
+      "final_clipboard": "user copy 2/2"
+    },
+    {
+      "delay_ms": 700,
+      "timeout_s": 0.4,
+      "reps": 1,
+      "user_copy_after_late_write_s": 0.6,
+      "final_clipboard": "user copy 1/1 (watcher restored first)"
+    },
+    {
+      "delay_ms": 700,
+      "timeout_s": 0.4,
+      "reps": 2,
+      "user_copy_after_late_write_s": 0.08,
+      "final_clipboard": "prior 2/2 (user copy reverted, G1)"
+    },
+    {
+      "delay_ms": "no selection (native EDIT)",
+      "timeout_s": 0.9,
+      "reps": 2,
+      "user_copy_after_return_s": 1.0,
+      "final_clipboard": "prior 2/2 (user copy reverted, G1)"
+    }
+  ],
+  "stability": {
+    "check_context_capture": "3/3 ok",
+    "check_wave_d": "15/17 ok (plain 2/3, instrumented 13/14); both failures = cross_process selection_obtained false via the honest 'late' path; paste path 17/17",
+    "native_edit_without_app": "60/60 captured, max 0.063 s"
+  },
+  "overall": "PASS",
+  "overall_reason": "T23 and T19b pass their acceptance; audit-F D1 no longer reproduces (late writes are restored, the restored flag is honest) and D4 is traced. Defects found are MINOR (G1 sequence-only watcher can revert a single user copy, including after every no-selection ask; G2 misleading 'timeout' status and 0.9 s wait on no-selection asks; G3 delayed check uses timeout 0.4 without recording it; G4 check_wave_d cross-process flake 2/17) plus INFO items. By the verdict rule (PASS only without blocker/major) overall is PASS.",
+  "replan_needed": [
+    "Optional follow-up (minor, not blocking): context._late_watch should confirm the clipboard owner process is the target before restoring (G1); the no-selection case should not be reported as a timeout, or the manual should say so (G2); record the timeout in check_context_capture output or use the default (G3).",
+    "T18c: also remove STATUS.md:34 'audit F 尚未執行' (already in its objective)."
+  ]
+}

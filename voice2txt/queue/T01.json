@@ -1,0 +1,17 @@
+{
+  "task_id": "T01",
+  "objective": "Add an 'Anthropic' cloud provider to voice2txt/translation.py and pin its wire shape with unit tests. CLOUD becomes an ordered dict Anthropic -> OpenAI -> Gemini with Anthropic default ('claude-sonnet-5-5', 'low'); build_translator keeps sorting clouds by CLOUD order so the chain is Ollama -> Anthropic -> OpenAI -> Gemini. CloudTranslator.request for Anthropic: POST https://api.anthropic.com/v1/messages with headers x-api-key, anthropic-version '2026-10-21', Content-Type; body {model, max_tokens: 1024, system: <instructions()>, messages: [{role:'user', content: text}], output_config: {effort}}; no temperature, no thinking field. CloudTranslator.parse for Anthropic: join content blocks with type 'text'; complete only when stop_reason is None or 'end_turn'; if stop_reason == 'refusal' raise RuntimeError mentioning stop_details.category when present; empty text raises as the other providers do. HTTP error detail parsing ({error:{message}}) already matches Anthropic's error body; keep it shared. Update the module docstring/comments (Traditional Chinese) and the CLOUD comment to describe the new order. Keep every existing OpenAI/Gemini behaviour and all existing tests passing.",
+  "inputs": ["voice2txt/translation.py", "tests/test_translation.py", "queue/PLAN-2026-11-13.md"],
+  "outputs": ["voice2txt/translation.py", "tests/test_translation.py"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with at least 4 new tests: (a) Anthropic request URL/headers/body shape incl. anthropic-version 2026-10-21 and absence of temperature/thinking keys; (b) Anthropic parse joins text blocks and ignores thinking blocks; (c) stop_reason 'refusal' and 'max_tokens' both raise; (d) build_translator orders (Gemini, OpenAI, Anthropic) input into Anthropic -> OpenAI -> Gemini and TranslatorChain.name reflects it.",
+    "CloudTranslator('Anthropic', '', 'k') has model 'claude-sonnet-5-5' and effort 'low'; CloudTranslator('OpenAI', '', 'k') and ('Gemini', '', 'k') keep their previous defaults.",
+    "No network call is made in tests (urllib.request.urlopen is stubbed where needed).",
+    "grep shows no temperature in the Anthropic body and no SDK import (anthropic/openai packages) anywhere in voice2txt/."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": [],
+  "max_output_tokens": 6000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9 syntax only (no match statement, no X | Y types). Do not touch desktop.py or run_desktop.py (T02). The folder is not a git repo; do not run git."
+}

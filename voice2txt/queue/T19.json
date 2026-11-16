@@ -1,0 +1,16 @@
+{
+  "task_id": "T19",
+  "objective": "Final wave D rebuild and packaged evidence, same procedure as T09 (build with -IncludeGpu, four packaged self-tests a–d, --minimized launch with tray window and second-instance exit, --help via extracted bytecode, manual byte-identity, icon present), plus (e) a packaged 'ask' self-test if run_desktop.py --self-test supports --mode ask (T17 adds MODES 'ask'; if the CLI choices do not include it, record 'not supported' rather than failing). ALL numeric fields (dist_bytes, file count, exe_sha256, manual sha) must be computed by script, never typed; args/paths must be written with raw strings so no control characters appear; help_text must be decoded correctly (run with -X utf8). Output verification/packaged-waveD-2026-11-13.json.",
+  "inputs": ["scripts/build_windows.ps1", "run_desktop.py", "tests/fixtures/chinese.wav", "tests/fixtures/jfk.wav", "USER_MANUAL.md", "verification/packaged-waveC-2026-11-13.json (format reference, including its corrected_by notes)"],
+  "outputs": ["dist/Voice2Txt/Voice2Txt.exe", "verification/packaged-waveD-2026-11-13.json", "build.log"],
+  "acceptance": [
+    "All packaged self-tests ok=true, stage='completed'; minimized_launch.running=true, tray window found, second instance exit 0 within 1 s, no Voice2Txt.exe left afterwards.",
+    "exe_sha256 is 64 hex chars and equals Get-FileHash of the exe; dist_bytes equals an independent os.walk sum; no control characters in the JSON; help_text lists --minimized and Anthropic:low.",
+    "dist\\Voice2Txt\\使用者手冊.md SHA-256 equals USER_MANUAL.md; msvcp140 not 14.27.x; build log tail without error."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T17", "T18"],
+  "max_output_tokens": 5000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Long build (~3 min, ~8.3 GB). Never inject Right Alt (Typeless running). No API keys in reports. Do not modify source; on build failure report and stop. Do not run git."
+}

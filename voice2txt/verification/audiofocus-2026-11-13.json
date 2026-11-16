@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "own_pid": 31832,
+  "child_pid": 3900,
+  "child_session_found": true,
+  "getmute_before": [
+    false
+  ],
+  "sessions_seen": 2,
+  "muted_pids": [
+    3900
+  ],
+  "getmute_during": [
+    true
+  ],
+  "getmute_after": [
+    false
+  ],
+  "errors": [],
+  "child_running_after": false
+}

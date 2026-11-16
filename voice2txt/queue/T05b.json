@@ -1,0 +1,15 @@
+{
+  "task_id": "T05b",
+  "objective": "After T09: update STATUS.md and handoffs.md with the final rebuild evidence from verification/packaged-waveC-2026-11-13.json (four packaged self-tests ok/stage/backend, dist size, exe sha256 prefix, msvcp140 version, --minimized launch + second-instance exit result, icon_present, manual byte-identity). Replace every sentence that says the final rebuild is pending. Do not change any other content.",
+  "inputs": ["verification/packaged-waveC-2026-11-13.json", "STATUS.md", "handoffs.md"],
+  "outputs": ["STATUS.md", "handoffs.md"],
+  "acceptance": [
+    "grep: STATUS.md and handoffs.md contain 'packaged-waveC-2026-11-13.json'; neither contains a sentence saying T09 or the final rebuild is pending/尚未完成.",
+    "Every number added traces to packaged-waveC-2026-11-13.json."
+  ],
+  "capabilities": ["read", "local_write"],
+  "depends_on": ["T05", "T09"],
+  "max_output_tokens": 3000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Traditional Chinese for STATUS.md, English for handoffs.md. Do not run git."
+}

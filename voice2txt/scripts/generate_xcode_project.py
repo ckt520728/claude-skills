@@ -14,7 +14,7 @@ def add(number, kind, **fields):
     return identifier(number)
 
 
-sources = ['Voice2TxtApp.swift', 'ContentView.swift', 'Transcriber.swift', 'AudioChunker.swift']
+sources = ['Voice2TxtApp.swift', 'ContentView.swift', 'Transcriber.swift', 'AudioChunker.swift', 'Refiner.swift']
 for offset, filename in enumerate(sources):
     add(20 + offset, 'PBXFileReference', lastKnownFileType='sourcecode.swift', path=filename, sourceTree='<group>')
     add(30 + offset, 'PBXBuildFile', fileRef=identifier(20 + offset))
@@ -40,6 +40,8 @@ for number, name in [(72, 'Debug'), (73, 'Release')]:
         'INFOPLIST_KEY_NSMicrophoneUsageDescription': '使用麥克風進行本機語音轉錄及中英翻譯。',
         'INFOPLIST_KEY_UILaunchScreen_Generation': 'YES',
         'INFOPLIST_KEY_UIApplicationSceneManifest_Generation': 'YES',
+        'INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad': 'UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight',
+        'INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone': 'UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight',
         'PRODUCT_BUNDLE_IDENTIFIER': 'org.voice2txt.app',
         'PRODUCT_NAME': '$(TARGET_NAME)', 'TARGETED_DEVICE_FAMILY': '1,2',
         'SUPPORTED_PLATFORMS': 'iphoneos iphonesimulator',

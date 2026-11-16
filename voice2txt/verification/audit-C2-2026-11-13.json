@@ -1,0 +1,116 @@
+{
+  "audit_id": "AUDIT-C2",
+  "date": "2026-11-13",
+  "tasks": {
+    "T10": {
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with new tests for (4), (5), (11) and for the deferred-paste decision (pure function: results + held set -> paste now / defer).",
+          "command": "(cwd C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\copy, PYTHONDONTWRITEBYTECODE=1) D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "Ran 70 tests in 0.186s OK. New: (4) test_reset_keeps_held_keys_so_auto_repeat_after_stop_is_not_a_new_press; (5) test_only_the_combo_that_started_the_session_can_stop_it_by_tap, test_long_press_of_another_combo_does_not_stop_the_session, test_recording_started_by_button_can_be_stopped_by_any_configured_combo_tap; (11) test_conflicting_combos_flags_right_alt_when_typeless_runs; deferred paste: test_paste_decision_defers_while_any_hotkey_key_is_held (paste_decision(1,{RALT})='defer', (1,{})='now', (0,..)='none'); plus missed-key-up, settle-time, watchdog_due, release_held_modifiers, set_combos and 4 TaskbarCreated/_add tests. No Win32 call in tests.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` PASS (ok=true, same event sequence as before); `scripts\\check_tray_indicator.py` ok=true with the real Run key unchanged and the leftover Voice2TxtCheck-abef8643 key removed (recorded); `scripts\\check_single_instance.py` writes ok=true with second_instance_exit_code=0 and one_instance_remaining=true, no process left afterwards.",
+          "command": "(cwd C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\copy, so the repo verification JSONs are not overwritten) python scripts\\check_hotkey_hook.py x3; Get-ItemProperty HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run + Test-Path HKCU:\\Software\\Voice2TxtCheck-abef8643 before/after; python scripts\\check_tray_indicator.py; python scripts\\check_single_instance.py; Get-Process python* before/after",
+          "observed": "hotkey hook 3/3 rc=0 PASS: events [start dictate, stop, start dictate, stop, start translate, stop] == expected, foreground_unchanged true, keys_not_swallowed true, noop_keys_injected 4, physical_sync_false_drops [], watchdog reinstalls 3 with events [start, stop], hook_stopped true. tray: rc=0 ok=true; tray_added/click/close-to-tray/show/indicator fg unchanged (2362276 x4)/startup_roundtrip/settings_persisted/quit/NIM_DELETE/thread stopped/minimized child no main window/temp_key_removed/no_zombie_python all true; real Run 'Voice2Txt' absent before and after (PowerShell and JSON null->null); leftover key: Test-Path False before and after this run; JSON leftover_key_cleanup {existed_before true, tree_before Run with 0 values, was_empty true, exists_after false, carried_over_from_previous_run true} (deleted by the executor's run; audit C saw it present). single instance: rc=0 ok=true, second_instance_exit_code 0 after 0.34 s, one_instance_remaining true (1 tray window owned by the first tree), first_window_shown_by_broadcast true, after_terminate: 0 leftover pids, 0 tray windows, mutex gone. Python PIDs 14 before = 14 after.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "A scratch check (included in check_hotkey_hook.py as an extra step): with a recording session simulated via the App's events queue while LeftAlt is held by SendInput, a 'result' event must not paste until LeftAlt is released; after release the paste happens and the target Tk window reports a Control-only state (0x4) for the injected V, never Control+Alt (0x2000c). Record the observed state in the JSON.",
+          "command": "check_hotkey_hook.py paste_check (x3, in the copy) + independent repro: D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\repro_paste.py (App in this process; target Tk window in a SEPARATE process C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\target_proc.py that logs KeyPress keysym/state; dictate=LeftAlt; clipboard restored)",
+          "observed": "check script 3/3: held_keys [164], deferred_while_held 1, v_events_while_held [], text_while_held '', after release v state 0xc (= Control 0x4 | NumLock 0x8; state_exactly_0x4 is false only because NumLock is on), text pasted, baseline raw Ctrl+V with Alt held = 0x2000c, direct _paste with Alt held releases [164] -> 0xc. Independent separate-process repro: target_foreground true; s1_held_keys [164]; s1_v_while_held [], s1_text_while_held '', s1_deferred_while_held 1; after LeftAlt release s1_v_after_release [['v','0xc']], s1_text_after_release 'C2貼上一', deferred_after_release 0, no Alt bit.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok=true; check_desktop_settings.py prints nothing on stderr.",
+          "command": "(cwd C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\copy, PYTHONPATH=., PYTHONDONTWRITEBYTECODE=1) python scripts\\smoke_desktop.py; python run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\out\\selftest.json; Start-Process python scripts\\check_desktop_settings.py <tmp json> -RedirectStandardError settings.stderr",
+          "observed": "smoke rc=0 'PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段、畫面、SQLite、字典儲存。'; self-test rc=0 {stage completed, tk 8.6.12, desktop_ui true, input_devices 12, ok true}; check_desktop_settings rc=0, stderr 0 bytes, stdout {key_is_dpapi_protected true, settings_roundtrip_ok true, env_fallback_ok true, ok_roundtrip true} (no Tcl 'invalid command name' any more).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "No key is swallowed by the hook (single CallNextHookEx return path still holds).",
+          "command": "cat -n voice2txt/hotkeys.py (567-574); grep -n 'return ' voice2txt/hotkeys.py; downstream observer hooks in check_hotkey_hook.py and C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\adversarial_hook.py",
+          "observed": "proc(): last_callback update, try/except around _handle, single `return user32.CallNextHookEx(None, code, wparam, lparam)` at hotkeys.py:574 (no other return inside proc). Downstream hook saw the same 6-event sequence (keys_not_swallowed true); in adversarial E2 the downstream observer saw every Alt down/up and every no-op.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[extra] each audit-C defect fixed at the cited location",
+          "command": "cat -n voice2txt/hotkeys.py desktop.py tray.py startup.py run_desktop.py scripts/check_tray_indicator.py; live checks below",
+          "observed": "1 [major paste-while-held] FIXED desktop.py:566 (result -> deferred_pastes), :597 + :717-723 _flush_pastes via paste_decision, :739-741 release_held_modifiers + 30 ms; hotkeys.py:96-100, :163-166, :374-390 (live 0xc). 2 [minor no-op race] FIXED as specified hotkeys.py:517-526, :530-546 (bounded 25 ms wait), :555 (10 ms delay); realistic taps ordered correctly (adversarial E2). 3 [minor reset-while-held] FIXED hotkeys.py:147-153 (reset keeps _pressed/_foreign) + unit test; audit-C case9 rerun gives only [start@0.1, stop@2.16]. 4 [minor any-combo stop / button session] FIXED hotkeys.py:153-161, :184-195, desktop.py:474-475; tap RightAlt then tap Alt+Shift+Space -> no stop, still recording. 5 [minor missed key-up/watchdog] IMPLEMENTED hotkeys.py:251-276, :103-105, :587-599 (unit tests + real watchdog reinstall), but see the new major/minor defects. 6 [major single instance] FIXED desktop.py:30-56, :814-816, tray.py:26, :158, :216-218 (live: second exits 0 in 0.34-0.39 s, 1 tray). 7 [minor TaskbarCreated] FIXED tray.py:144-151, :213-215; live SendMessage(TaskbarCreated) with the icon present -> added true, error null. 8 [minor start_at_login state] FIXED desktop.py:356-361 (registry wins at load; toggle still writes immediately :390-397). 9 [minor after_cancel] FIXED desktop.py:164, :194, :606, :797-803; stderr empty. 10 [minor check-script cleanup + leftover key] FIXED check_tray_indicator.py:168-191 called from the outer finally :313-314; key absent.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[adversarial] independent repro of major (b): two `run_desktop.py --minimized` started together and in sequence",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\two_instances.py simul | seq | simul (copy, separate throwaway LOCALAPPDATA each; WM_CLOSE to tray windows then taskkill /T)",
+          "observed": "simul #1: one process exits rc=0 0.391 s after its own launch, the other stays alive, tray_windows 1. seq: first tray after 0.78 s; second exits rc=0 in 0.359 s; tray_windows 1; first main window 'Voice2Txt · 自在說，本機寫' shown by the broadcast. simul #2: rc=0 in 0.391 s, tray_windows 1. trays_after_cleanup 0 each time. In the simultaneous case the loser's broadcast arrives before the winner's tray window exists, so the winner stays hidden in the tray (benign).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[adversarial] _sync_physical 0.1 s settle vs GetAsyncKeyState under injected events, and with a downstream hook that swallows the key (what Typeless.exe does to Right Alt on this machine)",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\adversarial_hook.py (E1: observer LL hook installed BEFORE LowLevelKeyboardHook so it runs after it; configured key F24/0x87; injected down + auto-repeat every 33 ms from 0.5 s to 1.5 s, then up); C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\machine_checks.py (pure PushToTalk, DEFAULT combos, is_physically_down=lambda vk: False, RightAlt held 1.5 s with auto-repeat)",
+          "observed": "E1 control (no swallow): events [start@0.0, stop@1.515], GetAsyncKeyState down 22/22, recovered [] -> the settle time is fine for injected input. E1 downstream swallow: GetAsyncKeyState down 0/21; events [start 0.0, stop 0.516, start 0.656, stop 0.797, start 0.937, stop 1.078, start 1.219, stop 1.359] (4 starts / 4 stops during ONE hold), recovered 0x87 x8. Pure machine with DEFAULT combos + RightAlt: [start 0.1, stop 0.6, start 0.7, stop 0.8, start 0.9, stop 1.02, start 1.14, stop 1.24, start 1.34, stop 1.44, start 1.5] -> ends RECORDING after the key is released. Mechanism: after 0.1 s the key is dropped as released (hotkeys.py:251-266); the next auto-repeat key-down is no longer in _pressed (:218-219) and is taken as a new press -> tap stop / start.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "[adversarial] release_held_modifiers vs a modifier the user is holding for unrelated typing",
+          "command": "C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\repro_paste.py scenario s2: dictate=LeftAlt only; SendInput LeftShift down (not part of any combo) -> 'result' event -> paste -> 'a' typed while Shift is still held -> Shift up; separate-process target logs KeyPress state",
+          "observed": "s2_held_keys [] (Shift is not part of a combo, so no deferral); s2_released_by_paste [160]; GetAsyncKeyState(LShift) false right after the paste although the 'user' never released it; the next keystroke after the paste arrives with Tk state 0x8 (no Shift bit 0x1). Shifted characters are lost until Shift is pressed again.",
+          "result": "FAIL"
+        },
+        {
+          "acceptance": "[adversarial] no-op 10 ms delay + 25 ms bounded wait with PeekMessageW inside the hook: ordering and re-entrancy",
+          "command": "C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\adversarial_hook.py E2: LeftAlt taps with 0/2/5/20/50 ms gaps; downstream observer (swallows LeftAlt and VK 0xFF so nothing reaches the foreground window) records the order; _handle wrapped with a depth counter",
+          "observed": "no-op before Alt key-up 9/12: 0 ms 1/4, 2 ms 2/2, 5 ms 2/2, 20 ms 2/2, 50 ms 2/2; waits 8, satisfied within 25 ms 3; SendInput(up) blocked 31-45 ms for 0-ms taps (well under LowLevelHooksTimeout). max _handle re-entry depth 2: PeekMessageW does dispatch the nested hook call for the injected no-op; that nested call returns at the MARKER check (hotkeys.py:503) and PushToTalk uses an RLock, so no state corruption and no deadlock. Residual race only for physically impossible 0-ms taps.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[adversarial] watchdog reinstall, mutex failure, broadcast exposure, close() ordering, Tk-thread rule",
+          "command": "cat -n voice2txt/hotkeys.py:561-606, desktop.py:35-56, 120-194, 533-606, 792-825, tray.py:153-219; live TaskbarCreated/show-message test C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\taskbar_created.py",
+          "observed": "Watchdog: UnhookWindowsHookEx(old) then SetWindowsHookExW with the same self._proc_ref (kept on the instance) -> no double install, HOOKPROC not lost; on failure error is set and the loop breaks, UnhookWindowsHookEx(None) afterwards is harmless, but the App is never told (status only set at start, desktop.py:183-184). The watchdog only fires while any_held(), and _sync_physical clears released keys, so a hook removed while idle is never reinstalled (minor). Mutex: handle kept in the module global _instance_mutex; CreateMutexW NULL (non-183 error, e.g. ACCESS_DENIED from an elevated owner) fails open (static; needs elevation to test). Broadcast: unique registered message 'Voice2TxtShowWindow', only acted on by our tray WndProc (tray.py:216-218); other processes ignore it; worst case another process can make the window appear. close(): closed=True, after_cancel(_poll_id), hook.stop() (WM_QUIT + join 2 s), tray.close() (WM_CLOSE -> NIM_DELETE, join 5 s), indicator.destroy, store.close, root.destroy; when called from _poll via tray 'quit' the loop exits on self.closed (desktop.py:540, :595) and does not reschedule. Tk-thread rule: hook, tray, loader, decoder and audio callbacks only call queue.put; claim_single_instance runs before Tk; _paste/release_held_modifiers run on the Tk thread from _poll -> no violation. Live: TrayIcon start added true; TaskbarCreated with the icon present -> added true, error null; Voice2TxtShowWindow -> callback 'show'; close -> deleted true, thread stopped.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "[All] no process left behind; real HKCU Run unchanged; repo untouched; py39 syntax; no secrets; translation.py untouched",
+          "command": "Get-Process python*,pythonw*,Voice2Txt* before/after; Get-CimInstance Win32_Process (run_desktop / auditC2 command lines); Get-ItemProperty HKCU Run; sha256sum of 120 repo files (excluding venvs/models/gpu/dist/build/tools/references/ios/__pycache__ and files >20 MB) before/after; ast.parse(feature_version=(3,9)) on the 10 T10 files (interpreter 3.9.12); grep for secret patterns",
+          "observed": "same 14 pre-existing python PIDs before/after (3144,4624,6452,8056,16976,17060,18928,24408,30932,32008,33144,34900,35496,38088), no stray run_desktop/auditC2 process; Run 'Voice2Txt' absent before and after; no HKCU\\Software\\Voice2TxtCheck-* key left; REPO_UNCHANGED (120 files identical; every repo-writing script ran on the copy); py39 ok x10; secret grep rc=1; translation.py mtime 01:33 (unchanged).",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "[major] voice2txt/hotkeys.py:251-267（_sync_physical）+ :218-219（auto-repeat 判斷）+ :269-271（tick）— T10(6) 的 GetAsyncKeyState 校正在『設定鍵被下游 LL hook 吞掉』時誤判為放開：被吞的鍵不會更新非同步鍵狀態，0.1 s 後就被補做 key-up，之後每個 auto-repeat key-down 都被當成新的按下，一次按住會反覆 stop/start。實測（下游觀察 hook 吞掉設定鍵 F24，按住 1.5 s，33 ms auto-repeat）：[start 0.0, stop 0.516, start 0.656, stop 0.797, start 0.937, stop 1.078, start 1.219, stop 1.359]，GetAsyncKeyState 0/21；對照組不吞鍵為 [start, stop]。純狀態機以預設組合 + RightAlt 模擬共 11 個事件，放開後仍停在『錄音中』。本機 Typeless.exe 正是用下游 hook 吞掉 Right Alt，而 App 預設口述鍵就是 Right Alt：在使用者實際環境、預設設定下按住說話會反覆開關麥克風，且可能放開後仍在錄音（T10 之前只有一次 start/stop）。AutoHotkey、PowerToys 鍵盤重對應等會吞鍵的工具也會觸發。建議：只有在 hook 一段時間（例如 0.5-1 s，涵蓋 auto-repeat 間隔）沒看到該 vk 的任何事件時，才用 GetAsyncKeyState 判定放開；或剛補做 key-up 的 vk 若很快又出現 key-down，視為持續按住而不是新的按下；並補上 auto-repeat + is_physically_down=False 的單元測試。",
+        "[minor] voice2txt/hotkeys.py:371-390 + voice2txt/desktop.py:739 — release_held_modifiers 會放開所有實體上按著的 Shift/Ctrl/Alt，包括與快捷鍵無關、使用者正用來打字的修飾鍵（例如只設定 LeftAlt 時按住 Shift）。held_keys() 只含快捷鍵相關的鍵，所以不會延後；貼上時送出 Shift key-up，使用者仍按著 Shift，但系統狀態已經放開，之後的字母就沒有 Shift（實測：貼上後下一個按鍵的 Tk state 是 0x8，沒有 Shift 位元 0x1；GetAsyncKeyState(LShift) 變成 false）。這符合 T10 字面（'release any still-held modifier keys'），但會造成輸入錯亂。建議：只放開屬於已設定組合的修飾鍵，或任何修飾鍵實體按著時一律延後貼上（paste_decision 納入實體修飾鍵狀態）。",
+        "[minor] voice2txt/hotkeys.py:591-599 + :103-105 — watchdog 只在 any_held() 為真且 10 s 沒有 callback 時才重裝。_sync_physical 會在實體放開後清空 _pressed/_foreign，所以 hook 在閒置時被系統靜默移除（LowLevelHooksTimeout 最常見的情況）時 any_held() 永遠為假，watchdog 永遠不會觸發，快捷鍵就靜默失效。重裝失敗時會設定 self.error 並 break 迴圈，但 App 只在啟動時檢查 hook.start()（desktop.py:183-184），使用者不會得知。T10 字面已經實作，這是規格設計上的弱點。建議：定期用無害的方式確認 hook 還在（例如定時注入帶 MARKER 的 no-op，確認 callback 有收到），失敗時經由 events queue 通知 UI。",
+        "[minor] voice2txt/desktop.py:48-51 — CreateMutexW 回傳 NULL（非 183 的錯誤）時直接 return True 放行，例如已有以系統管理員身分執行的執行個體、mutex DACL 拒絕一般權限開啟而得到 ERROR_ACCESS_DENIED，就會出現兩個執行個體。同理，一般權限執行個體對提升權限視窗的 PostMessage 廣播會被 UIPI 過濾。此項為靜態判讀，需要提升權限才能實測，未執行。建議：NULL 且 get_last_error()==5 時視為已存在。"
+      ],
+      "notes": "T10 的 5 條 acceptance 全部親自重跑，都通過：測試 70 個 OK；check_hotkey_hook.py 3/3、check_tray_indicator.py、check_single_instance.py 都是 ok=true；smoke 與 self-test ok；check_desktop_settings.py 的 stderr 是 0 bytes；hook 只有一條 CallNextHookEx。audit-C 的 2 個 major 與 8 個 minor 都已在指定位置處理，兩個 major 都獨立重現確認已修正：(a) 目標視窗改放在另一個程序，LeftAlt 按住時 'result' 不貼，放開後才貼，V 的 Tk state 是 0xc（Control 0x4 + NumLock 0x8，沒有 Alt 0x20000）；(b) 兩個 --minimized 同時或先後啟動，輸的一方在 0.34-0.39 s 內 exit 0，只剩 1 個系統匣視窗。但對抗式審查發現：設定鍵被下游 hook 吞掉時，T10(6) 新增的 GetAsyncKeyState 校正會讓按住說話反覆 start/stop。本機 Typeless 對 Right Alt 正是這樣，而 Right Alt 是預設口述鍵，所以列為 major，T10 判 FAIL。no-op 的 25 ms 等待：真人做得到的 2 ms 以上點按，no-op 都比 Alt key-up 先到下游；0 ms 合成點按仍有 3/4 落後（不列為缺陷）。PeekMessageW 造成的巢狀 hook 呼叫只處理帶 MARKER 的 no-op，在 RLock 下沒有狀態錯亂。Tk 執行緒規則沒有違反。所有會寫入 verification/ 的腳本都在 C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\copy 執行，repo 只新增本 verdict。真機鍵盤檢查一律用 LeftAlt / F24：Typeless 會吞 Right Alt，而且不注入 Right Alt 也避免觸發 Typeless 口述。"
+    }
+  },
+  "original_defects_status": {
+    "C-major-1 paste while hotkey held (desktop.py:524-525/668-683)": "FIXED - desktop.py:566,597,717-723,739-745; hotkeys.py:96-100,163-166,374-390; live 0xc with in-process and separate-process targets",
+    "C-minor-2 no-op race (hotkeys.py:356-370)": "FIXED as specified - hotkeys.py:517-526,530-546,555; realistic taps OK, 0-ms synthetic taps 1/4",
+    "C-minor-3 reset while held (desktop.py:457/616)": "FIXED - hotkeys.py:147-153 + unit test; case9 rerun shows no spurious start",
+    "C-minor-4 any combo stops / button session (hotkeys.py:130-137, desktop.py:610-611)": "FIXED - hotkeys.py:153-161,184-195; desktop.py:474-475 + 3 unit tests",
+    "C-minor-5 missed key-up / no watchdog (hotkeys.py:155-175)": "IMPLEMENTED - hotkeys.py:251-276,103-105,587-599; but introduces a new major (flapping when a downstream hook swallows the key) and the watchdog rarely fires (new minor)",
+    "C-major-6 no single instance (desktop.py:746-754, run_desktop.py:154-155)": "FIXED - desktop.py:30-56,814-816; tray.py:26,158,216-218; live two-instance repro PASS",
+    "C-minor-7 TaskbarCreated NIM_ADD failure (tray.py:142-146,207-209)": "FIXED - tray.py:144-151,213-215; live TaskbarCreated -> added true",
+    "C-minor-8 start_at_login checkbox (desktop.py:270-272,303-304,351-358)": "FIXED - desktop.py:356-361 (startup.is_enabled() at load)",
+    "C-minor-9 close() without after_cancel (desktop.py:161,564,743)": "FIXED - desktop.py:164,194,606,797-803; check_desktop_settings stderr 0 bytes",
+    "C-minor-10 check-script cleanup not in finally + leftover key (check_tray_indicator.py:243-256)": "FIXED - check_tray_indicator.py:168-191,313-314; HKCU\\Software\\Voice2TxtCheck-abef8643 absent before and after this audit"
+  },
+  "overall": "FAIL",
+  "replan_needed": [
+    "T10: 設定鍵被下游 hook 吞掉時（本機 Typeless + 預設 Right Alt），hotkeys.py:251-267 的 GetAsyncKeyState 遺失 key-up 復原會讓按住說話反覆 start/stop。需要改成『hook 一段時間沒看到該鍵的事件，才用實體狀態判定放開』之類的做法，並補上測試。可以一併處理：release_held_modifiers 只放開快捷鍵相關的修飾鍵（或修飾鍵實體按著時延後貼上）；watchdog 在閒置時也能偵測 hook 被移除並通知 UI；CreateMutexW 回傳 ACCESS_DENIED 時視為已存在。"
+  ],
+  "real_run_key_voice2txt": {
+    "before": null,
+    "after": null,
+    "unchanged": true
+  },
+  "environment_notes": [
+    "Typeless.exe running (8 processes); running_process_names() detects it and the App shows TYPELESS_WARNING with the default Right Alt combos.",
+    "NumLock is on: a Control-only key event shows Tk state 0xc (0x4|0x8); 0x2000c would mean Control+Alt.",
+    "Raw outputs: C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\out\\ (repro_paste.json, two_instances_simul.json, two_instances_seq.json, adversarial_hook.json, machine_checks.json, taskbar_created.json, selftest.json, settings.json); scripts in C:\\Users\\User\\AppData\\Local\\Temp\\auditC2\\s\\."
+  ]
+}

@@ -16,6 +16,10 @@ struct Record: Identifiable, Codable {
     let date: Date
     let mode: VoiceMode
     let text: String
+    // Whisper 原始轉錄（啟用 LLM 整理時才有）；舊版 history.json 沒有此欄位，Optional 讓它仍可解碼。
+    let source: String?
+    // 產生此文字的後端標籤（例如 Whisper 或雲端模型名稱）。
+    let backend: String?
 }
 
 // 音訊 callback 與 UI 分離，停止時仍能取得最後一段音訊。
@@ -56,6 +60,8 @@ final class Transcriber: ObservableObject {
     @Published var processing = false
     @Published var ready = false
     @Published var history: [Record] = []
+    let refineSettings = RefineSettings()
+    private let refinerChain = RefinerChain()
     private var pipe: WhisperKit?
     private var engine: AVAudioEngine?
     private let buffer = SampleBuffer()
@@ -64,6 +70,7 @@ final class Transcriber: ObservableObject {
     private var pending: [[Float]] = []
     private var sessionMode: VoiceMode = .chinese
     private var sessionError: String?
+    private var sessionNote = ""
     private var worker: Task<Void, Never>?
     private var notificationTokens: [NSObjectProtocol] = []
     private let historyURL = URL.documentsDirectory.appending(path: "history.json")
@@ -86,6 +93,23 @@ final class Transcriber: ObservableObject {
         }
     }
 
+    /// 主開關已開啟，且至少有一個雲端服務已啟用並有 API key。
+    var refineEnabled: Bool {
+        refineSettings.enabled && !refineSettings.activeRefiners().isEmpty
+    }
+
+    private func decode(_ audio: [Float], task: DecodingTask, language: String, pipe: WhisperKit) async throws -> String {
+        let options = DecodingOptions(task: task, language: language,
+                                      skipSpecialTokens: true, withoutTimestamps: true,
+                                      concurrentWorkerCount: 1)
+        let results: [TranscriptionResult] = try await pipe.transcribe(audioArray: audio, decodeOptions: options)
+        return results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func toTraditional(_ value: String) -> String {
+        value.applyingTransform(StringTransform("Hans-Hant"), reverse: false) ?? value
+    }
+
     func loadModel() async {
         guard !loading, !recording, !processing, !starting else { return }
         loading = true
@@ -94,7 +118,7 @@ final class Transcriber: ObservableObject {
         do {
             pipe = try await WhisperKit(WhisperKitConfig(model: modelName, verbose: false))
             ready = true
-            status = "模型就緒，可開始說話。後續轉錄與翻譯均在手機執行。"
+            status = "模型就緒，可開始說話。後續語音轉錄在裝置上執行（LLM 整理關閉時完全離線）。"
         } catch { status = "模型載入失敗：\(error.localizedDescription)" }
     }
 
@@ -106,7 +130,7 @@ final class Transcriber: ObservableObject {
             AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) }
         }
         guard allowed else {
-            status = "請到 iPhone 設定允許 Voice2Txt 使用麥克風。"
+            status = "請到系統「設定」允許 Voice2Txt 使用麥克風。"
             return
         }
         guard UIApplication.shared.applicationState == .active else {
@@ -144,6 +168,7 @@ final class Transcriber: ObservableObject {
             self.engine = engine
             sessionMode = mode
             sessionError = nil
+            sessionNote = ""
             try engine.start()
             recording = true
             status = "錄音中，停頓時送出，連續語音最長 8 秒一段…"
@@ -190,19 +215,50 @@ final class Transcriber: ObservableObject {
                 let rms = sqrt(audio.reduce(Float(0)) { $0 + $1 * $1 } / Float(audio.count))
                 guard rms >= 0.002, let pipe else { continue }
                 do {
-                    let options = DecodingOptions(task: sessionMode == .translate ? .translate : .transcribe,
-                                                  language: sessionMode == .english ? "en" : "zh",
-                                                  skipSpecialTokens: true, withoutTimestamps: true,
-                                                  concurrentWorkerCount: 1)
-                    let results: [TranscriptionResult] = try await pipe.transcribe(audioArray: audio, decodeOptions: options)
-                    var result = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-                    if sessionMode == .chinese {
-                        result = result.applyingTransform(StringTransform("Hans-Hant"), reverse: false) ?? result
+                    var result = ""
+                    var source: String?
+                    var backend = "Whisper"
+                    refinerChain.configure(refineSettings.enabled ? refineSettings.activeRefiners() : [])
+                    if !refinerChain.isEmpty {
+                        // 第一階段：Whisper 只轉錄（中文與中翻英用 zh，英文用 en）。
+                        var raw = try await decode(audio, task: .transcribe,
+                                                   language: sessionMode == .english ? "en" : "zh", pipe: pipe)
+                        if sessionMode != .english { raw = toTraditional(raw) }
+                        if !raw.isEmpty {
+                            source = raw
+                            let task = sessionMode == .english ? "en" : (sessionMode == .translate ? "translate" : "zh")
+                            do {
+                                // 第二階段：雲端 LLM 整理（中翻英同時翻譯）。
+                                result = try await refinerChain.refine(text: raw, task: task)
+                                if sessionMode == .chinese { result = toTraditional(result) }
+                                backend = refinerChain.lastBackend
+                            } catch {
+                                if sessionMode == .translate {
+                                    // 最後備援：第二次 WhisperKit 解碼，task 為 .translate，完全離線。
+                                    result = try await decode(audio, task: .translate, language: "zh", pipe: pipe)
+                                    if result.isEmpty {
+                                        status = "翻譯備援未產生譯文"
+                                        sessionError = status
+                                    }
+                                } else {
+                                    // 中文／英文模式：保留 Whisper 原始轉錄。
+                                    result = raw
+                                }
+                                backend = "Whisper（LLM 失敗：\(error.localizedDescription)）"
+                            }
+                        }
+                    } else {
+                        result = try await decode(audio, task: sessionMode == .translate ? .translate : .transcribe,
+                                                  language: sessionMode == .english ? "en" : "zh", pipe: pipe)
+                        if sessionMode == .chinese { result = toTraditional(result) }
                     }
                     if !result.isEmpty {
                         text += result + "\n"
-                        history.insert(Record(id: UUID(), date: Date(), mode: sessionMode, text: result), at: 0)
+                        history.insert(Record(id: UUID(), date: Date(), mode: sessionMode, text: result,
+                                              source: source, backend: backend), at: 0)
                         saveHistory()
+                        let note = "最近一段由 \(backend) 產生。"
+                        if recording { status = "錄音中…" + note } else { sessionNote = note }
                     }
                 } catch {
                     if recording { stop() }
@@ -212,7 +268,7 @@ final class Transcriber: ObservableObject {
             }
             processing = false
             worker = nil
-            if !recording { status = sessionError ?? "已完成，紀錄保存在此 iPhone。" }
+            if !recording { status = sessionError ?? "已完成，紀錄保存在此裝置。" + sessionNote }
         }
     }
 

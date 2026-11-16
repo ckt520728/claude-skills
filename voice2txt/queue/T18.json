@@ -1,0 +1,51 @@
+{
+  "task_id": "T18",
+  "objective": "Document wave D (T14–T17) after audit E passes. USER_MANUAL.md: new sections for 隨便問 (Right Alt + Space; what context is sent: window title, app name, and the selected text copied via Ctrl+C with clipboard restore; needs an LLM; privacy note that selected text is sent to the configured LLM, local Ollama by default), 依前景 App 調整格式, 快捷鍵錄音後自動貼回 and clipboard restore (CF_UNICODETEXT only), 自動新增字典 (learns only from edits inside the Voice2Txt editor; accept/ignore), 互動聲音, 語音輸入時靜音其他音訊 (default off; what it does and restore guarantee), 洞察 tab (definitions: words = CJK chars + latin words; time saved assumes 40 wpm typing), 保留歷史紀錄, 外觀. README.md: feature list and Typeless comparison updated (what is now covered, what still differs: no UI Automation field capture, no learning from edits in other apps, no cloud sync). CLAUDE.md: new modules (context.py, learning.py, sounds.py, audiofocus.py, insights.py, theme.py), MODES 'ask', decode_segment context parameter, new check scripts, settings keys. STATUS.md: rows for wave D with evidence files (context-capture, audiofocus, wave-d JSONs, audit-E and any fix audits), updated 下一步 and 已知限制. handoffs.md: wave D entry with the task/audit table (T14–T19). Keep every earlier fact that is still true. T20 ADDITION: the 隨便問 default is Right Alt + Right Ctrl (old Right Alt + Space is migrated; Alt+Space opens the Windows system menu); document the narrow swallow rule (only the non-modifier key completing a configured Alt combo is hidden from the foreground app; modifiers never); selection capture releases held keys first; multi-segment paste-back is merged into one paste; non-text clipboard contents make the app skip the selection capture (status line says so); force-killed process cannot restore other apps' mute (Windows remembers per-app mute; unmute in the volume mixer). Audit trail for wave D: audit-E (T14/T15/T16 PASS, T17 FAIL -> T20), audit-E2. T21 ADDITION: audit trail continues with audit-E2 (T20 FAIL -> T21) and audit-E3; the hotkeys setting carries hotkeys_version=2; swallowed keys recover from a lost key-up via the auto-repeat timeout.",
+  "inputs": [
+    "USER_MANUAL.md",
+    "README.md",
+    "CLAUDE.md",
+    "STATUS.md",
+    "handoffs.md",
+    "queue/T14.json",
+    "queue/T15.json",
+    "queue/T16.json",
+    "queue/T17.json",
+    "queue/PLAN-2026-11-13.md",
+    "verification/context-capture-2026-11-13.json",
+    "verification/audiofocus-2026-11-13.json",
+    "verification/wave-d-2026-11-13.json",
+    "verification/audit-E-2026-11-13.json",
+    "voice2txt/desktop.py (settings labels)",
+    "voice2txt/translation.py (TASKS['ask'])",
+    "verification/audit-E2-2026-11-13.json",
+    "queue/T20.json",
+    "verification/audit-E3-2026-11-13.json",
+    "queue/T21.json"
+  ],
+  "outputs": [
+    "USER_MANUAL.md",
+    "README.md",
+    "CLAUDE.md",
+    "STATUS.md",
+    "handoffs.md"
+  ],
+  "acceptance": [
+    "grep: USER_MANUAL.md mentions 隨便問, 洞察, 自動新增, 靜音其他音訊, 保留歷史紀錄, 外觀; STATUS.md cites wave-d-2026-11-13.json and audit-E-2026-11-13.json; handoffs.md top entry covers T14–T19.",
+    "No document claims UI Automation field capture, learning from other apps, iOS compilation, or live Anthropic calls.",
+    "Every number in new STATUS rows traces to a verification file named in the row.",
+    "grep: USER_MANUAL.md mentions 'Right Alt + Right Ctrl' and no longer presents Right Alt + Space as the 隨便問 default; STATUS.md cites audit-E2-2026-11-13.json."
+  ],
+  "capabilities": [
+    "read",
+    "local_write"
+  ],
+  "depends_on": [
+    "T17",
+    "T20",
+    "T21"
+  ],
+  "max_output_tokens": 9000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Traditional Chinese for USER_MANUAL/README/STATUS; English for CLAUDE.md/handoffs.md. Do not copy the manual into dist (T19). Do not run git."
+}

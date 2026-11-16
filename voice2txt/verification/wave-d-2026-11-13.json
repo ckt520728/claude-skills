@@ -1,0 +1,185 @@
+{
+  "ok": true,
+  "results": {
+    "ask_hotkey_migration": true,
+    "old_settings_defaults": true,
+    "defaults_include_ask_title": true,
+    "dictate_session_insights": true,
+    "context_aware_toggle_and_hotkey_paste_toggle": true,
+    "sounds_setting_respected": true,
+    "ask_session_and_history_filter": true,
+    "ask_skips_capture_in_own_window": true,
+    "ask_context_off_selection_only": true,
+    "ask_no_llm_status": true,
+    "auto_dictionary_candidates": true,
+    "mute_others_restore_paths": true,
+    "theme_switch": true,
+    "theme_persisted": true,
+    "retention_prune": true,
+    "clipboard_restore": true,
+    "tk_thread_discipline": true,
+    "cross_process_edit_capture_and_merged_paste": true,
+    "real_clipboard_restored": true
+  },
+  "details": {
+    "real_clipboard_saved": {
+      "had_text": false,
+      "had_other_formats": false
+    },
+    "ask_hotkey_migration": {
+      "old_default": [
+        "RightAlt+RightCtrl"
+      ],
+      "custom_kept": [
+        "LeftAlt+F5"
+      ]
+    },
+    "old_settings_defaults": {
+      "context_aware": true,
+      "hotkey_paste": true,
+      "sounds": true,
+      "mute_others": true,
+      "appearance": true,
+      "retention": true,
+      "dictionary_auto": true,
+      "dictionary_ignored": true,
+      "ask_hotkey_default": true,
+      "ask_hotkey_label": true,
+      "tab_order": true,
+      "old_keys_kept": true
+    },
+    "dictate_session": {
+      "session_finished": true,
+      "rows_added": true,
+      "words_before_zero": true,
+      "words_label_updated": true,
+      "stats_match": true,
+      "rate_and_time_labels": true,
+      "heatmap_drawn": true,
+      "mode_line": true,
+      "context_passed_to_llm": true,
+      "glossary_to_whisper": true,
+      "hotkey_auto_paste": true,
+      "sound_start_stop": true,
+      "mute_and_restore_on_stop": true
+    },
+    "context_aware_off": {
+      "finished": true,
+      "context_none": true,
+      "no_auto_paste": true
+    },
+    "ask_session": {
+      "session_finished": true,
+      "capture_requested": true,
+      "stub_received_context": true,
+      "whisper_used_dictation_language": true,
+      "answer_in_editor": true,
+      "history_mode_ask": true,
+      "filter_ask": true,
+      "filter_dictation": true,
+      "filter_translate_empty": true,
+      "ask_pasted_back": true,
+      "ask_excluded_from_insights": true
+    },
+    "ask_own_window": {
+      "finished": true,
+      "no_capture_call": true,
+      "uses_editor_selection": true
+    },
+    "ask_context_off_selection_only": {
+      "finished": true,
+      "selection_only": true
+    },
+    "ask_no_llm_status": {
+      "finished": true,
+      "final_status": "沒有可用的 LLM，顯示原始轉錄",
+      "not_pasted": true,
+      "status_kept": true
+    },
+    "auto_dictionary": {
+      "focusout_binding": true,
+      "candidate_found": true,
+      "accepted_in_auto": true,
+      "glossary_merged": true,
+      "persisted_dictionary_auto": true,
+      "glossary_reaches_whisper": true,
+      "ignored_remembered": true,
+      "candidate_list_empty_after": true,
+      "auto_label": true
+    },
+    "audiofocus": {
+      "overflow_restores": true,
+      "restore_idempotent_in_app": true,
+      "close_restores": true
+    },
+    "theme": {
+      "淺色": true,
+      "深色": true,
+      "系統": true
+    },
+    "retention": {
+      "forever_keeps": true,
+      "one_week_prunes": true,
+      "list_updated": true,
+      "persisted": true,
+      "startup_prune": true
+    },
+    "clipboard": {
+      "foreground_ok": true,
+      "entry_received_text": true,
+      "clipboard_restored": true,
+      "state_restored": true,
+      "pending_cleared": true,
+      "nontext_skipped": true,
+      "changed_by_others_skipped": true
+    },
+    "thread_discipline": {
+      "violations": {},
+      "restore_audio_call_sites": 2
+    },
+    "cross_process": {
+      "hook_installed": true,
+      "configured_ask": [
+        "LeftAlt+VK0x86"
+      ],
+      "child_is_foreground": true,
+      "foreground_before_keys": "V2T-edit-child",
+      "recording_started": true,
+      "hold_seconds_requested": 3.0,
+      "recording_still_on_before_release": true,
+      "ask_stop_seconds_after_press": 3.016,
+      "ask_not_stopped_before_release": true,
+      "ptt_recovered_during_hold": [],
+      "ptt_not_recovered": true,
+      "session_finished": true,
+      "session_selection": "CROSS-PROCESS-SELECTION 選取",
+      "selection_obtained": true,
+      "llm_received_selection": true,
+      "target_c_key_events": [
+        {
+          "vk": 67,
+          "msg": "0x100",
+          "alt_down": false,
+          "alt_bit_in_lparam": false
+        }
+      ],
+      "c_key_without_alt": true,
+      "clipboard_restored_after_capture": true,
+      "ask_hold_ended_cleanly": true,
+      "merged_paste_text": "SEG-ONE\nSEG-TWO\nSEG-THREE",
+      "merged_paste_exact": true,
+      "ctrl_v_count": 1,
+      "single_ctrl_v": true,
+      "deferred_cleared": true,
+      "clipboard_restored_after_paste": true,
+      "skip_path_injected_keys": [],
+      "skip_path_injects_nothing": true,
+      "control_text_only_injected_count": 7,
+      "control_text_only_injects_keys": true
+    },
+    "real_clipboard_restore": {
+      "restored": true,
+      "equal_after_run": true
+    }
+  }
+}

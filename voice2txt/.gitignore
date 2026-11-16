@@ -5,6 +5,8 @@ verification/typeless-rea.json
 verification/app-smoke/
 __pycache__/
 .pytest_cache/
+mobile-runtime/
+.playwright-cli/
 build/
 dist/
 models/
@@ -14,4 +16,3 @@ gpu/
 *.wav
 ios/*.xcodeproj/xcuserdata/
 ios/DerivedData/
-verification/tmp*/

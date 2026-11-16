@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-15",
+  "site_url": "https://voice2txt-independent.safecoconut4.chatgpt.site",
+  "source_directory": "sites/voice2txt-independent",
+  "architecture": "Static PWA; Whisper inference in a Dedicated Worker on the current device; no transcription backend",
+  "browser": "Windows Chrome via Playwright CLI",
+  "unit_tests": {"run": 5, "passed": 5},
+  "layout": [{"viewport_width": 390, "document_scroll_width": 375}, {"viewport_width": 820, "document_scroll_width": 805}],
+  "offline": {
+    "page_reload": true,
+    "model_load_from_cache": true,
+    "navigator_online_during_inference": false,
+    "model": "onnx-community/whisper-tiny",
+    "english_inference": true,
+    "english_seconds": 2.2,
+    "english_text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+  },
+  "quality_examples": [
+    {"model": "tiny", "mode": "zh", "seconds": 2.1, "text": "今天下午4點開會,請記得戴研究報告", "finding": "帶辨為戴；不是完全正確的轉錄"},
+    {"model": "base", "mode": "zh", "seconds": 3.0, "text": "今天下午4點開會,請記得戴研究報告。", "finding": "帶仍辨為戴"},
+    {"model": "tiny", "mode": "translate", "seconds": 1.4, "text": "The next four days will be the final report of the day.", "semantic_pass": false},
+    {"model": "base", "mode": "translate", "seconds": 3.2, "text": "Today's 5/4 o'clock meeting, please remember to press the bell", "semantic_pass": false}
+  ],
+  "translation_disposition": "Retained as an explicitly experimental feature with on-screen warnings; neither tested model passed the Chinese meeting fixture translation",
+  "draft_preserved_after_reload": true,
+  "real_iphone_microphone_verified": false,
+  "real_ipad_microphone_verified": false,
+  "real_device_model_memory_and_speed_verified": false,
+  "home_screen_install_verified": false,
+  "native_swift_build_verified": false,
+  "scope_note": "The user confirmed iPhone/iPad zh/en on the earlier Windows bridge. That confirmation does not validate this new inference architecture. All timing here is desktop Chrome, not phone performance."
+}

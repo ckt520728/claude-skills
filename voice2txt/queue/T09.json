@@ -1,0 +1,17 @@
+{
+  "task_id": "T09",
+  "objective": "Final rebuild after wave C and packaged evidence. Same procedure as T06: `powershell -NoProfile -File scripts\\build_windows.ps1 -IncludeGpu > build.log 2>&1` (never *> redirection), then packaged self-tests on dist\\Voice2Txt\\Voice2Txt.exe: (a) --self-test (UI only); (b) --audio tests\\fixtures\\chinese.wav --mode zh --llm-model gemma4:latest; (c) --audio tests\\fixtures\\chinese.wav --mode translate --llm-model gemma4:latest --cloud Anthropic:low (no key -> chain Ollama then Whisper); (d) --audio tests\\fixtures\\jfk.wav --mode en. Additionally (e) launch `dist\\Voice2Txt\\Voice2Txt.exe --minimized` for 8 seconds under a throwaway LOCALAPPDATA, verify with tasklist that it is running, verify that a tray icon window class/thread exists if detectable (otherwise record 'not verified'), then terminate it with taskkill and record exit; and (f) `--help` output (via file redirection) listing --minimized and Anthropic:low. Collect into verification/packaged-waveC-2026-11-13.json (object with keys reports[], minimized_launch, build_log_tail, dist_bytes, exe_sha256, help_text, msvcp140_version, icon_present (dist contains voice2txt.ico under _internal\\voice2txt\\assets)). Confirm dist\\Voice2Txt\\使用者手冊.md is the updated USER_MANUAL.md (byte-identical) after T05.",
+  "inputs": ["scripts/build_windows.ps1", "run_desktop.py", "tests/fixtures/chinese.wav", "tests/fixtures/jfk.wav", "USER_MANUAL.md", "queue/PLAN-2026-11-13.md"],
+  "outputs": ["dist/Voice2Txt/Voice2Txt.exe", "verification/packaged-waveC-2026-11-13.json", "build.log"],
+  "acceptance": [
+    "verification/packaged-waveC-2026-11-13.json exists; all four reports have ok=true and stage='completed'; report (a) desktop_ui=true; report (c) translator_chain does not contain 'Anthropic' unless a key was found (then say so).",
+    "minimized_launch.running=true and the process was terminated by the script (no Voice2Txt.exe left in tasklist afterwards).",
+    "help_text lists --minimized and Anthropic:low; icon_present=true; msvcp140_version is not 14.27.x; build_log_tail shows no error.",
+    "dist\\Voice2Txt\\使用者手冊.md SHA-256 equals USER_MANUAL.md SHA-256."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T07", "T08", "T05"],
+  "max_output_tokens": 5000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Build takes several minutes and ~7.8 GB; use a long timeout or background + poll. Never put API keys in reports. Do not modify source; on build failure report the log excerpt and stop. Do not run git."
+}

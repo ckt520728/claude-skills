@@ -4,6 +4,7 @@ import UIKit
 struct ContentView: View {
     @StateObject private var model = Transcriber()
     @State private var confirmDelete = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         TabView {
@@ -39,6 +40,9 @@ struct ContentView: View {
                         ShareLink(item: model.text) { Image(systemName: "square.and.arrow.up") }
                     }
                 }
+                // iPad（regular size class）限制主欄寬度並置中，避免全寬版面。
+                .frame(maxWidth: horizontalSizeClass == .regular ? 760 : .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
                 .padding()
                 .navigationTitle("Voice2Txt")
                 .navigationBarTitleDisplayMode(.inline)
@@ -48,7 +52,11 @@ struct ContentView: View {
                 List(model.history) { record in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(record.text).textSelection(.enabled)
-                        Text("\(record.date.formatted()) · \(record.mode.rawValue)")
+                        if let source = record.source, !source.isEmpty {
+                            Text("Whisper 原文：\(source)")
+                                .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                        Text("\(record.date.formatted()) · \(record.mode.rawValue)" + (record.backend.map { " · \($0)" } ?? ""))
                             .font(.caption).foregroundStyle(.secondary)
                         ShareLink(item: record.text) { Text("分享") }.font(.caption)
                     }
@@ -74,6 +82,7 @@ struct ContentView: View {
                         .disabled(model.loading || model.recording || model.processing || model.starting)
                         if model.loading { ProgressView() }
                     }
+                    RefineSettingsSection(settings: model.refineSettings)
                     Section("使用方式") {
                         Text("保持 App 在前景錄音。切換背景、音訊中斷或變更裝置時會停止，並處理尾段。")
                         Text("可複製或分享至其他 App。此版本不提供系統鍵盤擴充。")
@@ -86,5 +95,63 @@ struct ContentView: View {
             .tabItem { Label("設定", systemImage: "gearshape") }
         }
         .tint(.indigo)
+    }
+}
+
+// LLM 整理（選用）設定：只送出 Whisper 轉錄文字，不送錄音。
+struct RefineSettingsSection: View {
+    @ObservedObject var settings: RefineSettings
+
+    var body: some View {
+        Section("LLM 整理（選用）") {
+            Toggle("啟用 LLM 整理", isOn: $settings.enabled)
+            Text("只送出 Whisper 轉錄文字，不送錄音；依用量計費，需自備 API key；無訂閱；關閉時完全離線。")
+                .font(.footnote).foregroundStyle(.secondary)
+            if settings.enabled {
+                Text("依序嘗試 Anthropic → OpenAI → Gemini，全部失敗時中文／英文保留 Whisper 原文，中翻英改用 Whisper 內建翻譯。")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        if settings.enabled {
+            ForEach(CloudProvider.allCases) { provider in
+                ProviderSection(settings: settings, provider: provider)
+            }
+        }
+    }
+}
+
+struct ProviderSection: View {
+    @ObservedObject var settings: RefineSettings
+    let provider: CloudProvider
+    @State private var apiKey = ""
+    @State private var keyNote = ""
+
+    var body: some View {
+        Section(provider.title) {
+            Toggle("啟用 \(provider.title)", isOn: Binding(
+                get: { settings.settings(for: provider).enabled },
+                set: { value in settings.update(provider) { $0.enabled = value } }))
+            TextField("模型", text: Binding(
+                get: { settings.settings(for: provider).model },
+                set: { value in settings.update(provider) { $0.model = value } }))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Picker("推理強度", selection: Binding(
+                get: { settings.settings(for: provider).effort },
+                set: { value in settings.update(provider) { $0.effort = value } })) {
+                ForEach(RefineEffort.allCases) { effort in Text(effort.rawValue).tag(effort) }
+            }
+            SecureField("API key（按 Return 或「儲存」存入鑰匙圈）", text: $apiKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .onSubmit { saveKey() }
+            Button("儲存") { saveKey() }
+            if !keyNote.isEmpty { Text(keyNote).font(.footnote).foregroundStyle(.secondary) }
+        }
+        .onAppear { apiKey = KeychainStore.load(provider) }
+    }
+
+    private func saveKey() {
+        keyNote = KeychainStore.save(apiKey, for: provider) ? "已儲存到鑰匙圈。" : "鑰匙圈儲存失敗。"
     }
 }

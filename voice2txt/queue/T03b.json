@@ -1,0 +1,17 @@
+{
+  "task_id": "T03b",
+  "objective": "Fix the defects that audit A2 (verification/audit-A2-2026-11-13.json) found in the T03 iOS work. Major: ios/Voice2Txt/Refiner.swift uses ObservableObject/@Published but imports only Foundation and Security; add `import Combine`. Minors to fix as well: (a) mark RefinerChain as @MainActor (its state is mutated after async calls from the MainActor worker), (b) use ProcessInfo.processInfo.systemUptime instead of Date() for the 60 s pause so wall-clock changes do not affect it, (c) in Transcriber.swift, when the translate-mode WhisperKit `.translate` fallback returns an empty string, set sessionError/status to '翻譯備援未產生譯文' instead of silently dropping the segment (mirror the desktop behaviour), (d) in ContentView.swift add an explicit '儲存' button next to each API key SecureField that saves to the Keychain (keep onSubmit too), (e) make the Anthropic refusal message match the desktop wording (Anthropic 拒絕處理此內容（<category>）, with '未知' when no category), (f) ios/README.md line about '每約 5 秒分段' -> '最長 8 秒' to match AudioChunker. Regenerate the pbxproj only if a file was added (none expected) and re-run scripts/check_ios_project.py.",
+  "inputs": ["verification/audit-A2-2026-11-13.json", "ios/Voice2Txt/Refiner.swift", "ios/Voice2Txt/Transcriber.swift", "ios/Voice2Txt/ContentView.swift", "ios/README.md", "voice2txt/translation.py"],
+  "outputs": ["ios/Voice2Txt/Refiner.swift", "ios/Voice2Txt/Transcriber.swift", "ios/Voice2Txt/ContentView.swift", "ios/README.md", "verification/ios-project-structure-2026-11-13.json"],
+  "acceptance": [
+    "grep: Refiner.swift contains 'import Combine'; RefinerChain is declared with @MainActor; no 'Date()' remains in the pause logic (systemUptime used).",
+    "grep: Transcriber.swift contains '翻譯備援未產生譯文'; ContentView.swift contains a '儲存' Button for the key fields.",
+    "`.\\.build-venv\\Scripts\\python.exe scripts\\check_ios_project.py` still reports ok=true; generator re-run is byte-identical if run.",
+    "The RULES/TASKS prompt strings are unchanged (byte-identical to before this task)."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T03"],
+  "max_output_tokens": 5000,
+  "model": "claude-sonnet-5-5",
+  "notes": "No Swift toolchain here; keep Swift 5 / iOS 16 compatible. Minimal diffs only; do not restructure. Do not touch desktop Python files. Do not run git."
+}

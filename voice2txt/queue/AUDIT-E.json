@@ -1,0 +1,14 @@
+{
+  "audit_id": "AUDIT-E",
+  "scope": ["T14", "T15", "T16", "T17"],
+  "role": "Independent high-tier auditor. Sees only the specs and the artifacts. Re-runs every acceptance check itself. Never fixes anything. A FAIL goes back to the planner.",
+  "verdict_file": "verification/audit-E-2026-11-13.json",
+  "verdict_schema": "same as queue/AUDIT-A.json",
+  "extra_checks": [
+    "T14: diff translation.py against the previous version's behaviour: RULES unchanged, CLOUD unchanged, the three request bodies unchanged except the system text; TASKS['ask'] wording cannot be read as an instruction to add commentary; context block truncation at 2000 chars; decode_segment('ask') with a failing chain returns the transcript with a warning and no error; selection capture restores the clipboard even when the target has no selection (timeout path) and when the clipboard was empty; the Ctrl+C injection carries the hook MARKER; never inject Right Alt.",
+    "T15: learning.candidates adversarial cases (edit that only changes punctuation; edit that deletes text; CJK term replaced by longer term; latin case change only; known_terms respected); sounds never raise when the audio device is missing (simulate by pointing at an invalid path); audiofocus: COM vtable indices match the interface definitions given in queue/T15.json, restore is idempotent and runs at exit, own pid is never muted, a session already muted by the user is not unmuted by restore, CoUninitialize balance, no leaked COM refs on the error path (reasoning), the check script leaves no child process.",
+    "T16: Store.prune boundary (exactly N days), rows_for_stats order, update_text; insights streak math on edge dates (today active / today inactive / single day / gap of one day); time_saved floor; heatmap levels on all-zero data; theme.apply on withdrawn root three times; system_prefers_dark registry read failure path.",
+    "T17: run check_wave_d.py and every other check script; confirm defaults when settings.json lacks the new keys; the 'ask' session captures context only when the foreground window is not Voice2Txt; hotkey sessions paste by default while button sessions follow the checkbox; clipboard restored around paste; audiofocus restore on stop/overflow/close (read the code paths and trigger overflow in a scratch script); 洞察 numbers match insights.compute on the same rows; history filter works for mode 'ask'; retention prune does not delete today's rows; Tk only on the Tk thread (any violation = major); no regression in hotkey/tray/single-instance checks.",
+    "All: no secrets; repo files outside task outputs unchanged; no leftover processes; HKCU Run 'Voice2Txt' unchanged; Python 3.9 syntax on every changed .py."
+  ]
+}

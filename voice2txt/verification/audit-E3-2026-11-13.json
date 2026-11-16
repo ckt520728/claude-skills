@@ -1,0 +1,122 @@
+{
+  "audit_id": "AUDIT-E3",
+  "date": "2026-11-13",
+  "auditor_environment": "Windows 11, .build-venv Python 3.9.12, Typeless.exe running (8 processes; Right Alt never injected; LeftAlt/LeftCtrl/VK0x86/VK0x87/Space only), NumLock on, Chinese IME active. Scripts that write into verification/ ran on a byte-identical copy at C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo (149 code/test/script/verification files sha256-compared, 0 mismatches; models via junction). After the audit: repo sha256 list UNCHANGED (167 files, __pycache__ excluded), HKCU Run identical and no 'Voice2Txt' value before or after, no auditE3/target/Voice2Txt python process left (python count 26 before -> 22 after, the difference is unrelated MCP servers), real clipboard restored to its pre-audit value 'prior-wave-d-clipboard-1794545401' formats [13,16,1,7] (clip.py compare: EQUAL).",
+  "tasks": {
+    "T21": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with the new tests (synthetic release keeps key held; re-enable on real key-down; swallowed key repeat-timeout release; migration version marker).",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v (in D:\\2026 Voice2Txt)",
+          "observed": "Ran 133 tests in 0.389s OK. New: test_synthetic_release_keeps_key_held_for_5_seconds_and_stops_only_on_real_key_up ok, test_real_key_down_after_synthetic_release_reenables_physical_sampling ok, test_swallowed_key_with_lost_key_up_is_released_after_repeat_timeout ok, test_hotkeys_version_marker_keeps_deliberate_old_default_after_migration ok.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_wave_d.py` ok=true including the new 3 s hold check (ask recording not stopped before release) and the capture-skip path injecting no keys.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo; $env:PYTHONPATH='.'; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe scripts\\check_wave_d.py",
+          "observed": "exit 0, ok true, 19/19 results true (output file rewritten, new sha256). cross_process: configured_ask ['LeftAlt+VK0x86'], hold_seconds_requested 3.0, recording_still_on_before_release true, ask_stop_seconds_after_press 3.0, ptt_recovered_during_hold [], selection_obtained true, target_c_key_events [{vk 67, alt_down false, alt_bit_in_lparam false}], merged_paste_text 'SEG-ONE\\nSEG-TWO\\nSEG-THREE', ctrl_v_count 1, skip_path_injected_keys [], control_text_only_injected_count 7, real_clipboard_restore {restored true, equal_after_run true}; external clip compare EQUAL.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` PASS (all scenarios unchanged plus swallowed-key stuck recovery if added there).",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo; $env:PYTHONPATH='.'; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe scripts\\check_hotkey_hook.py",
+          "observed": "PASS exit 0; checks all true: event_sequence, watchdog_reinstall, swallowed_key_single_start_stop, two_key_swallowed_single_start_stop (events at 0.015/3.015 s, no false drops), idle_timer_not_reset_no_probe, active_user_liveness_probe, deferred_paste_control_only, alt_combo_swallow_no_system_menu (baseline menu flags 12 -> with App 0, bare Space reaches window, swallowed 15 -> 15). No swallowed-key-stuck scenario was added there (optional); covered by the auditor's real check below.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "smoke_desktop PASS; run_desktop --self-test ok (zh and ask); check_desktop_settings, check_tray_indicator, check_single_instance ok.",
+          "command": "in the copy, $env:PYTHONPATH='.', $env:LOCALAPPDATA=C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\out\\lad: scripts\\smoke_desktop.py; run_desktop.py --self-test out\\st-zh.json --audio tests\\fixtures\\chinese.wav --mode zh --model small; same --mode ask -> st-ask.json; check_desktop_settings.py out\\settings.json; check_tray_indicator.py out\\tray.json; check_single_instance.py out\\single.json",
+          "observed": "smoke PASS; self-test zh ok true desktop_ui true stage completed text '今天下午四點開會,請記得帶研究報告。'; self-test ask ok true desktop_ui true backend Whisper fallback_warning '沒有可用的 LLM，顯示原始轉錄'; settings key_is_dpapi_protected true settings_roundtrip_ok true env_fallback_ok true; tray ok true real_run_value_unchanged true no_zombie_python true; single ok true one_instance_remaining true no_process_left true. All exit 0.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "independent N1 (a): real desktop.App, ask = LeftAlt+VK0x86, native EDIT with selection in another process, hold 3 s (VK0x86 auto-repeat every 33 ms, LeftAlt no repeat)",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hold.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo ask LeftAlt+VK0x86 3.0 1 out\\n1_f23.json",
+          "observed": "recording started 0.172 s, released 3.031 s, stop 3.094 s (after release), stopped_before_release false, ptt.recovered [], swallow_released [], _synthetic before release ['0xa4']; selection 'AUDIT-E3 SELECTED 選取文字' captured and sent to the LLM; target C key KD alt_state false ctx_bit29 false; App injected NOOP pair, 0xA4 up, Ctrl+C (all MARKER), no Right Alt; answer pasted (edit_text 'ANSWER-QUESTION', 1 Ctrl+V), clipboard restored ('restored').",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "independent N1 (b): modifier-only analogue of the new default, ask = LeftAlt+LeftCtrl held 3 s (LeftCtrl auto-repeats)",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hold.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo ask LeftAlt+LeftCtrl 3.0 1 out\\n1_modonly.json",
+          "observed": "recording started 0.187 s, released 3.016 s, stop 3.094 s, ptt.recovered []; App released 0xA2 and 0xA4 with MARKER; _synthetic before release ['0xa4'] (LeftCtrl repeats cleared its flag and re-enabled sampling as designed); selection captured, C key without Alt; ANSWER pasted; clipboard restored. (E2 measured a stop at 1.27 s for the same case.)",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "independent (c): dictate = LeftAlt+VK0x87 held 3 s (VK0x87 repeats), no regression",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hold.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo dictate LeftAlt+VK0x87 3.0 1 out\\dictate_f24.json",
+          "observed": "recording 0.110 s .. 3.094 s (released 3.016 s), recovered [], swallow_released [], deferred_while_held 3, after release edit_text 'SEG-ONE\\nSEG-TWO\\nSEG-THREE', clipboard restored.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial (state machine): synthetic release then real release + re-press; flag across reset()/set_combos(); mark on non-held keys; N2 with normal/slowest auto-repeat; N2 lost key-up; migration; Python 3.9",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\adversarial_sm.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo out\\adversarial_sm.json",
+          "observed": "After mark_synthetic_release([LALT]): _synthetic {0xA4}, seen False, 2 s hold with no events; real LeftAlt key-up -> stop and flag cleared; re-press -> sampled physically down (seen True), and a later lost key-up is recovered (recovered ['0xa4']), so sampling resumes and the key is not left uncorrected forever. reset() and set_combos() keep the flag while the key is held (no false drop over 4 s, also when set_combos makes it foreign); the real key-up clears it. Marking non-held vks is ignored. N2 with auto-repeat (0.25 s/33 ms, slowest 1.0 s/0.4 s, edge 1.15 s/0.4 s) over 5 s: only [start], swallow_released []. Lost key-up of swallowed Space: released 1.21 s after its last key-down, _swallowed cleared, LeftAlt alone afterwards starts nothing, bare Space not swallowed. Migration pure function: v1 old default -> RightAlt+RightCtrl, v2 kept, custom kept. ast.parse(feature_version=(3,9)) OK39 for hotkeys/desktop/audiofocus/context/check_wave_d/check_hotkey_hook/test_hotkeys.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial (real): lost key-up of a hook-swallowed key (Space key-up tagged MARKER so the hook never sees it), dictate = LeftAlt+Space",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\real_adv.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo out\\real_adv.json  (part a)",
+          "observed": "recording while held true, stop on LeftAlt up, Space still held right after, then released 1.219 s after its last event (swallow_released ['0x20']); LeftAlt alone afterwards does not start; bare Space reaches the target (KD vk 229 IME + CHAR 0x20 + KU 0x20); swallowed_count 14 -> 14.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial (real): Nit1 busy-clipboard branch: another process holds the clipboard open with a real HWND during _begin_ask (LeftAlt really held); control run with a free text-only clipboard",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\busy.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo out\\busy.json",
+          "observed": "busy: holder HELD, injected [] (no NOOP, no modifier release, no Ctrl+C), session capture_skipped 'busy', status '剪貼簿正被其他程式使用，這次未擷取選取文字。' while recording, clipboard unchanged. control: 7 injected (NOOP pair, 0xA4 up, Ctrl down, C down/up, Ctrl up). Note: OpenClipboard(NULL) from another process does not make the clipboard busy on this Windows build; only a holder with a real HWND does.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial (real): hotkeys_version migration through App load + save_settings",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\real_adv.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo out\\real_adv.json  (part c)",
+          "observed": "v1 + RightAlt+Space -> loaded RightAlt+RightCtrl, saved version 2, relaunch RightAlt+RightCtrl; v2 + RightAlt+Space -> kept on load/save/relaunch; no version key + RightAlt+Space -> treated as 1, migrated, saved version 2; v1 + LeftAlt+F5 kept; user sets RightAlt+Space after migration and saves -> version 2, kept on relaunch. The version is written by save_settings; the file keeps version 1 until then, and the next launch migrates again with the same result. hotkeys_version '2' (a string) -> TypeError during App construction (nit).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: no-repeat source for an Alt+non-modifier combo (mouse button / macro software mapped to VK0x86/VK0x87), hold 3 s",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hold.py C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo ask LeftAlt+VK0x86 3.0 0 out\\adv_ask_norepeat.json ; same for dictate LeftAlt+VK0x87 -> out\\adv_dictate_norepeat.json",
+          "observed": "ask: recording 0.156 s .. 1.296 s while both keys stayed held until 3.031 s, swallow_released ['0x86']; dictate: 0.078 s .. 1.265 s, held until 3.0 s, swallow_released ['0x87']. Under T20 such a swallowed key was never seen physically down and was never dropped. See the new MINOR defect.",
+          "result": "FAIL (minor, spec-mandated rule)"
+        },
+        {
+          "acceptance": "Tk thread rule; Nit3 docstring; repo/HKCU Run/process/clipboard after audit",
+          "command": "review of desktop._begin_ask.work, _paste, hook tick path; sed -n 1,16p voice2txt/audiofocus.py; hashes.py compare; reg query; Win32_Process; clip.py compare",
+          "observed": "work() (desktop.py:658-680) only calls window_context._read_clipboard/capture_skip_reason/foreground_context, release_held_modifiers, ptt.mark_synthetic_release (PushToTalk RLock) and self.events.put; held_keys/own/editor_selection are read on the Tk thread (desktop.py:650-656). _paste calls mark_synthetic_release on the Tk thread. The swallow-timeout release runs in tick on the hook thread and only emits through the callback (a queue). check_wave_d tk_thread_discipline violations {}. audiofocus.py:7-10 now says 'documented in USER_MANUAL.md (T18)'. REPO UNCHANGED, RUN_KEY_UNCHANGED (no Voice2Txt value), no leftover project processes, clipboard EQUAL.",
+          "result": "PASS"
+        }
+      ],
+      "e2_defects_status": {
+        "N1 (MAJOR)": "FIXED. hotkeys.py:221-229: mark_synthetic_release sets _synthetic and seen False. hotkeys.py:389: _observe_physical skips synthetic vks. :419: never-seen keys are not dropped. The flag is cleared on a real key-down (:334, :338) and on a key-up (:364). desktop.py:674-676: _begin_ask calls it with the released keys; desktop.py:1208-1209: the paste path does too. Real runs: LeftAlt+VK0x86 stop 3.094 s (release 3.031), LeftAlt+LeftCtrl stop 3.094 s (release 3.016), recovered [].",
+        "N2 (MINOR)": "FIXED as specified. hotkeys.py:404-413 releases a swallowed key after 1.2 s with no key-down or key-up, records swallow_released and clears _swallowed. The real lost-key-up check passes. Side effect of the mandated rule: see the new MINOR defect (non-repeating sources).",
+        "Nit1": "FIXED. desktop.py:666-677 reads the clipboard read-only first; on 'busy'/'non_text' nothing is injected (check_wave_d skip_path_injected_keys []; auditor busy run injected []).",
+        "Nit2": "FIXED. hotkeys.py:86-100: HOTKEYS_VERSION 2 + migrate_hotkeys(version). desktop.py:521-522 passes settings.get('hotkeys_version') or 1; desktop.py:557 saves version 2. A deliberate RightAlt+Space after migration is kept.",
+        "Nit3": "FIXED. audiofocus.py:7-10 says 'documented in USER_MANUAL.md (T18)'. USER_MANUAL.md still has no mute/Volume Mixer text; that belongs to T18."
+      },
+      "defects": [
+        "MINOR hotkeys.py:404-413 (N2 rule as written in the T21 spec). A swallowed Alt-combo key that is physically held but produces no auto-repeat is treated as released after 1.2 s, and a held hold-to-talk session stops by itself. Measured with the real App: ask LeftAlt+VK0x86 without repeats stopped at 1.296 s (held until 3.03 s); dictate LeftAlt+VK0x87 stopped at 1.265 s. Sources without repeats include mouse buttons or macro software (G Hub, AutoHotkey remaps) mapped to F13-F24, which are the likely way to produce VK0x86/0x87, and FilterKeys with repeat turned off. The same happens when the user presses any other key while holding the combo, because Windows then repeats only that key (state-machine sim: Space released and stop emitted 1.2 s after its last repeat). Under T20 these keys were never sampled as physically down and were never dropped, so this is a regression for those setups. Normal keyboards are unaffected (checked down to the slowest 1.0 s delay / 0.4 s rate). The default combos are modifier-only, except dictate 'Alt+Shift+Space', whose Space repeats. Suggested direction: apply the timeout only after at least one auto-repeat was seen, or use a much longer timeout when no repeat was ever seen.",
+        "NIT desktop.py:521-524. A non-integer hotkeys_version in a hand-edited settings.json (for example \"2\") raises TypeError in migrate_hotkeys (hotkeys.py:95). The load try block only catches OSError/ValueError, so App construction fails (reproduced: TypeError(\"'>=' not supported between instances of 'str' and 'int'\")).",
+        "NIT hotkeys.py:389,419 (accepted trade-off of the spec). If the real key-up of a synthetically released key is lost (for example on a hook timeout), the key is not sampled again until it is pressed again. Until then the ask session keeps recording and deferred pastes wait. This mirrors the T12 never-seen rule.",
+        "NIT scripts/check_wave_d.py:240-256. ask_stop_seconds_after_press reports the release time when no stop occurred during the hold, so it is not a measured stop time; the boolean checks are still correct.",
+        "NIT scripts/check_hotkey_hook.py has no swallowed-key-stuck scenario (optional per acceptance); covered by the auditor's real MARKER-lost-key-up check."
+      ],
+      "notes": "All 4 T21 acceptance commands pass when re-run: the unit tests in place, and the scripts that write into verification/ on a byte-identical copy. E2 major N1 is fixed: three independent 3 s holds with the real App keep recording until release. Stop times: LeftAlt+VK0x86 ask 3.094 s (released 3.031 s), LeftAlt+LeftCtrl ask 3.094 s (released 3.016 s), LeftAlt+VK0x87 dictate 3.094 s (released 3.016 s). In each run the selection was captured, the C key carried no Alt bit, and the clipboard was restored. N2 and the three nits are fixed as specified. One new minor defect comes directly from the spec's N2 rule (non-repeating key sources stop after about 1.27 s), plus several nits. No blocker or major defects."
+    }
+  },
+  "overall": "PASS",
+  "replan_needed": [],
+  "follow_up_suggestions": [
+    "T21-followup (minor): reconsider the N2 swallowed-key timeout for non-repeating sources (hotkeys.py:404-413), for example by applying it only after at least one auto-repeat was seen.",
+    "T18: USER_MANUAL.md still lacks the Volume Mixer / mute recovery text that audiofocus.py now points to."
+  ],
+  "auditor_artifacts": [
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hold.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\adversarial_sm.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\real_adv.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\busy.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\target_win.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\hashes.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\probe\\clip.py",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditE3\\repo"
+  ]
+}

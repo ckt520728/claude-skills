@@ -1,0 +1,46 @@
+{
+  "task_id": "T08",
+  "objective": "Typeless-style background behaviour for the Windows desktop app: system tray, floating recording indicator, and start at login. (1) Icon: scripts/make_icon.py writes voice2txt/assets/voice2txt.ico with stdlib only (struct-packed ICO containing 16x16 and 32x32 32-bit BMP images: a filled indigo circle with a white microphone-like capsule); the file is used for the Tk window icon (root.iconbitmap), the tray, and the PyInstaller --icon (add the flag and an --add-data for the assets folder to scripts/build_windows.ps1; core.py's resource resolution already knows sys._MEIPASS, reuse that pattern). (2) New module voice2txt/tray.py: a Win32 tray icon via ctypes Shell_NotifyIcon (NOTIFYICONDATAW with NIF_MESSAGE|NIF_ICON|NIF_TIP, a message-only window class with its own WndProc and thread running GetMessageW, WM_APP+1 callback message, left click -> 'show', right click -> popup menu via CreatePopupMenu/AppendMenuW/TrackPopupMenu with items 開啟視窗 / 開始・停止錄音 / 結束; menu choices are delivered to a callback that puts ('tray', action) on the app's events queue; clean removal with NIM_DELETE on exit; taskbar-created re-add on 'TaskbarCreated' broadcast). (3) Floating indicator in desktop.py: a small Tk Toplevel pill (overrideredirect, topmost, alpha 0.92, dark background, white text) centred at the bottom of the primary screen showing '● 錄音中 · 口述（繁體中文）' / '● 錄音中 · 翻譯' / '整理中…'; shown on recording start, text updated while draining, hidden when idle; it must never take focus: after creation set WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW via GetWindowLongW/SetWindowLongW(GWL_EXSTYLE = -20) on the Toplevel's HWND and never call focus_force; verify in the check script that GetForegroundWindow is unchanged after show/hide. (4) Minimise to tray: closing the main window hides it (withdraw) when the new setting '關閉視窗時縮到系統匣' (default on) is set, otherwise exits as before; tray 'show' deiconifies; '結束' performs the existing close() logic (refusing while recording/draining, with the status message) ; a new CLI flag `--minimized` in run_desktop.py starts hidden in the tray. (5) Start at login: voice2txt/startup.py with pure functions build_run_command(exe, frozen) -> '\"<exe>\" --minimized' (when not frozen: '\"<python>\" \"<run_desktop.py>\" --minimized') and enable/disable/is_enabled using winreg on HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run value 'Voice2Txt'; a settings checkbox '登入 Windows 時自動啟動（縮在系統匣）' wired to it; persist in settings.json as 'start_at_login' and 'close_to_tray'. (6) tests: tests/test_tray_startup.py for build_run_command (frozen and source cases), ICO generation validity (parse the ICONDIR header and both entries), and the popup-menu id -> action mapping (pure). (7) scripts/check_tray_indicator.py: real check that builds App on a withdrawn root under a throwaway LOCALAPPDATA, asserts Shell_NotifyIcon NIM_ADD returned TRUE, shows and hides the indicator while asserting GetForegroundWindow is unchanged, enables then disables start-at-login against a temporary registry key path (make the key path injectable so the real Run key is not modified), and writes verification/tray-indicator-2026-11-13.json with ok=true. ALSO (audit A1 minors, same files): (8) run_desktop.py --self-test: when --cloud providers are given but no key is found and no --llm-model, translator is None and `translator.name` raises AttributeError (run_desktop.py:44-51); make it report translator_chain='僅 Whisper' and continue instead of failing. (9) scripts/check_desktop_settings.py:22 uses a fake key that looks real ('sk-ant-test-...'); change it to a clearly fake value that does not match secret-scanner patterns (e.g. 'FAKE-KEY-roundtrip-0123') and re-run it so verification/desktop-anthropic-ui-2026-11-13.json is refreshed.",
+  "inputs": [
+    "voice2txt/desktop.py",
+    "voice2txt/core.py",
+    "run_desktop.py",
+    "scripts/build_windows.ps1",
+    "scripts/smoke_desktop.py",
+    "verification/typeless-feature-inventory-2026-11-13.md",
+    "queue/PLAN-2026-11-13.md"
+  ],
+  "outputs": [
+    "voice2txt/tray.py",
+    "voice2txt/startup.py",
+    "voice2txt/assets/voice2txt.ico",
+    "scripts/make_icon.py",
+    "voice2txt/desktop.py",
+    "run_desktop.py",
+    "scripts/build_windows.ps1",
+    "tests/test_tray_startup.py",
+    "scripts/check_tray_indicator.py",
+    "verification/tray-indicator-2026-11-13.json",
+    "scripts/check_desktop_settings.py",
+    "verification/desktop-anthropic-ui-2026-11-13.json"
+  ],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes (tests/test_tray_startup.py adds at least 5 tests, none needing the real registry or a real tray).",
+    "`.\\.build-venv\\Scripts\\python.exe scripts\\check_tray_indicator.py` writes verification/tray-indicator-2026-11-13.json with ok=true, tray_added=true, indicator_foreground_unchanged=true, startup_roundtrip_ok=true, and the real HKCU Run key 'Voice2Txt' value is unchanged by the check (record before/after).",
+    "`$env:PYTHONPATH='.'; .\\.build-venv\\Scripts\\python.exe scripts\\smoke_desktop.py` passes; `run_desktop.py --self-test` reports ok=true, desktop_ui=true; `run_desktop.py --help` lists --minimized.",
+    "voice2txt/assets/voice2txt.ico exists and `python -c` parsing shows 2 images (16x16, 32x32); scripts/build_windows.ps1 contains --icon and an --add-data for voice2txt\\assets.",
+    "The app exits cleanly: close() removes the tray icon (NIM_DELETE) and stops the tray thread; no zombie python process remains after the check script (verify with tasklist in the script).",
+    "`run_desktop.py --self-test <tmp.json> --audio tests\fixtures\\jfk.wav --mode en --cloud Anthropic:low` (no key, no --llm-model) reports ok=true with translator_chain '僅 Whisper'; grep finds no 'sk-ant' in scripts/check_desktop_settings.py."
+  ],
+  "capabilities": [
+    "read",
+    "local_write",
+    "process_spawn"
+  ],
+  "depends_on": [
+    "T07"
+  ],
+  "max_output_tokens": 14000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9, stdlib + ctypes only (no pystray, no Pillow, no pywin32). UI strings Traditional Chinese. Tk is touched only on the Tk thread: the tray thread posts to the events queue; _poll handles 'tray' events. Do not modify translation.py, hotkeys.py semantics, tests from other tasks, or iOS files. Do not run git. Do not rebuild dist (T09)."
+}

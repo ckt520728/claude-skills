@@ -1,0 +1,147 @@
+{
+  "audit_id": "AUDIT-A1",
+  "date": "2026-11-13",
+  "scope": [
+    "T01",
+    "T02"
+  ],
+  "tasks": {
+    "T01": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with at least 4 new tests: (a) Anthropic request URL/headers/body shape incl. anthropic-version 2026-10-21 and absence of temperature/thinking keys; (b) Anthropic parse joins text blocks and ignores thinking blocks; (c) stop_reason 'refusal' and 'max_tokens' both raise; (d) build_translator orders (Gemini, OpenAI, Anthropic) input into Anthropic -> OpenAI -> Gemini and TranslatorChain.name reflects it.",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v   (PowerShell, cwd D:\\2026 Voice2Txt)",
+          "observed": "Ran 30 tests in 0.154s / OK. New: test_anthropic_request_shape (a); test_anthropic_parse_joins_text_and_ignores_thinking (b); test_anthropic_refusal_and_truncation_raise (c); test_chain_order_with_anthropic_is_anthropic_openai_gemini (d), which asserts name 'Anthropic claude-sonnet-5-5 (low) → OpenAI gpt-6-luna (high) → Gemini gemini-3.8-flash (low)'. Also new: test_anthropic_defaults_and_other_provider_defaults and test_anthropic_refine_uses_stubbed_urlopen_and_http_error_detail. Total: 6 new + 24 original (6 core + 18 translation).",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "CloudTranslator('Anthropic', '', 'k') has model 'claude-sonnet-5-5' and effort 'low'; CloudTranslator('OpenAI', '', 'k') and ('Gemini', '', 'k') keep their previous defaults.",
+          "command": "auditor compare_old.py: exec the Oct-18 voice2txt.translation bytecode (extracted from the pre-rebuild dist\\Voice2Txt\\Voice2Txt.exe PYZ at 01:37:43) and compare it with the current module",
+          "observed": "old CLOUD {'OpenAI': ('gpt-6-luna', 'high'), 'Gemini': ('gemini-3.8-flash', 'low')}; new CLOUD {'Anthropic': ('claude-sonnet-5-5', 'low'), 'OpenAI': ('gpt-6-luna', 'high'), 'Gemini': ('gemini-3.8-flash', 'low')}; test_anthropic_defaults_and_other_provider_defaults ... ok",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "No network call is made in tests (urllib.request.urlopen is stubbed where needed).",
+          "command": "auditor nonet.py: replace socket.socket.connect and socket.create_connection with a raising stub, then unittest discover tests",
+          "observed": "tests run 30 failures 0 errors 0 network attempts 0",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "grep shows no temperature in the Anthropic body and no SDK import (anthropic/openai packages) anywhere in voice2txt/.",
+          "command": "grep -n temperature voice2txt/translation.py; grep -rnE '^\\s*(import|from)\\s+(anthropic|openai|google)' voice2txt/",
+          "observed": "Only hit: translation.py:94 \"'options': {'num_ctx': 2048, 'temperature': 0, 'num_predict': 384}\" (the local Ollama chat body, not Anthropic). SDK import grep: (none). The Anthropic body at translation.py:129-131 is {model, max_tokens: 1024, system, messages: [{role: 'user', content: text}], output_config: {effort}}.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra_check: Anthropic body has no temperature/thinking keys and OpenAI/Gemini request+parse code is unchanged in behaviour; all 24 original tests still present and passing.",
+          "command": "auditor compare_old.py + cmp2.py (old vs new behaviour and bytecode)",
+          "observed": "request combos 96 mismatches 0 (OpenAI and Gemini x model ''/custom x effort ''/low/medium/high x 3 modes x 2 vocabularies; URL, method, headers and JSON body identical). parse mismatches 0 (12 reply shapes, incl. incomplete, SAFETY and empty). RULES equal True, TASKS equal True. Bytecode identical for instructions, decode_segment, LocalTranslator.*, TranslatorChain.*, CloudTranslator.__init__ and CloudTranslator.refine. ollama_models and build_translator differ only in a nested code object's filename/line and the docstring. 30 tests = 24 original + 6 new, all OK.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra_check: the Anthropic refusal path cannot be mistaken for success (empty text with stop_reason 'refusal' raises, not returns '').",
+          "command": "auditor edge.py: CloudTranslator('Anthropic').parse on edge replies; TranslatorChain with stubbed urlopen",
+          "observed": "refusal_with_text RAISED RuntimeError 'Anthropic 拒絕處理此內容（bio）。' (refusal is checked before the text, so even partial text is never returned). refusal_null_details and refusal_null_category RAISED. empty_end_turn, pause_turn, stop_sequence, tool_use and whitespace_only RAISED '整理未完成。'. content_null RAISED TypeError. In the chain, a refusal moves on to the next provider: result 'from openai', last_backend 'OpenAI stub', error recorded.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: wire shape vs the Anthropic Messages API (claude-api skill reference, cached 2026-11-03) and Python 3.9 syntax.",
+          "command": "read the claude-api skill + shared/api-version-migration.md; ast.parse(feature_version=(3,9)) and py_compile under .\\.build-venv\\Scripts\\python.exe",
+          "observed": "anthropic-version 2026-10-21 is a real API version. On it, temperature/top_p/top_k return 400 on every model, so leaving temperature out is required. output_config.effort low/medium/high is valid on claude-sonnet-5-5 and claude-opus-5-5. stop_details.category is populated only on refusal. The implementation matches all of this. Python 3.9.12: ast ok, py_compile exit=0.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "All: no file claims the iOS app compiles or that Anthropic was called live; no API key or secret-looking string in new/changed files (grep sk-, AIza, sk-ant-).",
+          "command": "grep -rnE 'sk-|AIza|sk-ant-' over the 6 T01/T02 files + verification/desktop-anthropic-ui-2026-11-13.json; grep -niE 'live|compil|xcodebuild|實測|編譯' over the same files",
+          "observed": "scripts/check_desktop_settings.py:22 SECRET = 'sk-ant-test-roundtrip-0123456789' (made-up test value, not a real credential); tests/test_translation.py:253-255 'sk-測試' (older test, unchanged); no AIza. No compile or live-call claims in the T01/T02 files (only hits are Tk variables named `live` and Ollama `keep_alive`). iOS and doc files are T03/T05 scope and were not audited here.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "minor (info): voice2txt/translation.py:152 — when the JSON content is null, `data.get('content', [])` raises TypeError instead of the shared RuntimeError('整理未完成。'). It is still never treated as success, because TranslatorChain catches Exception. OpenAI and Gemini use the same pattern.",
+        "minor (info, required by the spec): voice2txt/translation.py:129 — max_tokens 1024 also counts adaptive-thinking tokens, and claude-sonnet-5-5 / claude-opus-5-5 cannot turn thinking off. At effort low, truncating a ≤8 s segment is unlikely. If it happens, the parse raises on stop_reason max_tokens and the chain falls back. Worth noting if the user raises effort to high."
+      ],
+      "notes": "The Anthropic request and parse code matches PLAN-2026-11-13 and T01 exactly: no temperature, no thinking, no fallbacks/betas fields; headers x-api-key, anthropic-version 2026-10-21 and Content-Type; refusal is checked before the text is read. OpenAI and Gemini behave exactly as in the Oct-18 baseline (behavioural diff of 96 request combos and 12 reply shapes: 0 mismatches). The baseline is the Oct-18 PYZ, extracted from dist\\Voice2Txt\\Voice2Txt.exe at 01:37:43. Another process rebuilt that exe 23 s later, at 01:38:06. The extracted CLOUD has no Anthropic, which confirms it is pre-T01 code. The auditor made no live Anthropic call (no key)."
+    },
+    "T02": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes.",
+          "command": ".\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+          "observed": "Ran 30 tests in 0.154s / OK",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`$env:PYTHONPATH='.'; .\\.build-venv\\Scripts\\python.exe scripts\\smoke_desktop.py` passes.",
+          "command": "Copied voice2txt/, scripts/, tests/ and run_desktop.py to C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\ws, because the script writes verification/desktop-integration.json relative to cwd. Then: $env:PYTHONPATH='.'; & 'D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe' scripts\\smoke_desktop.py",
+          "observed": "PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段、畫面、SQLite、字典儲存。 / exit=0",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe run_desktop.py --self-test verification\\desktop-anthropic-ui-2026-11-13.json` writes ok=true and desktop_ui=true (no --audio needed); the settings round-trip script then merges its own result into that JSON (keys: settings_roundtrip_ok, providers_in_ui = ['Anthropic','OpenAI','Gemini'], key_is_dpapi_protected = true).",
+          "command": "(in the ws copy) python run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\ws\\verification\\desktop-anthropic-ui-2026-11-13.json; then, with TEMP/TMP=C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\ws\\tmp: python scripts\\check_desktop_settings.py C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\ws\\verification\\desktop-anthropic-ui-2026-11-13.json",
+          "observed": "Self-test exit=0 -> {stage: completed, tk: 8.6.12, desktop_ui: true, input_devices: 12, ok: true}. Round-trip stdout {\"providers_in_ui\": [\"Anthropic\", \"OpenAI\", \"Gemini\"], \"key_is_dpapi_protected\": true, \"settings_roundtrip_ok\": true, \"env_fallback_ok\": true, \"ok_roundtrip\": true}, exit=0. The merged JSON has the same content as the executor's verification/desktop-anthropic-ui-2026-11-13.json. stderr also showed a Tcl background error 'invalid command name \"..._poll\"' (cosmetic; see defects). The temporary LOCALAPPDATA was cleaned up.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe run_desktop.py --help` lists Anthropic:low, Anthropic:medium, Anthropic:high among --cloud choices.",
+          "command": ".\\.build-venv\\Scripts\\python.exe run_desktop.py --help | Select-String Anthropic",
+          "observed": "--cloud {Anthropic:low,Anthropic:medium,Anthropic:high,OpenAI:low,OpenAI:medium,OpenAI:high,Gemini:low,Gemini:medium,Gemini:high}; the help text mentions ANTHROPIC_API_KEY／OPENAI_API_KEY／GEMINI_API_KEY",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "The temporary settings.json written by the round-trip contains cloud.Anthropic with a DPAPI-protected key (not the plain text), and reloading restores model/effort/enabled.",
+          "command": "auditor my_roundtrip.py: an independent round-trip with LOCALAPPDATA=C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\lad_mine, keeping settings.json for inspection",
+          "observed": "raw_contains_plain_anthropic false; raw_contains_plain_openai false. Saved cloud key order ['Anthropic','OpenAI','Gemini']. Saved Anthropic: {enabled: true, model: claude-opus-5-5, effort: medium, key: <328 chars base64, starts with AQAAANCM>}; AQAAANCM is the DPAPI blob header. Reload -> (True, 'claude-opus-5-5', 'medium', key matches). Gemini enabled=False was also restored.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra_check: settings rows render Anthropic, OpenAI, Gemini in that order with labels ②③④ and Ollama ①; _cloud_settings() includes Anthropic only when enabled and a key (field or ANTHROPIC_API_KEY env) exists.",
+          "command": "auditor my_roundtrip.py: walk the live Tk widget tree for ttk.Checkbutton/ttk.Label texts and exercise _cloud_settings()",
+          "observed": "checkbutton_labels ['② Anthropic 備援', '③ OpenAI 備援', '④ Gemini 備援']; ollama_label ['① 本機 Ollama 模型']. desktop.py:127 shows 'LLM 順序：本機 Ollama → Anthropic → OpenAI → Gemini → 只用 Whisper 結果'. _cloud_settings results: no keys -> []. ANTHROPIC_API_KEY=ENVKEY with enabled -> [('Anthropic','ENVKEY')]. Env key with disabled -> []. Field keys -> [('Anthropic','claude-opus-5-5',<key>,'medium'), ('OpenAI','gpt-6-luna',<key>,'high')]; Gemini was disabled and excluded. The field key is stripped of whitespace.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "extra_check / adversarial: the LEGACY migration and pre-Anthropic settings files still load; desktop.py changes are limited to the wiring.",
+          "command": "auditor my_roundtrip.py (legacy files) + cmp3.py (bytecode diff of the old desktop.py from the pre-rebuild exe vs the current desktop.py)",
+          "observed": "Legacy file {'translation_backend_v2':'本機 Ollama','cloud_provider':'OpenAI','cloud_model':'gpt-x'} -> backend 'Whisper + LLM 整理', OpenAI model 'gpt-x', Anthropic default 'claude-sonnet-5-5'. Old two-provider cloud dict -> OpenAI (False,'gpt-6-luna','low'), Gemini (True,'gemini-3.8-flash','high'), Anthropic defaults (True,'claude-sonnet-5-5','low'). cmp3: only App._ui changed, and only in 3 constants (the chain-order label, '②③' -> '②③④', and the cloud privacy/env text). Every other function's bytecode is identical.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: scripts/benchmark_refine.py includes Anthropic when ANTHROPIC_API_KEY is set.",
+          "command": "auditor bench_stub.py: runpy the ws copy of scripts/benchmark_refine.py with WhisperEngine and decode_audio stubbed, Ollama prepare raising, CloudTranslator.refine stubbed to build the real request, urlopen raising, and only ANTHROPIC_API_KEY set",
+          "observed": "skip Ollama: no ollama (audit stub) / cloud calls 5 [('Anthropic claude-sonnet-5-5 (low)', 'https://api.anthropic.com/v1/messages')] / report backends ['Anthropic claude-sonnet-5-5 (low)']",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "adversarial: Python 3.9 compatibility of all T01/T02 files.",
+          "command": ".\\.build-venv\\Scripts\\python.exe -W error -c \"import ast; ast.parse(open(f, encoding='utf-8').read(), f, feature_version=(3,9))\" over 6 files; .\\.build-venv\\Scripts\\python.exe -W error -m py_compile <same 6 files>",
+          "observed": "Python 3.9.12. ast ok (feature_version 3.9) for 6 files. py_compile exit=0. The ResourceWarnings that were printed came from the auditor's one-liner leaving files open, not from the code.",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "All: no file claims the iOS app compiles or that Anthropic was called live; no API key or secret-looking string in new/changed files (grep sk-, AIza, sk-ant-).",
+          "command": "grep -rnE 'sk-|AIza|sk-ant-' over the 6 T01/T02 files + verification/desktop-anthropic-ui-2026-11-13.json; grep -niE 'live|compil|xcodebuild|實測|編譯' over the same files",
+          "observed": "scripts/check_desktop_settings.py:22 SECRET = 'sk-ant-test-roundtrip-0123456789' (made-up test value, not a real credential); tests/test_translation.py:253-255 'sk-測試' (older test, unchanged); no AIza. No compile or live-call claims in the T01/T02 files (only hits are Tk variables named `live` and Ollama `keep_alive`). iOS and doc files are T03/T05 scope and were not audited here.",
+          "result": "PASS"
+        }
+      ],
+      "defects": [
+        "minor: scripts/check_desktop_settings.py:22 — the fixture SECRET = 'sk-ant-test-roundtrip-0123456789' looks like a real key and matches the AUDIT 'All' grep for sk-ant-. It is made up and harmless, but a value such as 'test-roundtrip-not-a-key' would avoid tripping secret scanners.",
+        "minor (cosmetic): scripts/check_desktop_settings.py:39-41 together with voice2txt/desktop.py:64 and :494 — the round-trip prints a Tcl background error 'invalid command name \"<id>_poll\"' to stderr. App.close() destroys the first root while its pending root.after(_poll) callback is still scheduled, and the script then creates a second Tk. The exit code is 0 and the results are not affected.",
+        "minor (spec-level, for the planner; not an executor error): voice2txt/desktop.py:48 (enabled defaults to True) and :218 (env fallback). If the user's environment already holds ANTHROPIC_API_KEY (common on developer machines), Anthropic joins the chain as soon as 'Whisper + LLM 整理' is selected, with no opt-in in the UI. It is now the first cloud provider, ahead of OpenAI, so transcripts can go to Anthropic and be billed without the user noticing. In that case PLAN's statement 'existing OpenAI/Gemini users are unaffected' does not hold. The pattern is inherited from OPENAI_API_KEY/GEMINI_API_KEY, and T02 required the env convention.",
+        "minor (pre-existing, outside T02 scope): run_desktop.py:44-51 — `--self-test --audio ... --cloud X:effort` with no matching *_API_KEY and no --llm-model leaves the chain empty. build_translator returns (None, []), `translator.name` then raises AttributeError, and the report says ok=false. CLAUDE.md says a missing key is skipped.",
+        "minor (info): voice2txt/desktop.py:133 — zip('②③④', CLOUD) would silently drop a 4th provider if CLOUD grows. It is correct for the current 3 providers."
+      ],
+      "notes": "The UI, CLI, benchmark, settings round-trip and DPAPI storage were all re-verified independently. To avoid writing into D:\\, smoke_desktop.py, the self-test and check_desktop_settings.py were run on a byte-identical copy of the code under C:\\Users\\User\\AppData\\Local\\Temp\\auditA1\\ws. smoke_desktop.py writes verification/desktop-integration.json relative to cwd, and the self-test writes app-smoke next to its output file. The unit tests and py_compile ran in D:\\ and only refreshed __pycache__ files. Process observation for the planner: dist\\Voice2Txt was rebuilt at 2026-11-13 01:38-01:39 (build.log, Voice2Txt.spec and Voice2Txt.exe have those times) while audit A was in progress, but PLAN schedules T06 in wave B, after audit A. This is not a T01/T02 defect, but any packaged evidence from that build predates this verdict. USER_MANUAL, README and STATUS do not mention Anthropic yet; that is T05's job."
+    }
+  },
+  "overall": "PASS",
+  "replan_needed": [],
+  "planner_notes": [
+    "Decide whether an ANTHROPIC_API_KEY already in the environment should enable Anthropic without a UI opt-in (desktop.py:48/218). The project rule says cloud use is opt-in only.",
+    "The T06 build ran before audit A closed (dist rebuilt at 01:38). Confirm this ordering was intended."
+  ]
+}

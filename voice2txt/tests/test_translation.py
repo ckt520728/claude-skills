@@ -12,6 +12,7 @@ from voice2txt import keystore
 from voice2txt.core import Store
 from voice2txt.translation import (CloudTranslator, LocalTranslator, TranslatorChain, build_translator,
                                    decode_segment, instructions, pick_ollama_model)
+from voice2txt.translation import TASKS
 
 
 class FakeEngine:
@@ -173,6 +174,93 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(translator.parse(reply), '今天開會。')
         with self.assertRaises(RuntimeError):
             translator.parse({'status': 'incomplete', 'output': []})
+
+    def test_anthropic_defaults_and_other_provider_defaults(self):
+        a = CloudTranslator('Anthropic', '', 'k')
+        self.assertEqual((a.model, a.effort), ('claude-sonnet-5-5', 'low'))
+        o, g = CloudTranslator('OpenAI', '', 'k'), CloudTranslator('Gemini', '', 'k')
+        self.assertEqual((o.model, o.effort), ('gpt-6-luna', 'high'))
+        self.assertEqual((g.model, g.effort), ('gemini-3.8-flash', 'low'))
+
+    def test_context_only_changes_system_text_in_cloud_requests(self):
+        context = {'app': 'chrome', 'title': 'Gmail', 'category': 'email', 'selection': '你好'}
+        for provider in ('Anthropic', 'OpenAI', 'Gemini'):
+            translator = CloudTranslator(provider, '', 'secret')
+            plain = json.loads(translator.request('文字', 'ask', 'V').data)
+            with_context = json.loads(translator.request('文字', 'ask', 'V', context).data)
+            self.assertEqual(plain.keys(), with_context.keys())
+            self.assertIn('Output destination: chrome (email)', json.dumps(with_context, ensure_ascii=False))
+            self.assertIn(TASKS['ask'], json.dumps(with_context, ensure_ascii=False))
+            self.assertNotIn('Output destination', json.dumps(plain, ensure_ascii=False))
+
+    def test_ask_task_text_is_task_for_spoken_instructions(self):
+        self.assertIn('ask', TASKS)
+        self.assertIn('spoken question or instruction', instructions('ask'))
+        self.assertIn('Selected text in the target field:\nabc',
+                      instructions('ask', context={'app': 'a', 'title': 't', 'category': 'other',
+                                                   'selection': 'abc'}))
+
+    def test_anthropic_request_shape(self):
+        translator = CloudTranslator('Anthropic', '', 'secret')
+        request = translator.request('今天開會', 'translate', 'Voice2Txt')
+        body = json.loads(request.data)
+        self.assertEqual(request.full_url, 'https://api.anthropic.com/v1/messages')
+        self.assertEqual(request.get_method(), 'POST')
+        self.assertEqual(request.get_header('X-api-key'), 'secret')
+        self.assertEqual(request.get_header('Anthropic-version'), '2026-10-21')
+        self.assertEqual(request.get_header('Content-type'), 'application/json')
+        self.assertEqual((body['model'], body['max_tokens']), ('claude-sonnet-5-5', 1024))
+        self.assertEqual(body['messages'], [{'role': 'user', 'content': '今天開會'}])
+        self.assertEqual(body['output_config'], {'effort': 'low'})
+        self.assertIn('translate', body['system'])
+        self.assertIn('Voice2Txt', body['system'])
+        self.assertNotIn('temperature', body)
+        self.assertNotIn('thinking', body)
+
+    def test_anthropic_parse_joins_text_and_ignores_thinking(self):
+        translator = CloudTranslator('Anthropic', '', 'k')
+        reply = {'stop_reason': 'end_turn', 'content': [
+            {'type': 'thinking', 'thinking': 'plan'}, {'type': 'text', 'text': 'Meeting '},
+            {'type': 'text', 'text': 'today.'}]}
+        self.assertEqual(translator.parse(reply), 'Meeting today.')
+        self.assertEqual(translator.parse({'content': [{'type': 'text', 'text': 'Hi'}]}), 'Hi')
+        with self.assertRaises(RuntimeError):
+            translator.parse({'stop_reason': 'end_turn', 'content': [{'type': 'thinking', 'thinking': 'x'}]})
+
+    def test_anthropic_refusal_and_truncation_raise(self):
+        translator = CloudTranslator('Anthropic', '', 'k')
+        with self.assertRaises(RuntimeError) as ctx:
+            translator.parse({'stop_reason': 'refusal', 'stop_details': {'category': 'cyber'}, 'content': []})
+        self.assertIn('cyber', str(ctx.exception))
+        with self.assertRaises(RuntimeError):
+            translator.parse({'stop_reason': 'refusal', 'content': []})
+        with self.assertRaises(RuntimeError):
+            translator.parse({'stop_reason': 'max_tokens', 'content': [{'type': 'text', 'text': 'Meet'}]})
+
+    def test_anthropic_refine_uses_stubbed_urlopen_and_http_error_detail(self):
+        import io
+        import urllib.error
+        translator = CloudTranslator('Anthropic', '', 'k')
+        response = io.BytesIO(json.dumps({'stop_reason': 'end_turn',
+                                          'content': [{'type': 'text', 'text': 'OK'}]}).encode())
+        with patch('urllib.request.urlopen', return_value=response) as opened:
+            self.assertEqual(translator.refine('好', 'en'), 'OK')
+        self.assertEqual(opened.call_count, 1)
+        err = urllib.error.HTTPError('u', 401, 'x', {}, io.BytesIO(
+            json.dumps({'type': 'error', 'error': {'type': 'authentication_error', 'message': 'bad key'}}).encode()))
+        with patch('urllib.request.urlopen', side_effect=err):
+            with self.assertRaisesRegex(RuntimeError, 'HTTP 401 bad key'):
+                translator.refine('好', 'en')
+
+    def test_chain_order_with_anthropic_is_anthropic_openai_gemini(self):
+        chain, warnings = build_translator('', [('Gemini', '', 'g', ''), ('OpenAI', '', 'o', ''),
+                                                ('Anthropic', '', 'a', '')])
+        self.assertEqual(warnings, [])
+        self.assertEqual(chain.name, 'Anthropic claude-sonnet-5-5 (low) → OpenAI gpt-6-luna (high) → '
+                                     'Gemini gemini-3.8-flash (low)')
+        with patch.object(LocalTranslator, 'prepare'):
+            chain, _ = build_translator('gemma4:latest', [('Gemini', '', 'g', ''), ('Anthropic', '', 'a', '')])
+        self.assertTrue(chain.name.startswith('Ollama gemma4:latest → Anthropic'))
 
     def test_preferred_ollama_model_is_picked_when_installed(self):
         self.assertEqual(pick_ollama_model(['llama3:8b', 'gemma4:latest']), 'gemma4:latest')

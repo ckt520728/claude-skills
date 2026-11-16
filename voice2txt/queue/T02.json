@@ -1,0 +1,18 @@
+{
+  "task_id": "T02",
+  "objective": "Wire the new Anthropic provider (from T01) into the desktop UI, the self-test CLI and the refine benchmark. desktop.py: the cloud settings rows must iterate CLOUD (now 3 providers) with labels (1) Ollama, (2) Anthropic, (3) OpenAI, (4) Gemini, i.e. change zip('②③', CLOUD) to cover three providers ('②③④'); saved settings must round-trip per provider including Anthropic (the per-provider 'cloud' dict already supports arbitrary providers; verify load/save and the LEGACY migration still work); the env fallback ANTHROPIC_API_KEY must work through the existing provider.upper()+'_API_KEY' convention. run_desktop.py: --cloud choices must include Anthropic:low/medium/high; help text updated. scripts/benchmark_refine.py: include Anthropic when ANTHROPIC_API_KEY is set, using the same pattern as the other providers. scripts/smoke_desktop.py must keep passing. Add a small settings round-trip check (script or test) that instantiates App with a withdrawn Tk root under a temporary LOCALAPPDATA, sets the Anthropic key/model/effort, saves, reloads a fresh App and asserts the values, and writes its evidence JSON.",
+  "inputs": ["voice2txt/desktop.py", "run_desktop.py", "scripts/benchmark_refine.py", "scripts/smoke_desktop.py", "voice2txt/translation.py", "queue/PLAN-2026-11-13.md"],
+  "outputs": ["voice2txt/desktop.py", "run_desktop.py", "scripts/benchmark_refine.py", "scripts/check_desktop_settings.py", "verification/desktop-anthropic-ui-2026-11-13.json"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes.",
+    "`$env:PYTHONPATH='.'; .\\.build-venv\\Scripts\\python.exe scripts\\smoke_desktop.py` passes.",
+    "`.\\.build-venv\\Scripts\\python.exe run_desktop.py --self-test verification\\desktop-anthropic-ui-2026-11-13.json` writes ok=true and desktop_ui=true (no --audio needed); the settings round-trip script then merges its own result into that JSON (keys: settings_roundtrip_ok, providers_in_ui = ['Anthropic','OpenAI','Gemini'], key_is_dpapi_protected = true).",
+    "`.\\.build-venv\\Scripts\\python.exe run_desktop.py --help` lists Anthropic:low, Anthropic:medium, Anthropic:high among --cloud choices.",
+    "The temporary settings.json written by the round-trip contains cloud.Anthropic with a DPAPI-protected key (not the plain text), and reloading restores model/effort/enabled."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T01"],
+  "max_output_tokens": 6000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9. Tk UI is only touched on the Tk thread (existing design). Do not change the chain order or defaults (T01 owns translation.py). Do not rebuild dist (T06). Do not run git."
+}

@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-16",
+  "scope": "Independent PWA served locally at http://127.0.0.1:8787/recording.html, desktop Chrome 157 on Windows, tiny q8 model. NOT an iPad/iPhone test.",
+  "finding_1_url_failure": "Nothing was listening on port 8787 (curl returned 000). The URL only worked while a test agent had run `python -m http.server` by hand. Fix: scripts/serve_pwa.py + 開啟本機網頁版.cmd.",
+  "finding_2_v4_hang": "v4 awaited audioContext.resume() before getUserMedia, with no timeout. A suspended AudioContext never resolves resume() without user activation (measured: still pending after 3 s, state 'suspended'); a scripted click left the page stuck at starting=true with every control disabled. With a genuine click in desktop Chrome v4 did record. Whether real iPad Safari hits this is unverified.",
+  "finding_3_stale_cache": "After rebuilding, Chrome kept serving the v4 HTML (python http.server sends no Cache-Control). serve_pwa.py sends Cache-Control: no-cache for HTML, sw.js and manifests.",
+  "v5_changes": ["recording no longer creates or awaits an AudioContext; getUserMedia has a 60 s timeout", "decoding uses OfflineAudioContext at 16 kHz (fallback 44.1 kHz) with a 30 s timeout", "badge '麥克風啟動修正 · v5', diagnostic version 5"],
+  "tests": {"npm_test": "8 pass, 0 fail", "build": "版本 a9faf79fda95, app-3LNE3DF5.js"},
+  "browser_results_v5": [
+    {"path": "upload chinese.wav", "mode": "zh", "seconds": 1.8, "text": "今天下午4點開會,請記得帶研究報告"},
+    {"path": "upload jfk.wav", "mode": "en", "seconds": 1.6, "text": "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."},
+    {"path": "upload chinese.wav", "mode": "translate", "seconds": 1.3, "text": "The next four days will be the final report of the day.", "note": "wrong; Whisper tiny translate is not usable"},
+    {"path": "scripted click without user activation, silent stream", "result": "getUserMedia reached, recording=true, starting=false (v4: stuck)"},
+    {"path": "genuine click, test clip fed as microphone stream (webm/opus)", "mode": "zh", "seconds": 1.6, "text": "今天下午4點開會,請記得按\"籍\"的「打擊」!", "note": "pipeline works; tiny quality on re-encoded audio is poor"}
+  ],
+  "v4_comparison": {"upload zh": "今天下午4點開會,請記得戴研究報告"},
+  "not_done": ["no real microphone", "no iPad/iPhone Safari test", "v5 is NOT deployed to the chatgpt.site URL (that deployment is v4)", "sub-project git not committed (repository owned by another Windows account: dubious ownership)"]
+}

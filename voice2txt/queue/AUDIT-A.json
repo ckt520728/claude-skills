@@ -1,0 +1,23 @@
+{
+  "audit_id": "AUDIT-A",
+  "scope": ["T01", "T02", "T03"],
+  "role": "Independent high-tier auditor. Sees only the specs and the artifacts. Re-runs every acceptance check itself. Never fixes anything. A FAIL goes back to the planner.",
+  "verdict_file": "verification/audit-A-2026-11-13.json",
+  "verdict_schema": {
+    "audit_id": "AUDIT-A",
+    "date": "2026-11-13",
+    "tasks": {"T01": {"verdict": "PASS|FAIL", "checks": [{"acceptance": "quoted acceptance line", "command": "exact command run", "observed": "key output line(s)", "result": "PASS|FAIL"}], "defects": ["..."], "notes": "..."}},
+    "overall": "PASS|FAIL",
+    "replan_needed": ["task ids that must go back to the planner, with one-line reason each"]
+  },
+  "extra_checks": [
+    "T01: read translation.py end to end; confirm the Anthropic body has no temperature/thinking keys and that OpenAI/Gemini request+parse code is byte-for-byte unchanged in behaviour (compare against the tests that existed before: all 24 original tests still present and passing).",
+    "T01: confirm the Anthropic refusal path cannot be mistaken for success (empty text with stop_reason 'refusal' raises, not returns '').",
+    "T02: open desktop.py and confirm the settings rows render three cloud providers in the order Anthropic, OpenAI, Gemini with labels ②③④ and Ollama ①; confirm _cloud_settings() includes Anthropic only when enabled and a key (field or ANTHROPIC_API_KEY env) exists.",
+    "T02: run the self-test and the round-trip script yourself under a throwaway LOCALAPPDATA; confirm the written settings.json key for Anthropic is not plain text.",
+    "T03: review Refiner.swift / Transcriber.swift / ContentView.swift for Swift 5 / iOS 16 compile hazards by reading (no toolchain here): missing imports (Security, Combine), @MainActor isolation violations (background work mutating @Published without hopping to main), Codable of Record with the new optional field, use of iOS 17-only APIs, WhisperKit 0.9.4 API names identical to the pre-existing calls, force unwraps on network data. List every suspected compile or runtime hazard as a defect with file:line.",
+    "T03: confirm the RULES/TASKS prompt text in Refiner.swift equals the Python RULES/TASKS text in translation.py (diff them after normalising string-literal escaping); confirm the chain order Anthropic -> OpenAI -> Gemini and the translate-mode Whisper fallback.",
+    "T03: run scripts/generate_xcode_project.py twice and compare hashes; run scripts/check_ios_project.py and read its JSON; confirm every .swift file is referenced in the pbxproj.",
+    "All: confirm no file claims the iOS app compiles or that Anthropic was called live; confirm no API key or secret-looking string appears in any new or changed file (grep for sk-, AIza, sk-ant-)."
+  ]
+}

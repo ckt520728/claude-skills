@@ -1,0 +1,132 @@
+{
+  "audit_id": "AUDIT-C4",
+  "date": "2026-11-13",
+  "tasks": {
+    "T12": {
+      "verdict": "PASS",
+      "checks": [
+        {
+          "acceptance": "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with the new tests listed above (at least 4 new).",
+          "command": "cd D:\\2026 Voice2Txt; .\\.build-venv\\Scripts\\python.exe -B -m unittest discover -s tests -v   (-B only so no .pyc is written)",
+          "observed": "Ran 80 tests in 0.312s / OK（C3 時 75 個）。新增 5 個：test_never_physically_seen_key_is_never_dropped_even_without_repeats、test_swallowed_right_alt_with_repeating_right_shift_is_one_start_translate_held_3_seconds（DEFAULT combos、RightAlt 永遠 False、RightShift 33 ms auto-repeat 3 s -> 只有 [start translate]，真正放開才 stop）、test_key_seen_physically_down_is_still_dropped_when_other_key_swallowed、test_liveness_never_probes_when_user_is_idle、test_liveness_ok_when_user_active_and_hook_has_callbacks。單鍵吞鍵 hold（test_swallowed_key_hold_with_auto_repeat_is_one_start_and_one_stop）未改仍通過；真的遺失 key-up 的兩個舊測試改成先讓 tick 看到實體按下（符合新語意），1.2 s 復原仍成立。",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`scripts\\check_hotkey_hook.py` PASS: existing scenarios unchanged; new two-key swallowed scenario events == [start translate, stop] with the stop at >= 2.9 s; idle-timer scenario shows GetLastInputInfo idle growing monotonically for 3 s with zero probes sent; active-user liveness scenario still shows probes observed.",
+          "command": "cd C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\copy; D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -B scripts\\check_hotkey_hook.py   (repo 原始碼的位元組一致副本，避免覆寫 repo 內的 JSON；models 為 junction)",
+          "observed": "exit 0，最後一行 PASS，stderr 0 bytes，21.4 s。checks 7/7 true。event_sequence 與 EXPECTED 相同，keys_not_swallowed true，noop 4，false drops []；watchdog [[start,dictate],[stop,null]] reinstalls 3；swallowed_key [[start,dictate],[stop,null]]、33 次注入、下游吞 34、async false、drop 0；two_key_swallowed events [[start,translate],[stop,null]]，event_times [0.0, 3.031]，released_at 3.031，async F24 false / F23 true，false drops []；idle_timer liveness 0.5 s，idle 0.406 -> 3.328 單調遞增，probes_sent 0，reinstalls 0；liveness_probe（滑鼠微移）probes_sent 4 / observed 8，liveness_reinstalls 0；paste_check ok，V 鍵 state ['0xc']（Control+NumLock），baseline ['0x2000c']，direct ['0xc']，modal_menu_hang_escapes 0。",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok=true; `scripts\\check_single_instance.py` ok=true.",
+          "command": "cd ...\\auditC4\\copy; $env:PYTHONPATH='.'; python -B scripts\\smoke_desktop.py ; $env:LOCALAPPDATA='C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\selftest-lad'; python -B run_desktop.py --self-test C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\out\\selftest.json --audio D:\\2026 Voice2Txt\\tests\\fixtures\\chinese.wav --mode zh --model small ; python -B scripts\\check_single_instance.py C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\out\\single.json",
+          "observed": "smoke exit 0，stderr 0：'PASS: 真實 Tk 啟動、模擬麥克風 8 秒段與 2 秒尾段、畫面、SQLite、字典儲存。'；self-test exit 0，stderr 0：stage completed、desktop_ui true、text '今天下午四點開會,請記得帶研究報告。'、ok true；check_single_instance exit 0，stderr 0：ok true、second_instance_exit_code 0（0.34 s）、tray_windows_total 1、first_window_shown_by_broadcast true、leftover_tree_pids []、結束後 mutex_exists false。",
+          "result": "PASS"
+        },
+        {
+          "acceptance": "Single CallNextHookEx return path still holds.",
+          "command": "grep -n 'CallNextHookEx\\|return 1\\b' voice2txt/*.py ; 讀 hotkeys.py:681-688 與 _handle 606-637",
+          "observed": "proc 唯一的 return 是 hotkeys.py:688 `return user32.CallNextHookEx(None, code, wparam, lparam)`；_handle（含 PROBE_MARKER 分支 607-611）不回傳值給 OS；voice2txt/ 內沒有 `return 1`。即時檢查中下游 hook 都收到我們看到的事件（sequence downstream == EXPECTED；R4a 下游吞 F24 down+up 共 2 次）。",
+          "result": "PASS"
+        }
+      ],
+      "adversarial_checks": [
+        {
+          "name": "C3 major 1 重現（真機）：下游 hook 吞 F24，F24+F23 按住 3 s、F23 每 33 ms auto-repeat",
+          "command": "D:\\2026 Voice2Txt\\.build-venv\\Scripts\\python.exe -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\s\\live_checks.py -> out\\live_checks.json（combos dictate F24 / translate F24+F23，模仿預設的 RightAlt / RightAlt+RightShift）",
+          "observed": "R4a（F24 先、F23 立即 33 ms repeat）：[start translate 0.031, stop 3.015]，released_at 3.015，recovered []，async F24 false / F23 true。R4b（0.5 s typematic 延遲）：[start translate 0.047, stop 3.016]，recovered []。R4c（F23 先按、不 repeat；被吞的 F24 在 repeat）：[start translate 0.031, stop 3.047]，recovered []。R4d 對照組（不吞）：[start translate 0.047, stop 3.031]。R2 單鍵吞鍵 hold 2 s：[start 0.0, stop 2.0]，recovered []。C3 當時：[start translate 0.031, stop 1.218]。",
+          "result": "FIXED"
+        },
+        {
+          "name": "C3 major 1 重現（純狀態機，真正的預設組合）",
+          "command": "python -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\s\\pure_checks.py -> out\\pure_checks.json（DEFAULT_HOTKEYS 從 desktop.py 匯入：dictate RightAlt / Alt+Shift+Space，translate RightAlt+RightShift；RightAlt 的 is_physically_down 永遠 False，tick 每 20 ms）",
+          "observed": "P1（RightShift 33 ms repeat）：[start translate 0.18, stop 3.0]，recovered []（0.18 = 0.15 s grace，因為 Alt+Shift+Space 是更長的組合，屬原設計）。P1b（0.5 s typematic）相同。P1c（RightShift 先、被吞的 RightAlt repeat）：[start translate 0.18, stop 3.0]。P1d（RightAlt 單獨、沒有任何 repeat、按住 5 s）：[start dictate 0.16, stop 5.0]，recovered []。C3 當時：[start translate 0.18, stop 1.2]。",
+          "result": "FIXED"
+        },
+        {
+          "name": "真的遺失 key-up 仍會復原（真機 + 純）",
+          "observed": "真機 R3：F24 down，0.3 s 後以 MARKER 注入 key-up（系統處理、我們的 hook 略過 = 遺失）-> [start 0.0, stop 1.219]，recovered ['0x87']。純 A1：[start 0.0, stop 1.2]。",
+          "result": "PASS"
+        },
+        {
+          "name": "C3 major 2 重現：閒置 3 s 期間 GetLastInputInfo 與 probes_sent",
+          "command": "live_checks.py 的 L 段（liveness_seconds 0.5，以 monkeypatch 包住 hotkeys.liveness_decision 只做記錄）",
+          "observed": "閒置 3 s：idle 1.422 -> 4.36 單調遞增，probes_sent 0。之後 4 輪『滑鼠微移 2 s -> 停 4 s』：每輪活躍期間 5 次探測（決策紀錄 since_input 0.016-0.11 s、since_cb 0.5 s），停止後 0 次探測，idle 從 0.047-0.063 單調長到約 3.97 s，4/4 輪都一樣。共 20 sent / 40 observed（down+up），liveness_reinstalls 0。最後一次探測本身會讓 idle 歸零，但 interval 秒後 since_input 和 since_cb 同時到期，函式先檢查 idle，所以不會自我延續。",
+          "result": "FIXED"
+        },
+        {
+          "name": "C3 major 2：正式預設值（LIVENESS_SECONDS 10）",
+          "command": "python -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\s\\live_checks2.py prod -> out\\live_checks2_prod.json（hook 用預設值；只在 9.5 s 時滑鼠微移一次，之後完全閒置，跑到 34 s）",
+          "observed": "probes_sent 1（約 10.1 s，使用者 0.5 s 前剛有輸入），observed 2，reinstalls 0；10.6 s 之後 idle 單調遞增，最後 idle 23.907 s（C3：idle 上限約 10 s，每 9.86 s 歸零一次）。",
+          "result": "FIXED"
+        },
+        {
+          "name": "對抗：在第一個 tick 取樣之前就遺失 key-up 的鍵（key-down 當下不取樣）",
+          "command": "pure_checks.py A2/A3/A4；live_checks.py R3b/R3c；live_checks2.py gil（另一個程序注入 F24 down、0.08/0.08/0.3 s 後 up；本程序在 key-down 處理後立即以單一 C 呼叫 sum(range(6e7)) 佔住 GIL 約 1.0-1.1 s）",
+          "observed": "R3b 真機：key-down 後 15 ms 內遺失 key-up -> 只有 [start 0.0]，3 s 後 held ['0x87']、recovered []，永遠不會校正。R3c 真機：與快捷鍵無關的 F22 key-up 以同樣方式遺失 -> 之後按住設定鍵 F24 0.6 s 完全沒有事件（_foreign 非空，_evaluate 直接 return []），any_held true。GIL 佔用的真實重現 3/3：key-up 真的沒送到我們的 hook（LL hook 逾時），events 只有 [start dictate]，3 s 後 held ['0x87']、recovered []、async false。純 A4（tick 延遲 150 ms、80 ms 點按）：6 s 後仍 held、recording true。T11 的程式在這些情況會在 1.2 s 復原，所以這個邊緣情況是退步；但 T12 規格明文要求『從沒看到實體按下的鍵永遠不由 sync 放開』，而且 key-down 當下非同步狀態確實還沒更新，所以算規格本身的取捨 -> minor（defect 1）。設定鍵卡住時：下一次點按的 key-up 會 stop，auto-paste 會延到那時候；卡住的是無關鍵時，所有快捷鍵都失效，直到使用者再按一次那個鍵。",
+          "result": "minor -> defect 1"
+        },
+        {
+          "name": "對抗：曾被看到按下的鍵，下游 hook 中途才開始吞",
+          "observed": "我們的 hook 在下游 hook 之前被呼叫，所以真正的 key-up 我們一定看得到；被吞的 key-up 只會讓非同步狀態卡在『按下』，這只會阻止復原，不會造成誤放開。純 A5（看過按下，0.5 s 後 repeat 開始被吞，非同步狀態維持按下）：[start 0.0, stop 2.0]（真正放開時），recovered []。會誤放開的只有『看過按下，之後按住期間非同步狀態變成放開，而且我們收不到 repeat』（例如前景切到提升權限的視窗或安全桌面）：純 A6 [start, stop 1.2]，這是 T10 就有的行為，不是 T12 新增。",
+          "result": "PASS（沒有新的誤判）"
+        },
+        {
+          "name": "對抗：使用者只用滑鼠、hook 正常時的探測，以及 VK 0xFF 對前景 App 的影響",
+          "command": "live_checks2.py vk（前景是自建的 Tk 視窗，Text 有焦點，bind_all KeyPress/KeyRelease；liveness 0.5 s 加滑鼠微移 3 s）",
+          "observed": "依設計，只用滑鼠時每個 interval（正式值 10 s）注入一組 PROBE no-op；使用者本來就活躍，所以 idle 計時器沒有實質影響（prod 測試只有 1 次）。6 次探測：前景 Tk 視窗收到 6 組 KeyPress/KeyRelease，keysym '??'、keycode 255、char ''、state 0x8（NumLock）；Text 與 Entry 內容都是空的，前景沒有改變；ToUnicode(0xFF) = 0（不產生字元）。所以文字輸入不會有可見效果，但它對前景 App 確實是一個真的 WM_KEYDOWN/KEYUP：綁定『任何按鍵』的 App（例如 press-any-key 畫面、遊戲、錄鍵工具）會看到它。T11 已經是同樣的做法，T12 只是把頻率限制在使用者活躍時，所以不列缺陷，只記錄在這裡。沒驗證：提升權限的視窗在前景時，UIPI 是否擋下 SendInput，導致每約 10.15 s 重裝一次（需要提升權限才能測）。",
+          "result": "PASS（只是觀察紀錄）"
+        },
+        {
+          "name": "ChangeWindowMessageFilterEx 參數型別與實際呼叫",
+          "command": "讀 tray.py:173-177；python -B C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\s\\tray_filter.py",
+          "observed": "argtypes [HWND, UINT, DWORD, c_void_p] restype BOOL，與 BOOL ChangeWindowMessageFilterEx(HWND, UINT, DWORD, PCHANGEFILTERSTRUCT) 一致；呼叫時傳入 hwnd、RegisterWindowMessageW('Voice2TxtShowWindow')（本次 50127）、MSGFLT_ALLOW=1、None，位置在 CreateWindowExW 之後。實際執行：tray_started true、filter_error null（呼叫成功）、close 正常。小問題：tray 的 user32 來自 ctypes.windll（不是 use_last_error=True），所以呼叫失敗時 ctypes.get_last_error() 永遠是 0，而 filter_error 也沒有任何地方使用（defect 3，nit）。沒有以提升權限實測 UIPI。",
+          "result": "PASS（附 nit）"
+        },
+        {
+          "name": "_post_show 的 restype 與 logging",
+          "command": "讀 desktop.py:57-90；tray_filter.py 對無效 hwnd 0x7FFF0001 呼叫 _post_show（一次 stderr 正常、一次 sys.stderr=None 模擬 windowed exe）",
+          "observed": "user32 = WinDLL('user32', use_last_error=True)，PostMessageW restype c_int，argtypes [c_void_p, c_uint, c_size_t, c_ssize_t]，所以 get_last_error 有效。失敗時 stderr 只有一行 'PostMessageW 要求第一個執行個體顯示視窗失敗（錯誤 1400）'（沒有設定 handler，所以走 logging.lastResort），不會丟例外；sys.stderr=None 時也不會丟例外、沒有輸出。成功的情況不輸出：check_single_instance 的第二個執行個體 exit 0，整支腳本 stderr 0 bytes。所以不會在使用者終端產生雜訊，只在真的失敗時印一行警告。claim_single_instance 在 Tk 建立前（desktop.py:850）呼叫，不涉及 Tk。",
+          "result": "PASS"
+        },
+        {
+          "name": "Tk 執行緒規則",
+          "observed": "T12 對 desktop.py 的修改只有 import logging、_post_show、PostMessageW restype（diff 對照 C3 稽核的副本）。hook callback 仍然只做 events.put（desktop.py:215-217，'warning' 也包成 ('warning', value)）；tray callback 只做 events.put(('tray', action))（desktop.py:220）；Tk 只在 _poll（desktop.py:568-641）裡操作。hotkeys.py/tray.py 的新程式碼沒有任何 Tk 呼叫。沒有違規。",
+          "result": "PASS"
+        },
+        {
+          "name": "C3 minor 3（continuation 取捨）",
+          "observed": "hotkeys.py:262 已加上取捨註解，符合規格要求。純 A7：真的遺失 key-up 後在 1.2 s 補做 key-up，1.8 s 的真實新點按沒有 start（被當成持續按住），3.0 s 的點按才 start。注意：既然從沒看到實體按下的鍵不會被放開，continuation 現在只會在『真的遺失 key-up』之後觸發，也就是它現在只剩副作用；仍列為已接受的 minor（defect 2）。",
+          "result": "ACCEPTED（已註明）-> defect 2"
+        }
+      ],
+      "defects": [
+        "[minor] voice2txt/hotkeys.py:257（key-down 時把 _seen_physical_down 設為 False、不取樣）+ :303-312（_observe_physical 只在 auto-repeat 與 tick 時取樣）+ :324-327（_sync_physical 跳過從沒看到按下的鍵）— 如果 key-up 在第一次 20 ms tick 取樣前就遺失（或 hook 執行緒卡住，涵蓋了整個按住期間），這個鍵會被當成『被吞的鍵』，永遠不校正。實測：R3b 真機 15 ms 內遺失 key-up -> 3 s 後仍 held、recovered []；GIL 佔用約 1 s 的真實重現 3/3（點按 0.08/0.08/0.3 s）都是 key-up 被 LL hook 逾時丟掉，而且永遠卡住；R3c 卡住的是與快捷鍵無關的 F22 時，之後按住設定鍵完全沒有事件（_foreign 非空，hotkeys.py:233），要等使用者再按一次那個鍵才恢復。T11 的程式在這些情況會在 1.2 s 復原，所以這是邊緣情況的退步；但規格明文要求這個行為，而且觸發條件很窄（key-down 後 ≤20 ms 內遺失 key-up，或 hook 執行緒卡住的時間超過 LowLevelHooksTimeout），所以列 minor。可考慮的方向：在 hook 收到任何 callback 時，也為所有仍按住、尚未取樣的鍵取樣；或者無關鍵（_foreign）從沒看到按下、又超過數秒沒有自己的事件時，不讓它擋住組合判斷。",
+        "[minor, accepted] voice2txt/hotkeys.py:258-268（CONTINUATION_SECONDS 分支）— 規格要求的取捨已在 :262 註明。但修正 major 1 之後，只有曾被看到按下的鍵會被補做 key-up，所以 continuation 現在只會出現在『真的遺失 key-up 後 1.5 s 內重新按下』這種情況，也就是只剩漏掉一次按下的副作用（純 A7：1.8 s 的新點按沒有 start）。不影響判定，planner 可以考慮之後移除這個分支。",
+        "[nit] voice2txt/tray.py:177 — _bind() 用的是 ctypes.windll.user32（沒有 use_last_error=True），所以 ChangeWindowMessageFilterEx 失敗時 ctypes.get_last_error() 一定是 0；filter_error 也沒有被任何地方讀取或顯示。功能本身正確（實測呼叫成功）。"
+      ],
+      "notes": "4 條 acceptance 都親自重跑，全部通過：測試 80 個 OK（新增 5 個）；check_hotkey_hook 7/7；smoke PASS；self-test ok；check_single_instance ok；只有一條 CallNextHookEx。C3 的兩個 major 都已獨立重現並確認修正：(1) 真機 F24 被吞、F24+F23 按住 3 s -> [start translate 0.031, stop 3.015]（C3 時 stop 1.218）；純狀態機用真正的預設 RightAlt+RightShift -> [start translate 0.18, stop 3.0]；不論按鍵順序、typematic 延遲，或單獨的 RightAlt 不 repeat，都沒有誤放開；真的遺失 key-up 仍在約 1.2 s 復原。(2) 閒置 3 s idle 單調遞增、0 次探測；使用者活躍時有探測，停止後 4/4 輪不會自我延續；正式 10 s 跑 34 s 只有 1 次探測，idle 長到 23.9 s。對抗式審查只找到 minor/nit（沒有 blocker/major），所以 T12 判 PASS。會寫入 verification/ 的腳本都在 C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\copy（repo 原始碼的位元組一致副本）執行；稽核前後 repo 135 個檔案（排除 models/gpu/dist/build/tools/venv/__pycache__）的 sha256 完全一致，repo 只新增本 verdict。真機鍵盤只用 F24/F23/F22 和滑鼠 1 px 微移，沒有注入 Right Alt。結束時 F22/F23/F24/LAlt/LShift/RAlt/RShift/Ctrl 的非同步狀態都是放開。"
+    }
+  },
+  "original_defects_status": {
+    "C3-major-1 hotkeys.py _sync_physical: first key of a multi-key combo swallowed -> dropped at 1.2 s": "FIXED (hotkeys.py:156,254,257,263,281,303-312,324-327; live R4a/R4b/R4c stop at release ~3.0 s, recovered []; pure P1/P1b/P1c/P1d with the real DEFAULT combos stop only at release)",
+    "C3-major-2 liveness probe resets the system idle timer": "FIXED (hotkeys.py:115-131 last_user_input gate, :446-463 user_idle_seconds, :707-717; idle 3 s monotonic with 0 probes; production 10 s: 1 probe then idle grew to 23.9 s; no self-perpetuation in 4/4 cycles)",
+    "C3-minor-3 continuation after a genuine missed key-up swallows a new press": "ACCEPTED and documented as required (hotkeys.py:262); still reproducible (pure A7) -> carried as minor defect 2",
+    "C3-minor-4 UIPI filters the SHOW message / PostMessageW return ignored": "FIXED as specified (tray.py:173-177 ChangeWindowMessageFilterEx MSGFLT_ALLOW succeeded live; desktop.py:57-60,83,88 checks PostMessageW and logs one warning line, still exits 0). Elevated scenario itself not run (no elevation)."
+  },
+  "overall": "PASS",
+  "replan_needed": [],
+  "real_run_key_voice2txt": {
+    "before": null,
+    "after": null,
+    "unchanged": true
+  },
+  "environment_notes": [
+    "Typeless.exe running (PIDs 12400, 8232, 3476, 2308, 21280, 19308, 18824, 18832); NumLock on (Tk state 0x8 / 0xc).",
+    "HKCU Run: no Voice2Txt value before or after; the whole Run key output is identical before/after (out\\run-before.txt vs run-after.txt).",
+    "python.exe PID set identical before/after (14 pre-existing processes); no leftover processes from this audit.",
+    "LowLevelHooksTimeout not set in HKCU\\Control Panel\\Desktop (system default).",
+    "Raw outputs: C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\out\\ (unittest.txt, check_hotkey_hook.stdout/.stderr, smoke.stdout, selftest.json, single.json, pure_checks.json, live_checks.json, live_checks2_vk_gil.json, live_checks2_prod.json, tray_filter.txt, repo-hash-before/after.txt); scripts: C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\s\\ (pure_checks.py, live_checks.py, live_checks2.py, tray_filter.py). The live_checks2 vk/gil results were also printed to the console (the file name is live_checks2_vk_gil.json).",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\auditC4\\copy\\models is a junction to D:\\2026 Voice2Txt\\models: do not delete the copy folder recursively without removing the junction first."
+  ]
+}

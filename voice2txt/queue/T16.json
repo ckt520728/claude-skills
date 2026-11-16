@@ -1,0 +1,17 @@
+{
+  "task_id": "T16",
+  "objective": "Data and presentation pieces for Typeless's 洞察 dashboard, history retention and appearance, without touching desktop.py. (1) voice2txt/core.py: MODES gains 'ask': '隨便問'; Store gets `prune(days)` (delete rows older than N days, returns count; days None = keep all), `rows_for_stats()` returning (created ISO string, mode, seconds, text) for all rows, and `update_text(row_id, text)`. (2) New voice2txt/insights.py (pure, tested): `count_words(text)` = number of CJK characters + number of latin/digit word tokens; `compute(rows, today, typing_wpm=40)` -> dict with total_words, total_seconds, dictation_wpm (words per minute of audio, 0 if no audio), active_days, current_streak, longest_streak, time_saved_seconds (= words/typing_wpm*60 − total_seconds, floored at 0, with the 40 wpm assumption documented), by_day {date: words} for the last 182 days, by_mode {mode: words}; `heatmap_cells(by_day, today, weeks=26)` -> list of (column, row, date, words, level 0–4 by quantile) for a Tk canvas; `streaks` must handle gaps and today-not-yet-active correctly. (3) New voice2txt/theme.py: palettes LIGHT and DARK (bg, panel, fg, muted, accent, text_bg, text_fg, list_bg, select_bg), `system_prefers_dark()` reading HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize AppsUseLightTheme via winreg (default light on error), `resolve(choice)` for '系統'/'淺色'/'深色', and `apply(style, root, palette, widgets)` that configures ttk styles ('.', TFrame, TLabel, TButton, TNotebook, TCheckbutton, TCombobox fieldbackground) and the given tk.Text/Listbox/Canvas widgets' colours; `apply` must be callable repeatedly to switch at runtime. (4) tests/test_insights_theme.py: count_words mixed text, compute on a fixture of rows spanning gaps (streak math, wpm, time saved floor, by_day window), heatmap levels, prune on a temp Store (rows older than N days removed, newer kept), update_text, resolve() for the three choices with system detection stubbed, apply() on a real withdrawn Tk root switching light->dark->light without exception.",
+  "inputs": ["voice2txt/core.py", "tests/test_core.py", "verification/typeless-feature-inventory-2026-11-13.md"],
+  "outputs": ["voice2txt/core.py", "voice2txt/insights.py", "voice2txt/theme.py", "tests/test_insights_theme.py"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with at least 10 new tests; all existing core tests pass (sample conservation etc.).",
+    "Store schema change is backward compatible: a history.sqlite3 created by the old code opens and prune/rows_for_stats work (test creates the table with the old statement first).",
+    "theme.apply works on a real withdrawn Tk root in the test (no display interaction needed).",
+    "Python 3.9 syntax; stdlib only."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": [],
+  "max_output_tokens": 9000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Do NOT edit desktop.py, translation.py or hotkeys.py. Do not run git."
+}

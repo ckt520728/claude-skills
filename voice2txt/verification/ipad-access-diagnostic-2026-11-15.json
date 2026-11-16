@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-15",
+  "site_version": 3,
+  "canonical_entry": "https://voice2txt-independent.safecoconut4.chatgpt.site/quality",
+  "unauthenticated_result": "401 ChatGPT sign-in gate on /, /quality and /quality.html",
+  "authenticated_routes": [
+    {
+      "path": "/quality",
+      "status": 200,
+      "type": "text/html",
+      "location": null,
+      "title": "Voice2Txt · 獨立語音筆記",
+      "is_app": true,
+      "login_gate": false,
+      "script": "/app-44DMPAUA.js"
+    },
+    {
+      "path": "/quality.html",
+      "status": 307,
+      "type": null,
+      "location": "/quality",
+      "title": "",
+      "is_app": false,
+      "login_gate": false,
+      "script": null
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "type": "text/html",
+      "location": null,
+      "title": "Voice2Txt · 獨立語音筆記",
+      "is_app": true,
+      "login_gate": false,
+      "script": "/app-44DMPAUA.js"
+    },
+    {
+      "path": "/manifest-quality.webmanifest",
+      "status": 200,
+      "type": "application/manifest+json",
+      "location": null,
+      "csp": null
+    },
+    {
+      "path": "/sw.js",
+      "status": 200,
+      "type": "text/javascript",
+      "location": null,
+      "csp": null
+    },
+    {
+      "path": "/app-44DMPAUA.js",
+      "status": 200,
+      "type": "text/javascript",
+      "location": null,
+      "csp": null
+    },
+    {
+      "path": "/worker-NDY3CYEA.js",
+      "status": 200,
+      "type": "text/javascript",
+      "location": null,
+      "csp": null
+    },
+    {
+      "path": "/vendor/ort-wasm-simd-threaded.jsep.wasm",
+      "status": 200,
+      "type": "application/wasm"
+    }
+  ],
+  "method": "Read-only HTTP requests using existing Sites access token; token not persisted. Not an iPad/Safari runtime test.",
+  "ipad_failure_stage": "unknown; awaiting user error text and device/iPadOS details",
+  "model_download_on_ipad_verified": false,
+  "issue_fixed": false
+}

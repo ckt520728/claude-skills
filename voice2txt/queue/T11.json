@@ -1,0 +1,18 @@
+{
+  "task_id": "T11",
+  "objective": "Fix the audit C2 defects (verification/audit-C2-2026-11-13.json). MAJOR (hotkeys.py _sync_physical): a key swallowed by a downstream hook never updates GetAsyncKeyState, so it is treated as released after 0.1 s and every auto-repeat key-down becomes a new press. New rule: a held key is dropped by physical sync only when GetAsyncKeyState reports it up AND no key-down for that key has been seen for at least 1.2 s (longer than the maximum Windows auto-repeat delay); additionally, a key-down arriving within 1.5 s after a sync-drop of the same key is treated as a continuation (re-add to held set, no new start). Reproduce the auditor's scenario in a unit test with the injectable clock and is_physically_down=False: hold with auto-repeat every 33 ms for 1.5 s must yield exactly one start and, on the real key-up, one stop; and the genuine missed-key-up case (no repeats, physically up) must still recover after 1.2 s. MINORS: (a) release_held_modifiers must only release modifier keys that belong to the configured combos' key sets (both sides of a generic Alt/Shift/Ctrl count), never an unrelated modifier the user is holding; pass the configured key set in; test it. (b) Hook liveness watchdog independent of held state: every 10 s without any hook callback, inject a MARKER no-op key (VK 0xFF) and, if the hook does not observe it within 150 ms, unhook and reinstall; on reinstall failure put ('warning', '快捷鍵監聽已失效，請重新啟動 App。') on the events queue; expose counters in the hook for the check script. (c) Single instance: if CreateMutexW returns NULL (not error 183), fall back to FindWindowW on the tray window class name; if found, broadcast show and exit 0, else continue. Re-run scripts/check_hotkey_hook.py (add a swallowed-key scenario using a downstream hook that swallows F24 while holding it 1.5 s with auto-repeat injection, expecting exactly [start, stop]) and scripts/check_single_instance.py, refreshing their verification JSONs.",
+  "inputs": ["verification/audit-C2-2026-11-13.json", "voice2txt/hotkeys.py", "voice2txt/desktop.py", "voice2txt/tray.py", "scripts/check_hotkey_hook.py", "scripts/check_single_instance.py", "tests/test_hotkeys.py"],
+  "outputs": ["voice2txt/hotkeys.py", "voice2txt/desktop.py", "scripts/check_hotkey_hook.py", "tests/test_hotkeys.py", "verification/hotkey-hook-2026-11-13.json", "verification/single-instance-2026-11-13.json"],
+  "acceptance": [
+    "`.\\.build-venv\\Scripts\\python.exe -m unittest discover -s tests -v` passes with new tests: swallowed-key hold with auto-repeat -> exactly one start and one stop; genuine missed key-up recovers after 1.2 s; release_held_modifiers ignores unrelated Shift; watchdog liveness decision pure function.",
+    "`scripts\\check_hotkey_hook.py` PASS with the new swallowed-key scenario recording events == [start dictate, stop] and physical-sync drops == 0 during the hold; the existing scenarios unchanged; liveness probe counters show at least one probe observed by the hook.",
+    "`scripts\\check_single_instance.py` ok=true as before.",
+    "`$env:PYTHONPATH='.'; scripts\\smoke_desktop.py` PASS; `run_desktop.py --self-test` ok=true.",
+    "Single CallNextHookEx return path still holds; no key swallowed."
+  ],
+  "capabilities": ["read", "local_write", "process_spawn"],
+  "depends_on": ["T10"],
+  "max_output_tokens": 10000,
+  "model": "claude-sonnet-5-5",
+  "notes": "Python 3.9, stdlib + ctypes. Typeless.exe is running and swallows real Right Alt: use LeftAlt/F24 for real-key checks. Tk only on the Tk thread. Do not touch translation.py, iOS, docs. Do not rebuild dist. Do not run git."
+}

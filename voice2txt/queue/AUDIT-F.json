@@ -1,0 +1,13 @@
+{
+  "audit_id": "AUDIT-F",
+  "scope": ["T22", "T18", "T19"],
+  "role": "Independent high-tier auditor; closing audit of wave D. Re-runs acceptance, never fixes. FAIL goes back to the planner.",
+  "verdict_file": "verification/audit-F-2026-11-13.json",
+  "verdict_schema": "same as queue/AUDIT-A.json",
+  "extra_checks": [
+    "T22: unit tests for the repeat-gated swallowed-key timeout and the hotkeys_version coercion; real-key: a swallowed key held 3 s with repeats disabled (inject only the key-down, no repeats, no key-up) must stay held until a real key-up; with repeats then silence it releases after ~1.2 s; a hand-edited settings.json with hotkeys_version \"2\" (string) starts the App without error.",
+    "T18 truthfulness: for every number/claim added to STATUS.md for wave D, open the cited verification file and confirm; the 隨便問 default documented is Right Alt + Right Ctrl and matches desktop.py DEFAULT_HOTKEYS; the swallow rule, clipboard-skip, merged paste, mute caveat and 40 wpm assumption are stated; no claim of UI Automation, learning from other apps, iOS compilation, live Anthropic; handoffs.md table T14–T22 matches the audit files (E: T14/T15/T16 PASS, T17 FAIL->T20; E2: T20 FAIL->T21; E3: T21 PASS); CLAUDE.md commands still valid (try --help or dry-run); USER_MANUAL.md settings labels match the UI strings in desktop.py.",
+    "T19: recompute exe_sha256 (Get-FileHash) and dist_bytes (os.walk) and compare with the JSON; no control characters in the JSON; re-run packaged self-tests UI-only, jfk en, and ask mode yourself against dist\\Voice2Txt\\Voice2Txt.exe; confirm 使用者手冊.md in dist is byte-identical to USER_MANUAL.md; launch --minimized under a throwaway LOCALAPPDATA, confirm the tray window, second instance exits within 1 s, terminate cleanly, nothing left running.",
+    "All: no secrets; repo files outside task outputs unchanged (hash before/after); HKCU Run 'Voice2Txt' unchanged; clipboard restored; no leftover processes."
+  ]
+}

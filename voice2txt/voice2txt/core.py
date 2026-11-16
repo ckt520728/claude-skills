@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from opencc import OpenCC
 
-MODES = {'zh': '繁體中文', 'en': 'English', 'translate': '中文 → English'}
+MODES = {'zh': '繁體中文', 'en': 'English', 'translate': '中文 → English', 'ask': '隨便問'}
 RATE = 16000
 
 
@@ -149,6 +149,24 @@ class Store:
     def history(self):
         return self.db.execute('SELECT id,created,text,mode,seconds FROM history '
                                'ORDER BY id DESC').fetchall()
+
+    def prune(self, days):
+        """刪除超過 days 天的紀錄並回傳刪除筆數；days 為 None 表示全部保留。"""
+        if days is None:
+            return 0
+        cur = self.db.execute(
+            "DELETE FROM history WHERE created < datetime('now','localtime',?)",
+            ('-%d days' % int(days),))
+        self.db.commit()
+        return cur.rowcount
+
+    def rows_for_stats(self):
+        return self.db.execute('SELECT created,mode,seconds,text FROM history '
+                               'ORDER BY id').fetchall()
+
+    def update_text(self, row_id, text):
+        self.db.execute('UPDATE history SET text=? WHERE id=?', (text, row_id))
+        self.db.commit()
 
     def clear(self):
         self.db.execute('DELETE FROM history')
