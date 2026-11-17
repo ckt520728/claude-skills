@@ -2,7 +2,8 @@
 
 What it takes to move the care network from a developer PC to a team, and the
 guide hospital IT needs. Reference: `docs/DEPLOYMENT_IT.md` in the reference
-build (Traditional Chinese, 13 sections plus a LAN appendix).
+build (Traditional Chinese, 13 sections plus a LAN appendix and a Tailscale
+remote-demo appendix).
 
 ## "There is no Share button"
 
@@ -12,6 +13,7 @@ nothing can be "shared" from it. Say this plainly and offer two routes:
 | Route | When | What it needs |
 |---|---|---|
 | **LAN demo** | show colleagues, synthetic data only | the developer PC stays on and the server keeps running |
+| **Tailscale demo** | colleague off the LAN, synthetic data only | Tailscale on both ends, a machine share, a Private-profile firewall rule |
 | **IT deployment** | real team use (and later real data) | an intranet VM, HTTPS, accounts, review approvals |
 
 A published document (manual, guide) can be shared from its own page; the
@@ -39,6 +41,45 @@ $env:PUBLIC_BASE_URL     = "http://<LAN IP>:8000"     # dashboard_url links in M
   session stops with the session (or on memory pressure); for a longer demo the
   user starts it in their own terminal.
 - Ask before switching to network mode: binding to `0.0.0.0` is outward-facing.
+
+## Remote demo over Tailscale (verified)
+
+A LAN IP works only on the same network. When a colleague is at home or on
+another site, the user's link fails even though it opens on the developer PC
+(a private 192.168.x address). Do not suggest a public tunnel (ngrok etc.):
+the demo passwords are public. A private overlay network works:
+
+1. **Host PC**: install Tailscale, sign in, read `tailscale ip -4` (100.x) and
+   `tailscale status --json` → `Self.DNSName` (`<pc>.<tailnet>.ts.net`).
+2. **Start the server** with both added, exactly as for the LAN demo:
+   ```powershell
+   $env:MCP_ALLOWED_HOSTS   = "127.0.0.1:*,localhost:*,testserver,<100.x>:*,<pc>.<tailnet>.ts.net:*"
+   $env:MCP_ALLOWED_ORIGINS = "http://127.0.0.1:*,http://localhost:*,http://<100.x>:*,http://<pc>.<tailnet>.ts.net:*"
+   $env:PUBLIC_BASE_URL     = "http://<pc>.<tailnet>.ts.net:8000"
+   .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+   Verify `/api/health` on both addresses and MCP without a token → 401.
+3. **Firewall profile**: the Tailscale adapter is a **Private** network, while
+   the Python allow rule Windows created at first run may cover **Public**
+   only. Local checks pass and the remote device times out. Check read-only
+   (`Get-NetConnectionProfile`, inbound rules for python.exe) and hand the user
+   a narrow rule to run as administrator:
+   ```powershell
+   New-NetFirewallRule -DisplayName "Smart DM dashboard (Tailscale)" -Direction Inbound -Protocol TCP -LocalPort 8000 -RemoteAddress 100.64.0.0/10 -Profile Private -Action Allow
+   ```
+4. **Test with the user's own second device first** (same tailnet), then
+   share: admin console → Machines → `…` → **Share** (one machine, not the
+   whole tailnet). Optional ACL: `autogroup:shared` → `<100.x>:8000` only.
+5. **Colleague**: install Tailscale, own account, accept the share, open
+   `http://<pc>.<tailnet>.ts.net:8000` (scheme and port included).
+6. **Afterwards**: revoke the share, remove the firewall rule. The host must
+   stay on and the server running; a server started from an agent session can
+   be stopped for low memory, so for a long demo the user runs it themselves.
+
+Tailscale's coordination service is outside the hospital (traffic is
+end-to-end encrypted, but sign-in, key exchange and some relaying are not
+on-premises): synthetic data only, and real use needs the security office's
+approval, a hospital VPN or the intranet server.
 
 ## IT deployment guide: sections that worked
 

@@ -5,8 +5,8 @@ description: |
   - a LINE (or other messaging) patient edge for meals, CGM and proactive outreach;
   - an in-hospital FastAPI + SQLite server with deterministic risk calculators, care-gap rules, a three-ring RAG / LLM-Wiki and a guardrail;
   - desktop agentic AI (Claude Desktop, Cursor, OpenCode) connected over MCP, which can read and stage but never commit.
-  Covers the architecture, the build order, safety rules (no LLM arithmetic, no doses, auto-send only for hard-coded safety text and approved templates), tested clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, wiki:// resources, MCP Apps ui:// panels), connecting Claude Desktop through a stdio bridge, multi-role care teams (physician, diabetes educator nurse, dietitian with a meal-review and meal↔CGM monitoring workflow, admin), personal role-scoped MCP tokens, a clip-and-paste HIS ingress (deterministic parser → import CSV) for hospitals without an HIS interface, sharing with a team (LAN demo) and handing deployment to hospital IT (Docker override, HTTPS, firewall, accounts, desktop-AI rollout, backups, pre-launch checklist), and 53 measured pitfalls from a diabetes build on Windows.
-  Use when the user asks to "build a smart diabetes care network", "patient care network", "chronic disease care network", "hospital MCP server", "desktop agentic AI + MCP for clinicians", "LINE chatbot for patients with CGM / meal photos", "organ risk dashboard (kidney/heart/liver/eye)", "care-gap agent", "RAG guardrail for clinical text", "connect Claude Desktop to a hospital MCP server", "dietitian role / dietitian review queue", "per-user MCP tokens / role-based MCP tools", "paste lab data from the HIS", "copy-paste patient data into the system", "share the dashboard with my team", "deployment guide for hospital IT", "部署指南", "資訊室", "糖尿病智慧照護網", "照護網絡", "病人照護網", "營養師", "從 HIS 貼上".
+  Covers the architecture, the build order, safety rules (no LLM arithmetic, no doses, auto-send only for hard-coded safety text and approved templates), tested clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, wiki:// resources, MCP Apps ui:// panels), connecting Claude Desktop through a stdio bridge, multi-role care teams (physician, diabetes educator nurse, dietitian with a meal-review and meal↔CGM monitoring workflow, admin), personal role-scoped MCP tokens, a clip-and-paste HIS ingress (deterministic parser → import CSV) for hospitals without an HIS interface, sharing with a team (LAN demo) and handing deployment to hospital IT (Docker override, HTTPS, firewall, accounts, desktop-AI rollout, backups, pre-launch checklist), remote demos over Tailscale, and 55 measured pitfalls from a diabetes build on Windows.
+  Use when the user asks to "build a smart diabetes care network", "patient care network", "chronic disease care network", "hospital MCP server", "desktop agentic AI + MCP for clinicians", "LINE chatbot for patients with CGM / meal photos", "organ risk dashboard (kidney/heart/liver/eye)", "care-gap agent", "RAG guardrail for clinical text", "connect Claude Desktop to a hospital MCP server", "dietitian role / dietitian review queue", "per-user MCP tokens / role-based MCP tools", "paste lab data from the HIS", "copy-paste patient data into the system", "share the dashboard with my team", "my teammate cannot open the link", "Tailscale", "deployment guide for hospital IT", "部署指南", "資訊室", "糖尿病智慧照護網", "照護網絡", "病人照護網", "營養師", "從 HIS 貼上".
 ---
 
 # Patient care network (3-tier hybrid, MCP)
@@ -97,7 +97,7 @@ Module map and data model: `references/architecture.md`.
 
    See `references/his-paste-import.md` and `scripts/his_paste_parser.py --selftest`.
 9. **Verify** (next section), then update docs and `handoffs.md`.
-10. **Share and hand over.** The dashboard is a local server with no Share button: offer a LAN demo (synthetic data, `0.0.0.0` + Host allow-list, firewall checked read-only) and an IT deployment guide (an editable doc plus `docs/DEPLOYMENT_IT.md`). Before writing the guide, check the repo gaps a deployment exposes: a compose file that hard-codes demo mode, automatic seeding of an empty database, no user-management tool.
+10. **Share and hand over.** The dashboard is a local server with no Share button: offer a LAN demo (synthetic data, `0.0.0.0` + Host allow-list, firewall checked read-only), a Tailscale machine share for colleagues off the LAN, and an IT deployment guide (an editable doc plus `docs/DEPLOYMENT_IT.md`). Before writing the guide, check the repo gaps a deployment exposes: a compose file that hard-codes demo mode, automatic seeding of an empty database, no user-management tool.
 
     See `references/deployment.md`.
 
@@ -119,6 +119,7 @@ Module map and data model: `references/architecture.md`.
 - [ ] Claude Desktop connected through `scripts/mcp_stdio_bridge.py` (see `references/mcp-surface.md`).
 - [ ] Roles: each role's `tools/list` equals the policy; a dietitian token through the bridge is read-only and a forbidden call writes nothing; revoked/expired/inactive tokens → 401; every registered tool is in the policy.
 - [ ] Dietitian: can read and validate a queued meal; staging LINE or acknowledging an alert → 403.
+- [ ] Remote demo: the Tailscale name answers `/api/health` from a second device (not only from the host); the share is revoked afterwards.
 - [ ] Deployment: the LAN IP answers `/api/health` and MCP `initialize`; the IT guide's six verification checks are written down; the demo-mode, seeding and account-tool gaps are fixed or documented.
 - [ ] Paste: a synthetic mixed Chinese/English HIS report parses fully (conversions, ROC dates, negations, unused lines listed) → preview has no errors → commit; a later partial paste keeps older values; the text never reaches the audit log; a physician cannot import medications or change an existing patient's identity.
 
@@ -130,8 +131,8 @@ Module map and data model: `references/architecture.md`.
 - `references/mcp-surface.md`: tool design, prompts, MCP Apps, allow-list, Claude Desktop setup
 - `references/roles-and-access.md`: role matrix, dietitian monitoring workflow, per-user MCP tokens, RoleGate, CHECK-constraint migration
 - `references/his-paste-import.md`: clip-and-paste HIS ingress: decision, parser rules, unit table, CSV rules, importer fixes, scope, tests
-- `references/deployment.md`: no-Share-button answer, LAN demo, IT deployment guide outline (13 sections), repo gaps to fix before handover, handing over documents
-- `references/pitfalls.md`: 53 measured pitfalls with fixes
+- `references/deployment.md`: no-Share-button answer, LAN demo, Tailscale remote demo, IT deployment guide outline (13 sections), repo gaps to fix before handover, handing over documents
+- `references/pitfalls.md`: 55 measured pitfalls with fixes
 - `scripts/score2_diabetes.py`: standalone SCORE2-Diabetes with `--selftest`
 - `scripts/mcp_stdio_bridge.py`: stdio ↔ streamable-HTTP bridge (httpx), re-initialises after a server restart
 - `scripts/his_paste_parser.py`: standalone HIS paste parser → fields or import CSV, with `--selftest` (synthetic sample)
