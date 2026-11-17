@@ -88,9 +88,15 @@ every row                    → meta.auto_reason
 
 ## Roles
 
-| Action | Physician | Educator | Admin |
-|---|---|---|---|
-| Read clinical data | ✓ | ✓ | ✓ |
-| Stage or confirm a message, acknowledge an alert, record an assessment, propose or activate a schedule | ✓ | ✓ | ✗ |
-| Sign a summary, approve a template, verify a wiki page | ✓ | ✗ | ✗ |
-| Import, read the audit log | | | ✓ |
+| Action | Physician | Educator | Dietitian | Admin |
+|---|---|---|---|---|
+| Read clinical data | ✓ | ✓ | ✓ | ✓ |
+| Stage or confirm a message, acknowledge an alert, record an assessment, propose or activate a schedule | ✓ | ✓ | ✗ | ✗ |
+| Validate a meal in the dietitian review queue | ✓ | ✓ | ✓ | ✗ |
+| Sign a summary, approve a template, verify a wiki page | ✓ | ✗ | ✗ | ✗ |
+| Paste from HIS → import (paste record types, new patients only) | ✓ | ✗ | ✗ | ✓ |
+| Upload files, templates, read the audit log, issue tokens for others | ✗ | ✗ | ✗ | ✓ |
+
+Agent access follows the same roles through personal MCP tokens and
+`ROLE_TOOLS` (`references/roles-and-access.md`). Pasted HIS text is parsed by
+fixed rules and never sent to an LLM (`references/his-paste-import.md`).

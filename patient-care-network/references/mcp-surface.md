@@ -16,9 +16,16 @@
 
   Every prompt ends with the same safety paragraph.
 - Use the bearer token as a separate trust boundary from dashboard sessions.
-  Production needs per-user OIDC and scopes.
+  Give **each clinician a personal token** and scope tools by role
+  (`references/roles-and-access.md`). Production should move to hospital
+  OIDC with short-lived tokens; the policy table and `RoleGate` stay.
 
 ## Reference tool set (23)
+
+Role scoping: physician sees all 23 tools and 3 prompts; educator 21 tools
+(no `stage_visit_summary`, `export_fhir_risk`) and 2 prompts; dietitian the
+17 read tools in `READ_TOOLS` (everything under Read except
+`run_previsit_pipeline` and `export_fhir_risk`) and no prompts.
 
 - **Read:**
   - `list_patients`, `get_patient_summary`, `calculate_organ_risk`
@@ -63,6 +70,12 @@
   headers. Every other host gets **HTTP 421 "Invalid Host header"**. That
   includes the TestClient's `testserver` and the LAN hostname. Configure:
   `TransportSecuritySettings(enable_dns_rebinding_protection=True, allowed_hosts=[...,"<intranet-host>:*"], allowed_origins=[...])`.
+- **Per-request identity and role filtering** use a server middleware:
+  `MCPServer(..., middleware=[RoleGate()])`. A `ServerMiddleware` gets
+  `ctx.method`, raw `ctx.params` and `ctx.request` (Starlette, so
+  `ctx.request.scope`). Return `CallToolResult(is_error=True)` for a
+  forbidden tool, raise `MCPError(-32602, ...)` for a forbidden prompt, and
+  filter list results after `call_next`. Details in `roles-and-access.md`.
 - **The session manager starts only once per process.** Use one
   session-scoped TestClient in `conftest.py` for every API/MCP test module.
 - **Testing over HTTP:**
@@ -93,8 +106,12 @@ Claude Desktop starts local servers over **stdio**. Use `scripts/mcp_stdio_bridg
 {"mcpServers": {"smart-dm-care": {
   "command": "<repo>\\.venv\\Scripts\\python.exe",
   "args": ["-I", "<repo>\\scripts\\mcp_stdio_bridge.py"],
-  "env": {"SMARTDM_MCP_URL": "http://127.0.0.1:8000/mcp/", "MCP_TOKEN": "<token>", "PYTHONIOENCODING": "utf-8"}}}}
+  "env": {"SMARTDM_MCP_URL": "http://127.0.0.1:8000/mcp/", "MCP_TOKEN": "<personal token>", "PYTHONIOENCODING": "utf-8"}}}}
 ```
+
+- Use the clinician's **personal** token; the dashboard's token dialog shows
+  this block already filled in. A shared demo token should work only in
+  demo mode.
 
 - Read the file first. Merge into an existing `mcpServers` rather than
   overwriting it.

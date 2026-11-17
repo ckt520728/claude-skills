@@ -4,7 +4,7 @@
 
 | Tier | Runs | May | May not |
 |---|---|---|---|
-| 1 Desktop agent | Claude Desktop / Cursor / OpenCode (MCP client) | read tools, draft text, stage drafts | touch the DB, compute scores, send, sign, resolve |
+| 1 Desktop agent | Claude Desktop / Cursor / OpenCode (MCP client), one personal token per clinician | the tools its role allows (read; stage for physician/educator) | touch the DB, compute scores, send, sign, resolve, read the HIS |
 | 2 Intranet server | FastAPI + SQLite (PostgreSQL for a pilot), no GPU | calculate, audit, serve REST + MCP + dashboard, auto-send for the 2 permitted reasons | call a cloud LLM with identifiers (vision/STT adapters are LAN-only or off) |
 | 3 Patient edge | LINE OA webhook, CGM bridge | deliver inbound events, receive fixed messages | receive doses, diagnoses or raw risk scores |
 
@@ -19,11 +19,14 @@ Production shape:
 app/
   config.py        env settings (MCP_ALLOWED_HOSTS, CGM_BRIDGE_KEY, SCORE2_REGION, ...)
   db.py            schema + additive migrations + per-thread connection cache
-  auth.py audit.py signed-cookie sessions, roles (physician/educator/admin), append-only audit
+  auth.py audit.py signed-cookie sessions, roles (physician/educator/dietitian/admin) and role groups, append-only audit
+  mcp_access.py    per-user MCP tokens (hash only), ROLE_TOOLS/ROLE_PROMPTS, RoleGate middleware, IT CLI
   risk/            PURE: kfre, fib4, watch_dm, eye, cgm, cgm_rules, agp, meal_response,
                    score2_diabetes, five_dimension
   services/
-    patients.py    get_bundle(chart) — one query layer
+    patients.py    get_bundle(chart) — one query layer; latest non-null value per lab field (+ dates), newest condition row wins
+    import_service.py CSV/XLSX preview → commit; paste_scope_errors() for physician (paste-only) imports
+    his_input.py   HIS paste: deterministic parser → fields with source lines → import CSV (no storage)
     clinical.py    build_assessment(bundle) — single source of truth for REST/MCP/UI
     cgm_stream.py  ingest → evaluate → alert → auto_send(safety_rule) → nurse desk → recheck
     outreach.py    templates, schedules, run_due(), asyncio scheduler_loop
@@ -33,7 +36,7 @@ app/
     guardrail.py   verify_draft()
     orchestrator.py named deterministic agents → structured summary + LINE draft
     fhir_export.py RiskAssessment bundle
-  api/             REST routers (auth, validation, audit only)
+  api/             REST routers (auth, validation, audit only); mcp_tokens.py; admin.py /import/paste|preview|commit
   mcp_server.py    MCP tools/prompts/resources; calls services, never duplicates logic
 static/            index.html, app.js (v1), app-v2.js (v2 pages/hooks), mcp-apps/*.html
 knowledge/*.md     wiki pages with front-matter
@@ -58,6 +61,8 @@ tests/             conftest.py (one session TestClient), engine/API/MCP tests
   plus `guardrail_status`).
 - **Governance:** `audit_log` (identifiers and metadata only, never clinical
   free text), `imports`.
+- **Access (0.3):** `users.role` CHECK includes `dietitian` (rebuilt in a v3
+  migration); `mcp_tokens` (hash, prefix, expiry, last use, revocation).
 
 ## Key flows
 
@@ -85,8 +90,25 @@ tests/             conftest.py (one session TestClient), engine/API/MCP tests
    3. A clinician activates the schedule.
    4. The scheduler sends only with consent, between 06 and 21 h.
    5. Revoking the template pauses its schedules.
-4. **Meal**:
+4. **Meal and dietitian monitoring**:
    1. Photo (vision adapter) or voice (STT → food table).
-   2. Below the confidence threshold the meal goes to the dietitian queue.
-   3. The meal is linked to the post-meal CGM response, and large rises are
-      flagged for education.
+   2. Below the confidence threshold (0.75; demo adapters always below) the
+      meal goes to the dietitian review queue.
+   3. The dietitian validates it (optionally correcting carbohydrates); the
+      validation is audited.
+   4. The meal is linked to the post-meal CGM response, and large rises are
+      flagged for education; AGP shows when in the day glucose runs high.
+5. **Paste from HIS** (no interface needed):
+   1. A physician or admin copies report text from the HIS and pastes it on
+      the Import page.
+   2. `POST /api/admin/import/paste` parses it with fixed rules and returns
+      CSV per record type, plus each value's source line and warnings.
+   3. The clinician edits the CSV; it becomes the import file list.
+   4. The existing preview validates; commit writes and audits. For a
+      physician the server allows only paste record types and new-patient
+      rows. The text is never stored.
+6. **Per-user agent access**:
+   1. A clinician creates a personal token on the Network page (or IT uses
+      the CLI); the plaintext is shown once with a bridge config.
+   2. Each MCP request resolves token → current role; `RoleGate` filters the
+      lists and refuses calls outside the role; audit names the person.
