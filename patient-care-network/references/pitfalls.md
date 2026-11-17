@@ -1,4 +1,4 @@
-# Pitfalls (measured, Smart Diabetes Care Network v2, Windows 11, 2026-11-17)
+# Pitfalls (measured, Smart Diabetes Care Network v2 → 0.3, Windows 11, 2026-11-17)
 
 ## Sources and evidence
 
@@ -54,4 +54,24 @@
 
 ## Operations
 
-30. **The uvicorn server started from an agent session stops when the session ends**, and an in-process scheduler would run once per worker. Document the manual start command; use one worker or move the scheduler out of process.
+30. **The uvicorn server started from an agent session stops when the session ends**, and an in-process scheduler would run once per worker. Document the manual start command; use one worker or move the scheduler out of process. It is also stopped when the machine runs low on memory while the session is idle; that is not a server fault.
+
+## Roles and per-user MCP access (0.3)
+
+33. **`role !== 'admin'` checks gave a new role write buttons.** Adding `dietitian` would have shown it every clinical write button (the server still said 403). Define role groups once on the server and mirror them with named UI helpers (`canWriteClinical`, `canValidateNutrition`).
+34. **SQLite cannot widen a CHECK constraint.** `users.role CHECK (... 'admin')` rejected `dietitian`. Rebuild the table in a migration guarded by the stored `sqlite_master.sql`, only when no foreign key references it, and test it on an old-schema database.
+35. **The seed runs only on an empty database**, so an upgraded demo had no `demo.dietitian`. In demo mode, call the idempotent `seed_users()` at startup.
+36. **Identity must reach MCP tool handlers without a forgeable header.** Store the resolved identity in the ASGI scope under a private key in the bearer gate; read it in an MCP `ServerMiddleware` through `ctx.request.scope`; set a `ContextVar` around `call_next` so handlers can audit `mcp:<username>`. Filter `tools/list`/`prompts/list` after `call_next` (the result may be a model or a dict).
+37. **A new tool could be exposed to every role by accident.** Add a test that the union of `ROLE_TOOLS` equals the registered tool names (and the same for prompts), so every tool is placed in the policy on purpose.
+38. **Audit telemetry counted agent calls by `role='mcp'`.** Putting the user's role there would have broken the counter. Keep `role='mcp'`, put the person in `actor`, and the role in the detail.
+
+## HIS paste ingress (0.3)
+
+39. **Building the wrong ingress UI.** A calculator form with its own save path was half-built before the user redirected to "paste → CSV → existing import". Ask first which existing write path an ingress should feed; reusing the importer gave validation, audit and bulk import for free.
+40. **Python `\b` treats CJK characters as word characters.** `腎功能eGFR 55` never matched `\beGFR\b`. Compile with `re.IGNORECASE | re.ASCII`.
+41. **One value per line lost data.** `BP 138/82  BW 76 kg  BH 170 cm` kept only BP. Claim label spans in priority order (UACR before creatinine, HDL/LDL before cholesterol), drop overlapping lower-priority matches, and read each label's number from the segment before the next label. Exclude urine creatinine explicitly.
+42. **NFKC folds the micro sign `µ` into Greek `μ`**, which broke `µmol` unit matching after normalising full-width text. Map it back after `normalize("NFKC", ...)`.
+43. **The importer crashed without `patients.csv`** (`KeyError: 'patients'` from a hard-coded `["patients"] + ...` order). Follow-up labs for existing patients are the normal case; build the order from the files present.
+44. **Partial reports hid older values.** The newest lab row was used as a whole, so pasting only HbA1c made eGFR "missing"; and the *oldest* condition row won, so a later "not smoking" was ignored. Use the latest non-null value per lab field (keep its date) and the newest condition row.
+45. **An imported `patients` row overwrites name, birth date and sex.** Generate it from a paste only for a chart number that does not exist yet, and enforce the same on the server for physicians (who get a paste-only import), not just in the UI.
+46. **Windows shell tooling mangled generated code.** A Python edit script sent through a Git Bash heredoc turned `"\n"` inside generated source into a real line break (twice), and a heredoc containing `<repo>` with backslashes was blocked by the agent's command safety check as unparseable. Write such scripts to a file with the editor tool and run the file; re-read the exact bytes when a "fixed" file still fails (a synced drive may also lag).
