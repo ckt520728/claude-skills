@@ -16,7 +16,7 @@ Builds a hospital patient care network as a local, intranet-first clinical decis
   - a guardrail check before anything is staged.
 - Covers the architecture, build order, clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, `wiki://`, MCP Apps `ui://` panels), and Claude Desktop setup on Windows (Microsoft Store config path).
 - Includes `scripts/score2_diabetes.py` (standalone, `--selftest` pins the 8.4 % worked example) and `scripts/mcp_stdio_bridge.py` (stdio ↔ streamable-HTTP, re-initialises after a server restart).
-- 30 measured pitfalls, e.g. MCP HTTP 421 from DNS-rebinding protection, SQLite on Google Drive at 60 ms per connection, guardrail number-grounding false passes.
+- 32 measured pitfalls, e.g. MCP HTTP 421 from DNS-rebinding protection, SQLite on Google Drive at 60 ms per connection, guardrail number-grounding false passes, stale dashboard JS from Chrome's heuristic cache.
 - Reference build: Smart Diabetes Care Network v2 (`ckt520728/2026-open-code`, `projects/smart-dm-care`), 48 tests, mobile-checked dashboard.
 - Skill folder: `patient-care-network/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`)
 - Bundle: `patient-care-network.skill`
