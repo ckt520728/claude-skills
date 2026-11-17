@@ -5,7 +5,7 @@ description: |
   - a LINE (or other messaging) patient edge for meals, CGM and proactive outreach;
   - an in-hospital FastAPI + SQLite server with deterministic risk calculators, care-gap rules, a three-ring RAG / LLM-Wiki and a guardrail;
   - desktop agentic AI (Claude Desktop, Cursor, OpenCode) connected over MCP, which can read and stage but never commit.
-  Covers the architecture, the build order, safety rules (no LLM arithmetic, no doses, auto-send only for hard-coded safety text and approved templates), tested clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, wiki:// resources, MCP Apps ui:// panels), connecting Claude Desktop through a stdio bridge, and 30 measured pitfalls from a diabetes build on Windows.
+  Covers the architecture, the build order, safety rules (no LLM arithmetic, no doses, auto-send only for hard-coded safety text and approved templates), tested clinical engines (KFRE, FIB-4, WATCH-DM, SCORE2-Diabetes, CGM rules, AGP, five-dimensional care), the MCP surface (tools, prompts, wiki:// resources, MCP Apps ui:// panels), connecting Claude Desktop through a stdio bridge, and 32 measured pitfalls from a diabetes build on Windows.
   Use when the user asks to "build a smart diabetes care network", "patient care network", "chronic disease care network", "hospital MCP server", "desktop agentic AI + MCP for clinicians", "LINE chatbot for patients with CGM / meal photos", "organ risk dashboard (kidney/heart/liver/eye)", "care-gap agent", "RAG guardrail for clinical text", "connect Claude Desktop to a hospital MCP server", "糖尿病智慧照護網", "照護網絡", "病人照護網".
 ---
 
@@ -104,6 +104,6 @@ Module map and data model: `references/architecture.md`.
 - `references/clinical-engines.md`: formulas, cut-offs, citations, test vectors
 - `references/safety-layer.md`: send policy, three rings, guardrail rules, HITL
 - `references/mcp-surface.md`: tool design, prompts, MCP Apps, allow-list, Claude Desktop setup
-- `references/pitfalls.md`: 30 measured pitfalls with fixes
+- `references/pitfalls.md`: 32 measured pitfalls with fixes
 - `scripts/score2_diabetes.py`: standalone SCORE2-Diabetes with `--selftest`
 - `scripts/mcp_stdio_bridge.py`: stdio ↔ streamable-HTTP bridge (httpx), re-initialises after a server restart

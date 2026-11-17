@@ -49,6 +49,8 @@
 27. **Fixed sleeps captured the previous page.** Renders took longer than 2.5 s on the slow drive. Wait for page-specific content, or fix the latency first.
 28. **A mobile CSS rule `.nav-item span:last-child {display:none}` broke** when a badge span was appended: the label reappeared. Hide by a semantic selector (`span[data-i18n]`).
 29. **Extend a working vanilla-JS app with hooks, not a rewrite.** Three hooks in the existing `app.js` route, patient-render and LINE-render, plus a separate `app-v2.js`, kept every v1 test green.
+31. **A dashboard row rendered twice on a fresh load.** With no `#/` hash, `enterApp()` set `location.hash` (which fires `hashchange` -> `route()`) and then also called `route()`, so an add-on hook inserted its strip twice. Return after setting the hash, and make every insert-style enhancer idempotent: remove what it inserted before re-inserting.
+32. **The fix was deployed but Chrome kept running the old JS.** Static files were served with `Last-Modified` and no `Cache-Control`, so Chrome heuristically cached `index.html` and its `?v=` script URLs; plain navigations (transfer size 0) skipped the server. Send `Cache-Control: no-cache` for dashboard files (ETag revalidation is cheap) and `no-store` for `/api`. Bump `?v=` on every JS change. When verifying, check the code that is running (`String(fn).includes(...)`, `performance.getEntriesByType('navigation')[0].transferSize`), not only what the server returns; users who loaded the old page need one Ctrl+Shift+R.
 
 ## Operations
 
