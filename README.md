@@ -121,6 +121,23 @@ LLM chain: local Ollama → OpenAI `gpt-6-luna` (high) → Gemini `gemini-3.8-fl
 - Evidence ledger: `voice2txt/STATUS.md` and `voice2txt/verification/`.
 - Session wrap-up and pitfalls: `2026-10-18_Voice2Txt_Whisper_LLM_Lessons_and_Pitfalls.md`
 
+### linked-seminar-deck
+
+Builds or revises a ~30-slide interactive HTML seminar deck plus an editable PPTX, linked to the work's companion sites (a 3-D interactive site, a blog post, a code repo and demo panels). It covers:
+- **Reference intake:** a reference folder (NotebookLM notes and an infographic zip), the raw case data and the earlier decks, with one use/crop/reject line per infographic.
+- **A /goal prompt template** that becomes the build checklist.
+- **Fetching the design skills** (`soil-deck-pipeline`, `soil-html-deck`) from this repo.
+- **Building from fragments:** slides keyed by `data-key`, so removing slides doesn't break the interactive panels.
+- **Two versions:** a confidential v1 and a lab-shareable v2. A leak scan of the HTML, PPTX and panels blocks the build on any hit.
+- **Link wiring:** PPTX "open interactive slide" buttons point to the published deck's `#N`.
+- **KaTeX** for math on the linked blog.
+
+It was built from the 2026-11 HHSA review-deck run, where the paper under review could not be shown in the lab version.
+
+- Skill folder: `linked-seminar-deck/`
+- Scripts: `assemble_from_template.py`, `build_deck.py`, `leak_scan.py`, `pptx_link_helpers.py`; template `templates/katex_head.html`
+- Pitfalls: `linked-seminar-deck/references/pitfalls.md` (18 entries, each with its check)
+
 ### research-3d-publication-pack
 
 Turns one research topic into a full publication pack:
