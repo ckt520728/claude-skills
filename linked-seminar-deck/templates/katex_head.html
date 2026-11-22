@@ -1,0 +1,7 @@
+<!-- Paste before </head>. Display math: $$...$$  Inline: $...$
+     Do NOT add \( \) or \[ \] delimiters inside this JS string: "\(" is just "(" in JS, and every parenthesis becomes math. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>document.addEventListener("DOMContentLoaded", function () { if (window.renderMathInElement) renderMathInElement(document.body, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}], ignoredTags: ["script","noscript","style","textarea","pre","code","svg","canvas"], throwOnError: false }); });</script>
+<style>.katex-display{margin:4px 0;overflow-x:auto;overflow-y:hidden}.katex{font-size:1.05em}</style>
