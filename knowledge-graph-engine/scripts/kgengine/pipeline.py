@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from rapidfuzz import fuzz
 
 from . import ontology
+from .curation import CURATED_MERGES, apply_curated_merges
 from .ingest import chunk, discover, load_path, load_url, LoadedDoc
 from .providers import Provider
 from .schema import EntityProfile, ExtractedGraph, ResolvedClusters
@@ -27,7 +28,8 @@ from .store import Store
 log = logging.getLogger("kgengine")
 
 RESEARCH_TOPIC = ontology.RESEARCH_TOPIC
-PROMPT_VERSION = "extract-v1"
+CURATED_CANONICALS = {r["canonical"] for r in CURATED_MERGES}
+PROMPT_VERSION = "extract-v2"  # v2: relation timescale (acute/chronic/unspecified), ADR 0004
 
 EXTRACTION_PROMPT = """Extract a knowledge graph from the text below, which comes from the document "{title}".
 
@@ -46,6 +48,7 @@ Guidelines:
 - Relations must be scientific claims stated in the text, connect two entities you extracted, use only the allowed predicates, and include a short evidence phrase.
 - Use confidence 1.0 for reported results, ~0.7 for reviewed/cited consensus, ~0.4 for hypotheses or speculation.
 - Prefer specific claims: "aerobic exercise -[INCREASES]-> hippocampal volume" over vague "exercise -[RELATED_TO]-> brain".
+- Set every relation's timescale. "acute" = effect of a single exercise bout/session (e.g. P300 amplitude right after 20 min of cycling); "chronic" = effect of repeated training over weeks or longer, or of long-term habitual activity / fitness (e.g. 6-month aerobic training, VO2max cohort associations); "unspecified" = not an intervention effect (e.g. MEASURED_BY, IS_A) or the text does not say. If a text reports both an acute and a chronic effect, emit two separate relations.
 - If the text contains no relevant scientific content (e.g. a reference list or front matter) return empty lists."""
 
 RESOLVE_PROMPT = """Below are candidate groups of {etype} entities extracted from many papers about {topic}
@@ -260,15 +263,19 @@ def resolve(store: Store, provider: Provider | None, use_llm: bool = True, block
                     llm_merges += _llm_cluster(provider, store, t, batch, reps, desc, progress)
                 batch, size = ([b], len(b)) if b else ([], 0)
 
-    # 4. write alias table
+    # 4. curated merges decided by the user (curation.py) override both stages
+    curated = apply_curated_merges(reps, etype)
+
+    # 5. write alias table
     out = []
     for canon, members in reps.items():
         for m in members:
-            out.append((m, etype[m], canon, "llm" if m != canon and norm(m) != norm(canon) else "deterministic"))
+            method = ("curated" if canon in CURATED_CANONICALS else "llm") if m != canon and norm(m) != norm(canon) else "deterministic"
+            out.append((m, etype[m], canon, method))
     store.x("DELETE FROM aliases")
     store.set_aliases(out)
     return {"unique_names": len(etype), "canonical": len(reps),
-            "deterministic_merges": det_merges, "llm_merges": llm_merges}
+            "deterministic_merges": det_merges, "llm_merges": llm_merges, "curated_merges": curated}
 
 
 def _acronym_of(short: str, long: str) -> bool:

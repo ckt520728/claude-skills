@@ -50,6 +50,14 @@ PREDICATES: dict[str, str] = {
     "RELATED_TO": "fallback when no other predicate fits",
 }
 
+# Edge qualifier (ADR 0004): acute-bout and chronic-training effects are different claims and are
+# kept as separate edges. Applies to effect claims of an INTERVENTION; everything else is "unspecified".
+TIMESCALES: dict[str, str] = {
+    "acute": "effect of a single exercise bout / session, measured during or shortly (minutes-hours) after it",
+    "chronic": "effect of repeated training over weeks or longer, or of long-term habitual physical activity / fitness",
+    "unspecified": "not an exercise/intervention effect, or the text does not say which",
+}
+
 SYNONYMS: dict[str, str] = {
     "ENHANCES": "IMPROVES", "BENEFITS": "IMPROVES", "PROMOTES": "IMPROVES",
     "ATTENUATES": "DECREASES", "REDUCES": "DECREASES", "LOWERS": "DECREASES", "SLOWS": "DECREASES",
@@ -77,4 +85,11 @@ def normalize_type(t: str) -> str:
 def describe() -> str:
     ents = "\n".join(f"- {k}: {v}" for k, v in ENTITY_TYPES.items())
     preds = "\n".join(f"- {k}: {v}" for k, v in PREDICATES.items())
-    return f"Entity types:\n{ents}\n\nAllowed predicates (source -> target):\n{preds}"
+    ts = "\n".join(f"- {k}: {v}" for k, v in TIMESCALES.items())
+    return (f"Entity types:\n{ents}\n\nAllowed predicates (source -> target):\n{preds}"
+            f"\n\nRelation timescale (required on every relation):\n{ts}")
+
+
+def normalize_timescale(t: str | None) -> str:
+    t = (t or "").strip().lower()
+    return t if t in TIMESCALES else "unspecified"

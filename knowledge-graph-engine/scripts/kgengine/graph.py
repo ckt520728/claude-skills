@@ -1,7 +1,9 @@
 """Canonical graph view + query layer.
 
 The graph is rebuilt from SQLite (raw rows + alias table) into a NetworkX MultiDiGraph
-with ONE edge per (source, predicate, target) aggregating all supporting evidence.
+with ONE edge per (source, predicate, timescale, target) aggregating all supporting evidence.
+Edge key = "PREDICATE" or "PREDICATE@acute" / "PREDICATE@chronic" (ADR 0004); always read the
+predicate from the edge's `predicate` attribute, never from the key.
 
 Query surface:
     search(text)                    fuzzy entity lookup
@@ -12,6 +14,7 @@ Query surface:
         (INTERVENTION)-[INCREASES|IMPROVES]->(BIOMARKER)-[PREDICTS|BIOMARKER_OF]->(*)
         (INTERVENTION{name~aerobic})-[*]->(BRAIN_REGION)
         (BIOMARKER)<-[DECREASES]-(*)
+        (INTERVENTION)-[INCREASES@acute]->(BIOMARKER)      timescale-qualified predicate
     evidence_matrix(src_type, tgt_type)   claim counts by pair (e.g. INTERVENTION x BIOMARKER)
     contradictions()                pairs with opposing predicates (INCREASES vs DECREASES/NO_EFFECT_ON)
     communities() / stats()
@@ -26,10 +29,21 @@ from itertools import islice
 import networkx as nx
 from rapidfuzz import fuzz, process
 
+from .ontology import normalize_timescale
 from .store import Store
 
 OPPOSITES = {("INCREASES", "DECREASES"), ("IMPROVES", "NO_EFFECT_ON"), ("INCREASES", "NO_EFFECT_ON"),
              ("DECREASES", "NO_EFFECT_ON"), ("PROTECTS_AGAINST", "RISK_FACTOR_FOR")}
+
+
+def ekey(predicate: str, timescale: str = "unspecified") -> str:
+    return predicate if timescale == "unspecified" else f"{predicate}@{timescale}"
+
+
+def elabel(d: dict) -> str:
+    """Human label of an edge, e.g. 'INCREASES' or 'INCREASES|chronic'."""
+    ts = d.get("timescale", "unspecified")
+    return d["predicate"] if ts == "unspecified" else f"{d['predicate']}|{ts}"
 
 
 class KnowledgeGraph:
@@ -62,9 +76,11 @@ class KnowledgeGraph:
             if a == b or a not in G or b not in G:
                 continue
             p = r["predicate"]
-            if not G.has_edge(a, b, key=p):
-                G.add_edge(a, b, key=p, predicate=p, evidence=[], docs=set(), weight=0)
-            e = G.edges[a, b, p]
+            ts = normalize_timescale(r["timescale"])
+            k = ekey(p, ts)
+            if not G.has_edge(a, b, key=k):
+                G.add_edge(a, b, key=k, predicate=p, timescale=ts, evidence=[], docs=set(), weight=0)
+            e = G.edges[a, b, k]
             e["evidence"].append({"doc": docs.get(r["doc_id"], "?"), "doc_id": r["doc_id"],
                                   "text": r["evidence"], "confidence": r["confidence"]})
             e["docs"].add(canon_doc.get(r["doc_id"], r["doc_id"]))
@@ -133,7 +149,7 @@ class KnowledgeGraph:
             for n in frontier:
                 for a, b, k, d in list(self.G.out_edges(n, keys=True, data=True)) + list(self.G.in_edges(n, keys=True, data=True)):
                     other = b if a == n else a
-                    if preds and k not in preds:
+                    if preds and d["predicate"] not in preds and k not in preds:
                         continue
                     if d["weight"] < min_weight:
                         continue
@@ -150,8 +166,8 @@ class KnowledgeGraph:
 
     def edge_dict(self, a, k, b, evidence: int = 3) -> dict:
         d = self.G.edges[a, b, k]
-        return {"source": a, "predicate": k, "target": b, "weight": d["weight"],
-                "evidence": d["evidence"][:evidence]}
+        return {"source": a, "predicate": d["predicate"], "timescale": d["timescale"], "target": b,
+                "weight": d["weight"], "evidence": d["evidence"][:evidence]}
 
     def paths(self, a: str, b: str, max_len: int = 4, limit: int = 20) -> dict:
         s, t = self.resolve_name(a), self.resolve_name(b)
@@ -163,16 +179,16 @@ class KnowledgeGraph:
             steps = []
             for x, y in zip(p, p[1:]):
                 if self.G.has_edge(x, y):
-                    steps.append(f"({x}) -[{'|'.join(self.G[x][y])}]-> ({y})")
+                    steps.append(f"({x}) -[{', '.join(map(elabel, self.G[x][y].values()))}]-> ({y})")
                 else:
-                    steps.append(f"({y}) -[{'|'.join(self.G[y][x])}]-> ({x})")
+                    steps.append(f"({y}) -[{', '.join(map(elabel, self.G[y][x].values()))}]-> ({x})")
             out.append({"nodes": p, "steps": steps})
         out.sort(key=lambda x: len(x["nodes"]))
         return {"source": s, "target": t, "paths": out[:limit]}
 
     # ---------------------------------------------------------- pattern match
     _NODE = re.compile(r"\(\s*([A-Z_*]+)?\s*(?:\{\s*name\s*([~=])\s*([^}]+?)\s*\})?\s*\)")
-    _EDGE = re.compile(r"\s*(<)?-\[\s*([A-Z_|*]+)?\s*\]-(>)?\s*")
+    _EDGE = re.compile(r"\s*(<)?-\[\s*([A-Za-z_|@*]+)?\s*\]-(>)?\s*")
 
     def _parse(self, pattern: str):
         pos, nodes, edges = 0, [], []
@@ -225,7 +241,7 @@ class KnowledgeGraph:
             if direction in ("in", "any"):
                 cands += [(a, k, cur, a) for a, _, k in self.G.in_edges(cur, keys=True)]
             for a, k, b, other in cands:
-                if preds and k not in preds:
+                if preds and self.G.edges[a, b, k]["predicate"] not in preds and k not in preds:
                     continue
                 if other in bound or self.G.edges[a, b, k]["weight"] < min_weight:
                     continue
@@ -244,18 +260,27 @@ class KnowledgeGraph:
         rows = []
         for a, b, k, d in self.G.edges(keys=True, data=True):
             if self.G.nodes[a]["type"] == src_type and self.G.nodes[b]["type"] == tgt_type:
-                rows.append({"source": a, "predicate": k, "target": b, "n_docs": d["weight"],
+                rows.append({"source": a, "predicate": d["predicate"], "timescale": d["timescale"],
+                             "target": b, "n_docs": d["weight"],
                              "docs": [self.doc_titles.get(i, "?") for i in d["docs"]]})
         rows.sort(key=lambda r: -r["n_docs"])
         return rows[:top]
 
     def contradictions(self) -> list[dict]:
+        """Opposing predicates on the same pair *at a compatible timescale*. An acute effect and a
+        chronic null are different claims, not a contradiction; 'unspecified' is compatible with both."""
         out = []
         for a, b in {(a, b) for a, b, _ in self.G.edges(keys=True)}:
-            keys = set(self.G[a][b])
-            for p, q in OPPOSITES:
-                if p in keys and q in keys:
-                    out.append({"source": a, "target": b, "claims": [self.edge_dict(a, p, b), self.edge_dict(a, q, b)]})
+            es = self.G[a][b]
+            for k1, d1 in es.items():
+                for k2, d2 in es.items():
+                    if (d1["predicate"], d2["predicate"]) not in OPPOSITES:
+                        continue
+                    t1, t2 = d1["timescale"], d2["timescale"]
+                    if t1 != t2 and "unspecified" not in (t1, t2):
+                        continue
+                    out.append({"source": a, "target": b, "timescale": t1 if t1 != "unspecified" else t2,
+                                "claims": [self.edge_dict(a, k1, b), self.edge_dict(a, k2, b)]})
         return out
 
     def communities(self, top: int = 12) -> list[dict]:
@@ -275,22 +300,27 @@ class KnowledgeGraph:
         return {**self.store.stats(), "nodes": G.number_of_nodes(), "edges": G.number_of_edges(),
                 "components": nx.number_weakly_connected_components(G) if len(G) else 0,
                 "node_types": dict(Counter(d["type"] for _, d in G.nodes(data=True)).most_common()),
-                "predicates": dict(Counter(k for *_, k in G.edges(keys=True)).most_common()),
+                "predicates": dict(Counter(d["predicate"] for *_, d in G.edges(data=True)).most_common()),
+                "timescales": dict(Counter(d["timescale"] for *_, d in G.edges(data=True)).most_common()),
                 "top_hubs": [(n, d) for n, d in sorted(G.degree(), key=lambda x: -x[1])[:15]]}
 
 
-def edge_lines(G, center: str | None = None, with_evidence: bool = False, limit: int = 400, nodes=None) -> str:
+def edge_lines(G, center: str | None = None, with_evidence: bool = False, limit: int = 400, nodes=None,
+               edges=None) -> str:
     """Serialize (a sub)graph as triples for prompting — the cookbook's subgraph serialization,
-    plus provenance so answers can cite source documents."""
-    if center is not None:
+    plus provenance so answers can cite source documents. Pass `edges` (already ranked) to keep their order."""
+    if edges is not None:
+        edges = list(edges)
+    elif center is not None:
         edges = list(G.out_edges(center, keys=True, data=True)) + list(G.in_edges(center, keys=True, data=True))
+        edges.sort(key=lambda e: -e[3]["weight"])
     else:
         sub = G.subgraph(nodes) if nodes is not None else G
         edges = list(sub.edges(keys=True, data=True))
-    edges.sort(key=lambda e: -e[3]["weight"])
+        edges.sort(key=lambda e: -e[3]["weight"])
     lines = []
     for a, b, k, d in edges[:limit]:
-        line = f"({a}) -[{k}]-> ({b})  [n_docs={d['weight']}]"
+        line = f"({a}) -[{elabel(d)}]-> ({b})  [n_docs={d['weight']}]"
         if with_evidence:
             ev = "; ".join(f"\"{x['text']}\" <{x['doc']}>" for x in d["evidence"][:2])
             line += f"\n    evidence: {ev}"

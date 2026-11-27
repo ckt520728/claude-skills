@@ -1,7 +1,7 @@
 # 專案收尾：用 Claude 建知識圖譜引擎（身體活動 × 神經認知老化）踩過的坑
 
 **專案：** 2026 Knowledge graph with Claude
-**日期：** 2026-11-27（單一工作階段）
+**日期：** 2026-11-27（三個工作階段）
 **環境：** Windows 11、Git Bash + PowerShell 5.1、Python 3.11（uv，venv 放在 Drive 之外）、SQLite（放在 Google Drive G:）、Claude Code 2.1（headless `claude -p`）、Ollama（備用）
 **研究主題：** The role of physical activity in mitigating neurocognitive aging: insights from electrophysiological biomarkers and neuroimaging studies
 **產出：**
@@ -99,3 +99,47 @@
 1. 補抽先導論文的結果段落，然後重新消歧。
 2. 讓 Graph-RAG 的脈絡排序考慮種子距離與型別。
 3. 用 grilling 釐清 PA／運動／體能是否要分成不同節點；決定後跑第二輪樞紐消歧。
+
+---
+
+## 續篇（工作階段 2–3）：補抽結果段落、時間尺度、整併 PA
+
+### 做了什麼
+
+- **使用者決策：**
+  - PA、身體運動與運動合併成一個節點：`Physical activity / exercise (PA)`（ADR 0005，`curation.py`）。
+  - 急性與慢性效果分開標記：每條主張都帶 `timescale`（acute／chronic／unspecified，ADR 0004）。
+  - 透過 Google 連接器匯入 `.gdoc` 筆記：7 份有內容，5 份只有標題或投影片圖片。
+- **補抽：** 先導 97 篇論文的全部 1,004 塊都以 `extract-v2` 重抽，前三塊也重抽，好讓舊的主張也帶上時間尺度。總花費約 US$6–8，沒有真正的失敗。
+- **新圖譜：**
+  - 6,324 個實體、14,880 條主張；
+  - 306 組只在相同時間尺度下比較的矛盾；
+  - PA 樞紐的度數為 1,108，收了 19 個別名。
+- **Graph-RAG 脈絡排序改成看種子：**
+  - 先依與種子的距離排序，再看邊是否連接問題所問的兩種實體型別，最後才看 n_docs；
+  - 每個非種子節點最多 30 條邊。
+- **重問同一題：**
+  - 結果：信心從 low 升為 **medium**，引用的邊從 41 條增加到 81 條。答案現在用上了 Amjad 2019（靜息 EEG 頻帶）、Amjad 2020（SEP N30）、Tsai 2018（P3 潛時無效果）與 Cheron（ERP 表）。補抽與改排序同時進行，沒有分開量測各自的效果。
+  - 答案仍明確指出真正的缺口：圖中沒有任何 EEG 指標「預測」認知結果的邊，也沒有 VO2max 連到 EEG 的邊。
+
+### 新增的坑
+
+27. **透過 npm 的 `claude.CMD` 呼叫會弄壞長參數**（cmd.exe 會重新解析 JSON schema）。改找原生的 `claude.exe`，也可以用 `KG_CLAUDE_EXE` 指定。
+28. **批次跑到一半，Claude Code 自動更新了，** 留下一個 500 位元組的 stub，約 870 次呼叫失敗。要略過過小的執行檔。因為只有成功的塊才會被標記為完成，重跑時只會補跑失敗的部分。
+29. **cp950 下的 stderr 要用 `errors="replace"` 解碼，** 否則真正的錯誤會被 `UnicodeDecodeError` 蓋掉。
+30. **系統記憶體不足時，長批次會被 Claude Code 中止。** 16 GB 筆電請用 3 個 worker。有快取，所以續跑時已完成的塊不花錢。
+31. **兩台機器透過 Google Drive 寫同一個 SQLite：** 一次只能有一個寫入者。續跑前先看日誌的最後寫入時間和 `tasklist`；`.mcp.json` 請用 `${USERPROFILE}`，不要寫死帳號路徑。
+32. **急性與慢性效果會形成假矛盾。** 加上 `timescale`、以 `PREDICATE@timescale` 當邊的鍵，只在相容的時間尺度下比較；同時把 `PROMPT_VERSION` 加一。
+33. **領域定義的合併要寫成規則（`curation.py`），** 而不是手改別名。這樣每次重新消歧都會再套用，分批 LLM 消歧也不會再把它拆開。
+34. **有據可查的回答本身就是一次抽取稽核。** 這次的回答找出了：
+    - 疑似方向錯誤：數值上升卻被抽成 DECREASES；
+    - 引文其實只是研究目的的 IMPROVES 邊；
+    - 重複的 EEG 頻帶節點。
+
+    這些要回饋到提示詞與消歧，並先用 context 隔離的 rubric 驗證，再相信計數。
+
+### 下一步
+
+1. 用 `verify-with-rubric` 抽查 Amjad 2019、Khan 2023 的抽取結果。若方向錯誤屬實，就收緊 EXTRACTION_PROMPT（要求比較對照組、前測→後測）並把 `PROMPT_VERSION` 加一。
+2. 針對 EEG 頻帶、ERP 節點跑第二輪樞紐消歧。
+3. 若要寫進綜論：EEG 變化目前只能說是「伴隨」有氧運動出現，還不能稱為認知效益的預測因子或中介。

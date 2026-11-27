@@ -44,6 +44,9 @@ class Store:
         cols = {r[1] for r in self.db.execute("PRAGMA table_info(documents)")}
         if "dup_of" not in cols:  # migration: duplicate-document detection
             self.db.execute("ALTER TABLE documents ADD COLUMN dup_of INTEGER")
+        rcols = {r[1] for r in self.db.execute("PRAGMA table_info(raw_relations)")}
+        if "timescale" not in rcols:  # migration: acute vs chronic edge qualifier (ADR 0004)
+            self.db.execute("ALTER TABLE raw_relations ADD COLUMN timescale TEXT DEFAULT 'unspecified'")
         self.db.commit()
 
     # --- generic -------------------------------------------------------
@@ -94,9 +97,9 @@ class Store:
                 "INSERT INTO raw_entities(chunk_id,doc_id,name,type,description) VALUES(?,?,?,?,?)",
                 [(chunk_id, doc_id, e.name.strip(), e.type, e.description) for e in graph.entities])
             self.db.executemany(
-                "INSERT INTO raw_relations(chunk_id,doc_id,source,predicate,target,evidence,confidence) VALUES(?,?,?,?,?,?,?)",
-                [(chunk_id, doc_id, r.source.strip(), r.predicate, r.target.strip(), r.evidence, r.confidence)
-                 for r in graph.relations])
+                "INSERT INTO raw_relations(chunk_id,doc_id,source,predicate,target,evidence,confidence,timescale) VALUES(?,?,?,?,?,?,?,?)",
+                [(chunk_id, doc_id, r.source.strip(), r.predicate, r.target.strip(), r.evidence, r.confidence,
+                  getattr(r, "timescale", "unspecified")) for r in graph.relations])
             self.db.execute("UPDATE chunks SET extracted=1 WHERE id=?", (chunk_id,))
             self.db.commit()
 

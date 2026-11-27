@@ -1,4 +1,4 @@
-# Pitfalls (measured in the first build, Windows 11, 2026-11-27)
+# Pitfalls (measured in the first build and its widening, Windows 11, 2026-11-27)
 
 Each entry gives the symptom, the cause, and the fix that ships in `scripts/kgengine/`.
 
@@ -49,3 +49,15 @@ Each entry gives the symptom, the cause, and the fix that ships in `scripts/kgen
 25. **LLM resolution in separate batches gives inconsistent merges.** "Physical activity and physical exercise (PA/PE)" (324 connections) and "Physical Exercise (PE)" (105) stayed apart because the variants landed in different candidate blocks. Run a second, hub-level resolution pass over the top-N nodes per type.
 26. **About 10% of edges fall back to RELATED_TO** (377 of 3,853). Watch the predicate distribution in `kg stats`. When the fallback rate is high, add a predicate to the ontology (e.g. `MODULATES`) rather than accepting vague edges.
 27. **Keep "low confidence + explicit gaps" as the expected output.** On a private corpus, a grounded answer that says "the graph has no edge linking VO2max to any EEG measure" is the useful result. Do not tune the prompt to sound more confident.
+
+## Found while widening the pilot (sessions 2–3)
+
+28. **Calling `claude` through npm's `claude.CMD` shim mangles long arguments** (the `--json-schema` JSON and the system prompt), because `cmd.exe` re-parses them. Resolve the native `claude.exe` (`providers._claude_exe`, override with `KG_CLAUDE_EXE`).
+29. **A Claude Code self-update during a batch run** left `bin/claude.exe` as a 500-byte stub ("native binary not installed"). About 870 calls then failed with `[WinError 216]` / `[WinError 2]`. Skip binaries that are too small to be real. The extraction only marks a chunk done after a successful save, so rerunning picks up exactly the failed chunks (`pending_chunks`).
+30. **Decode `claude -p` stderr with `errors="replace"`.** On a cp950 machine the Windows error text is not UTF-8, and a strict decode hides the real error behind a `UnicodeDecodeError`.
+31. **Long `claude -p` batches were killed for low system memory,** with each worker spawning a full CLI process. Run 3 workers on a 16 GB laptop. Because the extraction cache is keyed per chunk, a resume costs nothing for finished chunks.
+32. **Two machines writing one SQLite file through Google Drive.** The same project was resumed from a second Windows account. Only one writer may run at a time. Check the log's last-write time and `tasklist` before resuming, and use `${USERPROFILE}` in `.mcp.json` instead of a hard-coded account path.
+33. **Acute vs chronic effects contradict each other falsely.** "Exhaustive exercise INCREASES iAPF" (acute) and a chronic-training null result are different claims. Add a `timescale` qualifier to every relation (ADR 0004), key edges as `PREDICATE@timescale`, and only flag contradictions at a compatible timescale. Bump `PROMPT_VERSION`, because old extractions lack the field.
+34. **The domain's own lumping decision must win over the LLM's batch-to-batch merges** (pitfall 25). Encode it as a curated merge rule (`curation.py`, ADR 0005) that is re-applied on every resolve, rather than patching aliases by hand. Result: PA / physical exercise / exercise became one hub (degree 1,108, 19 aliases), and sub-types (aerobic, acute, training) stayed separate.
+35. **Seed-aware Graph-RAG context fixed the "hub crowding" of pitfall 24.** `qa.rank_edges` ranks edges by distance to the seeds, then by edges that bridge two entity types the question asks about (keyword cues), then n_docs, with a 30-edge cap per non-seed node. Together with the results chunks (pitfall 23), the reference question went from *low* confidence with 41 cited edges to *medium* with 81. The answer now uses the P300/ERP, resting-EEG and SEP results, and it still reports the real gap: no edge shows an EEG measure *predicting* cognition. The two changes were not measured separately.
+36. **A grounded answer is also an extraction audit.** The re-asked answer pointed out likely direction errors (a theta value that rose, extracted as DECREASES), an "IMPROVES" edge whose quote was only the study aim, and duplicate EEG band nodes. Feed these back into prompt and resolution fixes, and verify them with a context-isolated rubric check before trusting the counts.

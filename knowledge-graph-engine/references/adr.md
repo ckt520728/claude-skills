@@ -44,3 +44,56 @@ at ≤ 120 names per call. The prompt forbids sub-type → super-type merges. Om
 **Consequences.** This scales roughly linearly, apart from the O(n²) fuzzy blocking per type (fine up to about
 10^4 names per type). Synonyms with no lexical overlap (e.g. "Edwin" vs "Buzz" Aldrin) are only caught when
 the extractor writes the acronym form. Embedding-based blocking is the planned upgrade.
+
+# 0004 — Acute vs chronic effects are separate edges (`timescale` qualifier)
+
+**Status:** accepted (2026-11-27, user decision)
+
+**Context.** One exercise can have opposite-looking results depending on the time frame. A single bout raises
+iAPF or P300 amplitude for minutes to hours, while months of training may or may not change the resting value.
+With one edge per `(source, predicate, target)`, these results were pooled. The graph reported false
+contradictions (acute INCREASES vs chronic NO_EFFECT_ON) and hid real ones.
+
+**Decision.**
+- Every extracted relation carries `timescale ∈ {acute, chronic, unspecified}` (`ontology.TIMESCALES`):
+  - **acute**: a single bout or session, measured during it or shortly after.
+  - **chronic**: repeated training over weeks or longer, or long-term habitual activity / fitness.
+  - **unspecified**: not an intervention effect (MEASURED_BY, IS_A, …), or the text does not say.
+- The JSON schema makes the field required for the LLM. The pydantic default (`unspecified`) keeps old rows
+  and fixtures valid. `PROMPT_VERSION` is bumped to `extract-v2`.
+- The canonical graph has one edge per `(source, predicate, timescale, target)`. The edge key is
+  `PREDICATE` or `PREDICATE@acute|chronic`. Code reads the predicate from the `predicate` attribute,
+  never from the key. Labels show `INCREASES|acute`.
+- **Contradictions** are flagged only at a compatible timescale: the same timescale, or one side `unspecified`.
+  An acute effect next to a chronic null is reported as two claims, not as a contradiction.
+- Patterns accept qualified predicates: `(INTERVENTION)-[INCREASES@acute]->(BIOMARKER)`. A bare `INCREASES`
+  matches every timescale.
+- The 97 pilot documents were fully re-extracted with v2, so older claims also carry a timescale.
+
+**Consequences.** More edges, each with lower `n_docs`. Evidence for one claim is no longer pooled across
+timescales. That is the intended trade-off. Habitual activity and structured training share `chronic`. If the
+two need to be told apart later, add a value here (and bump the prompt version) rather than adding a predicate.
+
+# 0005 — Curated merges; "physical activity", "physical exercise" and "exercise" are one node
+
+**Status:** accepted (2026-11-27, user decision)
+
+**Context.** Resolution left the general exposure split in two. The LLM merged 13 surface forms into
+"Physical activity and physical exercise (PA/PE)" (324 connections), but "Physical Exercise (PE)" (105) stayed
+separate. The prompt rule against sub-type → super-type merges keeps the resolver from fixing this by itself.
+Any manual alias edit would be wiped by the next `resolve`, which rewrites the alias table.
+
+**Decision.**
+- The user decided that the general terms *physical activity*, *physical exercise* and *exercise* are **one
+  node**: `Physical activity / exercise (PA)` (INTERVENTION).
+- User decisions live as rules in `kgengine/curation.py` (`CURATED_MERGES`). They run after the deterministic
+  and LLM stages on every `resolve`. Their aliases are written with `method = 'curated'`. Raw extractions are
+  untouched. Deleting a rule undoes it.
+- The match rule: a name merges if all its word tokens come from {physical, activity, exercise, PA, PE, and, or}.
+  A cluster whose canonical name matches moves whole. Otherwise only the matching members move.
+- Sub-types stay separate: aerobic exercise, exercise training, exercise intervention, acute exercise,
+  physical activity level, and so on.
+
+**Consequences.** This hub absorbs every general-exposure claim, and acute versus chronic is carried by the
+edge `timescale` (ADR 0004). Habitual PA and structured exercise are not told apart at this node. Studies that
+need that distinction should use the sub-type nodes.

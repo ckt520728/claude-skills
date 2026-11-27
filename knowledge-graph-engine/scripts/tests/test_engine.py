@@ -79,13 +79,13 @@ def test_pipeline_resolution_and_queries(tmp_path):
     m = kg.match("(INTERVENTION)-[INCREASES|IMPROVES]->(BIOMARKER)-[PREDICTS]->(COGNITIVE_DOMAIN)")
     assert m["count"] == 1 and m["results"][0]["bindings"][-1] == "episodic memory"
     m2 = kg.match("(BIOMARKER{name~alpha})<-[*]-(INTERVENTION)")
-    assert {r["bindings"][1] for r in m2["results"]} == {"Aerobic exercise", "Physical activity"}
+    assert {r["bindings"][1] for r in m2["results"]} == {"Aerobic exercise", "Physical activity / exercise (PA)"}
     # paths across documents (multi-hop through the merged IAPF node)
     paths = kg.paths("Physical activity", "episodic memory")
     assert paths["paths"] and len(paths["paths"][0]["nodes"]) == 3
     # contradictions: aerobic INCREASES vs NO_EFFECT_ON hippocampal volume
     assert any(c["source"] == "Aerobic exercise" for c in kg.contradictions())
-    assert kg.evidence_matrix()[0]["source"] in {"Aerobic exercise", "Physical activity", "Resistance training"}
+    assert kg.evidence_matrix()[0]["source"] in {"Aerobic exercise", "Physical activity / exercise (PA)", "Resistance training"}
     # re-extraction is cached: no new LLM calls
     calls = p.calls
     store.x("UPDATE chunks SET extracted=0")
@@ -161,3 +161,77 @@ def test_shared_acronym_does_not_merge_different_entities(tmp_path):
     kg = KnowledgeGraph(store)
     assert "Exhaustive exercise (EE)" in kg.G and "Enriched environment (EE)" in kg.G
     assert "IAPF" not in kg.G   # unambiguous bare acronym still merges
+
+
+def _save(store, rels, ents):
+    from kgengine.schema import Entity, Relation
+    cid = store.q("SELECT id FROM chunks")[0]["id"]
+    store.save_extraction(cid, 1, ExtractedGraph(
+        entities=[Entity(name=n, type=t, description="d") for n, t in ents],
+        relations=[Relation(source=a, predicate=p, target=b, evidence="e", confidence=1, timescale=ts)
+                   for a, p, b, ts in rels]))
+
+
+def test_acute_and_chronic_effects_are_separate_edges(tmp_path):
+    store = Store(tmp_path / "kg.sqlite")
+    pipeline.ingest_text(store, "d", DOC_A)
+    ents = [("Aerobic exercise", "INTERVENTION"), ("P300 amplitude", "BIOMARKER"), ("BDNF", "BIOMARKER")]
+    _save(store, [("Aerobic exercise", "INCREASES", "P300 amplitude", "acute"),
+                  ("Aerobic exercise", "NO_EFFECT_ON", "P300 amplitude", "chronic"),
+                  ("Aerobic exercise", "INCREASES", "BDNF", "chronic"),
+                  ("Aerobic exercise", "NO_EFFECT_ON", "BDNF", "unspecified")], ents)
+    pipeline.resolve(store, None, use_llm=False, progress=lambda *_: None)
+    kg = KnowledgeGraph(store)
+    es = kg.G["Aerobic exercise"]["P300 amplitude"]
+    assert set(es) == {"INCREASES@acute", "NO_EFFECT_ON@chronic"}
+    assert es["INCREASES@acute"]["predicate"] == "INCREASES" and es["INCREASES@acute"]["timescale"] == "acute"
+    # acute effect vs chronic null is NOT a contradiction; chronic vs unspecified is
+    c = kg.contradictions()
+    assert {x["target"] for x in c} == {"BDNF"}
+    # predicate filters still work, and timescale-qualified patterns narrow them
+    assert kg.match("(INTERVENTION)-[INCREASES]->(BIOMARKER)")["count"] == 2
+    assert kg.match("(INTERVENTION)-[INCREASES@acute]->(BIOMARKER)")["count"] == 1
+    from kgengine.graph import edge_lines
+    assert "-[INCREASES|acute]->" in edge_lines(kg.G, "Aerobic exercise")
+
+
+def test_curated_merge_physical_activity_exercise_one_node(tmp_path):
+    store = Store(tmp_path / "kg.sqlite")
+    pipeline.ingest_text(store, "d", DOC_A)
+    ents = [("Physical activity (PA)", "INTERVENTION"), ("Physical Exercise (PE)", "INTERVENTION"),
+            ("Exercise", "INTERVENTION"), ("Physical activity and exercise", "INTERVENTION"),
+            ("Aerobic exercise", "INTERVENTION"), ("Exercise training", "INTERVENTION"),
+            ("hippocampal volume", "BIOMARKER")]
+    _save(store, [("Exercise", "INCREASES", "hippocampal volume", "chronic")], ents)
+    rep = pipeline.resolve(store, None, use_llm=False, progress=lambda *_: None)
+    kg = KnowledgeGraph(store)
+    pa = "Physical activity / exercise (PA)"
+    assert pa in kg.G and rep["curated_merges"] >= 3
+    for n in ("Physical activity (PA)", "Physical Exercise (PE)", "Exercise", "Physical activity and exercise"):
+        assert n not in kg.G and kg.resolve_name(n) == pa
+    assert "Aerobic exercise" in kg.G and "Exercise training" in kg.G   # sub-types stay separate
+    assert kg.G.has_edge(pa, "hippocampal volume")
+    assert {r["method"] for r in store.q("SELECT method FROM aliases WHERE canonical=?", (pa,))} >= {"curated"}
+
+
+def test_rag_context_ranking_is_seed_aware():
+    """Pitfall 24: heavy hub edges far from the seeds must not crowd out the seed's own biomarker edges."""
+    import networkx as nx
+    from kgengine.qa import rank_edges
+    G = nx.MultiDiGraph()
+    for n, t in [("Aerobic exercise", "INTERVENTION"), ("P300 amplitude", "BIOMARKER"),
+                 ("PA", "INTERVENTION"), ("Cognition", "COGNITIVE_DOMAIN"), ("Mood", "CONCEPT")]:
+        G.add_node(n, type=t)
+    G.add_edge("Aerobic exercise", "P300 amplitude", key="INCREASES", weight=1)
+    G.add_edge("Aerobic exercise", "PA", key="IS_A", weight=2)
+    for i in range(40):                       # a hub with many heavy edges
+        G.add_node(f"x{i}", type="CONCEPT")
+        G.add_edge("PA", f"x{i}", key="IMPROVES", weight=20)
+    G.add_edge("PA", "Cognition", key="IMPROVES", weight=19)
+    dist = {"Aerobic exercise": 0, "P300 amplitude": 1, "PA": 1, "Cognition": 2, "Mood": 2,
+            **{f"x{i}": 2 for i in range(40)}}
+    ranked = rank_edges(G, ["Aerobic exercise"], dist, "Does aerobic exercise change ERP P300 and cognition in older adults?",
+                        per_node_cap=10)
+    assert (ranked[0][0], ranked[0][1]) == ("Aerobic exercise", "P300 amplitude")
+    assert sum(1 for e in ranked if e[0] == "PA") <= 9          # hub capped
+    assert any(e[1] == "Cognition" for e in ranked)             # typed edge beats untyped hub edges

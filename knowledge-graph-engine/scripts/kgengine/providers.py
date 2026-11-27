@@ -19,6 +19,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from typing import Type, TypeVar
 
 import httpx
@@ -70,12 +71,32 @@ class Provider:
         raise NotImplementedError
 
 
+def _claude_exe() -> str:
+    """Prefer the native claude.exe over npm's claude.CMD shim: cmd.exe mangles quoting of the long
+    --json-schema / --system-prompt arguments (and caps the command line at 8,191 chars)."""
+    if os.environ.get("KG_CLAUDE_EXE"):
+        return os.environ["KG_CLAUDE_EXE"]
+    # A self-update can leave bin/claude.exe as a ~500-byte stub ("native binary not installed") while the
+    # real binary sits in the platform package, so skip files under 1 MB.
+    pkg = os.path.join(os.environ.get("APPDATA", ""), "npm", "node_modules", "@anthropic-ai", "claude-code")
+    cands = [os.path.join(pkg, "bin", "claude.exe"),
+             os.path.join(pkg, "node_modules", "@anthropic-ai", "claude-code-win32-x64", "claude.exe"),
+             os.path.join(os.path.expanduser("~"), ".local", "bin", "claude.exe")]
+    found = shutil.which("claude")
+    if found and not found.lower().endswith((".cmd", ".bat")):
+        cands.insert(0, found)
+    for c in cands:
+        if os.path.isfile(c) and os.path.getsize(c) > 1_000_000:
+            return c
+    return found or "claude"
+
+
 class ClaudeCLIProvider(Provider):
     name = "claude-cli"
 
     def __init__(self, *a, timeout: int = 600, **kw):
         super().__init__(*a, **kw)
-        self.exe = shutil.which("claude") or "claude"
+        self.exe = _claude_exe()
         self.timeout = timeout
 
     def _run(self, prompt: str, role: str, system: str, schema: dict | None) -> dict:
@@ -85,8 +106,18 @@ class ClaudeCLIProvider(Provider):
         if schema is not None:
             cmd += ["--json-schema", json.dumps(schema)]
         env = {**os.environ, "CLAUDE_CODE_ENTRYPOINT": "kgengine"}
-        proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
-                              encoding="utf-8", timeout=self.timeout, env=env)
+        for attempt in range(6):
+            try:
+                proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                                      encoding="utf-8", errors="replace", timeout=self.timeout, env=env)
+                break
+            except OSError:
+                # A Claude Code self-update can move/replace the binary mid-run (WinError 2/193/216):
+                # wait, re-resolve, retry.
+                if attempt == 5:
+                    raise
+                time.sleep(30 * (attempt + 1))
+                self.exe = cmd[0] = _claude_exe()
         if proc.returncode != 0 and not proc.stdout.strip():
             raise RuntimeError(f"claude CLI failed: {proc.stderr[:500]}")
         out = json.loads(proc.stdout)

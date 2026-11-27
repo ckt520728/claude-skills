@@ -47,18 +47,66 @@ def find_seeds(kg: KnowledgeGraph, question: str, k: int = 6) -> list[str]:
     return seeds
 
 
+# Question words -> entity types the answer is probably about (used to rank context edges).
+_TYPE_CUES = {
+    "BIOMARKER": r"eeg|meg|erp|p300|p3\b|n2\b|alpha|theta|beta|gamma|iapf|paf|oscillat|power|biomarker|bdnf|"
+                 r"volume|thickness|white matter|fa\b|connectivity|bold|fmri|mri|pet|amyloid|tau|brain age",
+    "COGNITIVE_DOMAIN": r"cogniti|memory|executive|attention|inhibit|processing speed|mmse|moca",
+    "BRAIN_REGION": r"hippocamp|prefrontal|cortex|cortical|region|lobe|network",
+    "MECHANISM": r"mechanism|pathway|why|how does|mediat|neurotroph|plasticity|angiogen",
+    "POPULATION": r"older adult|elderly|aging|ageing|mci|dementia|alzheimer|young",
+    "INTERVENTION": r"exercise|training|activity|aerobic|resistance|tai chi|intervention|fitness",
+}
+
+
+def wanted_types(question: str) -> set[str]:
+    q = question.lower()
+    return {t for t, rx in _TYPE_CUES.items() if re.search(rx, q)}
+
+
+def rank_edges(G, seeds: list[str], dist: dict[str, int], question: str, per_node_cap: int = 30):
+    """Seed-aware context ranking (pitfall 24): closer to the seeds first, then edges whose endpoints
+    are of the types the question asks about, then specific (non-hub) edges, then n_docs.
+    A per-node cap keeps one hub from filling the whole budget."""
+    want = wanted_types(question)
+    seedset = set(seeds)
+    sub = G.subgraph(dist.keys())
+
+    def key(e):
+        a, b, _, d = e
+        dsum = dist[a] + dist[b]
+        tmatch = len({G.nodes[a]["type"], G.nodes[b]["type"]} & want)  # bridging two asked-about types wins
+        hub = max(G.degree(n) for n in (a, b) if n not in seedset) if not {a, b} <= seedset else 0
+        return (dsum, -tmatch, -d["weight"], hub)
+
+    used: dict[str, int] = {}
+    out = []
+    for e in sorted(sub.edges(keys=True, data=True), key=key):
+        a, b = e[0], e[1]
+        caps = [n for n in (a, b) if n not in seedset]
+        if any(used.get(n, 0) >= per_node_cap for n in caps):
+            continue
+        for n in caps:
+            used[n] = used.get(n, 0) + 1
+        out.append(e)
+    return out
+
+
 def ask(kg: KnowledgeGraph, provider: Provider, question: str, hops: int = 2,
         max_edges: int = 250, seeds: list[str] | None = None) -> dict:
     seeds = [s for s in (kg.resolve_name(x) for x in seeds) if s] if seeds else find_seeds(kg, question)
-    nodes = set(seeds)
+    dist = {s: 0 for s in seeds}
     frontier = set(seeds)
-    for _ in range(hops):
+    for h in range(1, hops + 1):
         nxt = set()
         for n in frontier:
             nxt |= set(kg.G.successors(n)) | set(kg.G.predecessors(n))
-        frontier = nxt - nodes
-        nodes |= frontier
-    context = edge_lines(kg.G, nodes=nodes, with_evidence=True, limit=max_edges)
+        frontier = nxt - dist.keys()
+        for n in frontier:
+            dist[n] = h
+    nodes = set(dist)
+    context = edge_lines(kg.G, edges=rank_edges(kg.G, seeds, dist, question), with_evidence=True,
+                         limit=max_edges)
     ans = provider.structured(QA_PROMPT.format(topic=RESEARCH_TOPIC, graph=context, question=question),
                               Answer, role="smart")
     return {"question": question, "seeds": seeds, "subgraph_nodes": len(nodes), **ans.model_dump()}

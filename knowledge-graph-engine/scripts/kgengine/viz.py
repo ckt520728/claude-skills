@@ -5,7 +5,7 @@ import html
 import json
 from pathlib import Path
 
-from .graph import KnowledgeGraph
+from .graph import KnowledgeGraph, elabel
 
 COLORS = {"INTERVENTION": "#2a9d8f", "BIOMARKER": "#e76f51", "BRAIN_REGION": "#8e6cc9",
           "COGNITIVE_DOMAIN": "#3a86c8", "CONDITION": "#c4455e", "POPULATION": "#b08a2e",
@@ -29,7 +29,7 @@ def graph_payload(kg: KnowledgeGraph, max_nodes: int = 600, center: str | None =
     edges = []
     for a, b, k, d in G.edges(keys=True, data=True):
         if a in keep and b in keep:
-            edges.append({"from": a, "to": b, "label": k, "w": d["weight"],
+            edges.append({"from": a, "to": b, "label": elabel(d), "w": d["weight"],
                           "ev": [{"t": e["text"], "d": e["doc"]} for e in d["evidence"][:4]]})
     return {"nodes": nodes, "edges": edges, "colors": COLORS}
 

@@ -7,13 +7,13 @@ A collection of custom Claude Code skills.
 Builds a knowledge-graph engine over a personal research library that integrates with Claude and other models. It follows Anthropic's cookbook `capabilities/knowledge_graph` (structured-output NER + relation extraction → entity resolution → hub summaries → multi-hop Graph-RAG), hardened for a corpus of about 1,000 papers.
 
 - Ontology gate (`Literal` enums for types and predicates), an immutable SQLite raw store with an LLM cache, and a graph derived on load. Edge weight = the number of distinct supporting documents, after duplicate-document detection (shingle Jaccard + body-sample guard).
-- Two-stage entity resolution: normalization + unambiguous-acronym linking, then LLM clustering inside rapidfuzz candidate blocks. It never joins two full names through a shared acronym.
-- Queries: fuzzy search, k-hop neighbors, multi-hop paths, Cypher-like patterns (`(INTERVENTION)-[INCREASES|IMPROVES]->(BIOMARKER)-[PREDICTS]->(*)`), an evidence matrix, contradictions, Louvain communities, and Graph-RAG answers with cited edges and gaps.
+- Two-stage entity resolution: normalization + unambiguous-acronym linking, then LLM clustering inside rapidfuzz candidate blocks. It never joins two full names through a shared acronym. Curated merge rules encode domain decisions, and every claim carries an acute / chronic `timescale`, so contradictions are compared like-for-like.
+- Queries: fuzzy search, k-hop neighbors, multi-hop paths, Cypher-like patterns (`(INTERVENTION)-[INCREASES|IMPROVES]->(BIOMARKER)-[PREDICTS]->(*)`), an evidence matrix, contradictions, Louvain communities, and Graph-RAG answers with cited edges and gaps (seed-aware context ranking).
 - Integrations: CLI, FastAPI REST (`/docs`), an MCP server (10 tools) for Claude Code / Desktop, vis-network HTML, and GraphML / JSON / Cypher (Neo4j) export.
 - Model-agnostic: headless `claude -p --json-schema` on the Claude login (no API key), the Anthropic API, Ollama, or any OpenAI-compatible endpoint.
 - Reference build: physical activity × neurocognitive aging (EEG/MEG/ERP, neuroimaging). 1,010 docs ingested and 168 duplicates found; a 294-chunk pilot (US$1.61) gave 1,957 entities, 3,853 claims and 30 contradictions. 6 offline tests.
 - 27 measured pitfalls, e.g. duplicate PDFs inflating evidence counts, Elsevier copyright pages as dedup false positives, the "Exhaustive exercise (EE)" vs "Enriched environment (EE)" acronym over-merge, `--max-chunks 3` missing results sections, hub edges crowding Graph-RAG context, and mcp 2.x renaming `FastMCP`.
-- Skill folder: `knowledge-graph-engine/` (start with `SKILL.md`; pitfalls in `references/pitfalls.md`; package in `scripts/`)
+- Skill folder: `knowledge-graph-engine/` (start with `SKILL.md`; 36 pitfalls in `references/pitfalls.md`; package in `scripts/`)
 - Bundle: `knowledge-graph-engine.skill`
 - Session wrap-up: `2026-11-27_Knowledge_Graph_Engine_Lessons_and_Pitfalls.md`
 

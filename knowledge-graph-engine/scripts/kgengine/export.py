@@ -16,7 +16,7 @@ def _flat(kg):
                    mentions=d["mentions"], n_docs=len(d["docs"]),
                    summary=(d.get("profile") or {}).get("summary", ""))
     for a, b, k, d in kg.G.edges(keys=True, data=True):
-        H.add_edge(a, b, key=k, predicate=k, weight=d["weight"],
+        H.add_edge(a, b, key=k, predicate=d["predicate"], timescale=d["timescale"], weight=d["weight"],
                    evidence=" || ".join(f"{e['text']} <{e['doc']}>" for e in d["evidence"][:5]))
     return H
 
@@ -40,6 +40,7 @@ def export(kg, fmt: str = "graphml", out: str | None = None) -> Path:
                          f"e.aliases={_cy(d['aliases'])}, e.n_docs={d['n_docs']};")
         for a, b, k, d in H.edges(keys=True, data=True):
             lines.append(f"MATCH (a:Entity {{name:{_cy(a)}}}),(b:Entity {{name:{_cy(b)}}}) "
-                         f"MERGE (a)-[r:{k}]->(b) SET r.weight={d['weight']}, r.evidence={_cy(d['evidence'])};")
+                         f"MERGE (a)-[r:{d['predicate']} {{timescale:{_cy(d['timescale'])}}}]->(b) "
+                         f"SET r.weight={d['weight']}, r.evidence={_cy(d['evidence'])};")
         out.write_text("\n".join(lines), encoding="utf-8")
     return out
